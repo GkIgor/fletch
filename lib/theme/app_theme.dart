@@ -11,11 +11,15 @@ class AppTheme {
 
   /// Tema claro
   static ThemeData light() {
+    final base = ThemeData.light(useMaterial3: true);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: GoogleFonts.inter().fontFamily,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.backgroundLight,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      typography: Typography.material2021(platform: base.platform),
 
       // Color scheme
       colorScheme: const ColorScheme.light(
@@ -160,11 +164,15 @@ class AppTheme {
 
   /// Tema escuro
   static ThemeData dark() {
+    final base = ThemeData.dark(useMaterial3: true);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: GoogleFonts.inter().fontFamily,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.backgroundDark,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      typography: Typography.material2021(platform: base.platform),
 
       // Color scheme
       colorScheme: const ColorScheme.dark(

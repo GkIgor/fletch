@@ -4,6 +4,7 @@ import 'package:gk_http_client/models/http_request.dart';
 import 'package:gk_http_client/providers/request_provider.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/theme/app_theme.dart';
+import 'package:gk_http_client/widgets/key_value_editor.dart';
 import 'package:provider/provider.dart';
 
 class RequestEditor extends StatefulWidget {
@@ -15,9 +16,9 @@ class RequestEditor extends StatefulWidget {
   State<RequestEditor> createState() => _RequestEditorState();
 }
 
-class _RequestEditorState extends State<RequestEditor>
-    with SingleTickerProviderStateMixin {
+class _RequestEditorState extends State<RequestEditor> with SingleTickerProviderStateMixin {
   late TextEditingController _urlController;
+  late TextEditingController _bodyController;
   late TabController _tabController;
   late HttpMethod _method;
   bool _isFavorite = false;
@@ -26,6 +27,7 @@ class _RequestEditorState extends State<RequestEditor>
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.request.url);
+    _bodyController = TextEditingController(text: widget.request.body);
     _method = widget.request.method;
     _tabController = TabController(length: 3, vsync: this);
   }
@@ -35,6 +37,7 @@ class _RequestEditorState extends State<RequestEditor>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.request.id != widget.request.id) {
       _urlController.text = widget.request.url;
+      _bodyController.text = widget.request.body ?? '';
       _method = widget.request.method;
     }
   }
@@ -42,19 +45,20 @@ class _RequestEditorState extends State<RequestEditor>
   @override
   void dispose() {
     _urlController.dispose();
+    _bodyController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  void _onSave() {
+  void _onSave({Map<String, String>? params, Map<String, String>? headers, String? body}) {
     final updatedRequest = widget.request.copyWith(
       url: _urlController.text,
       method: _method,
+      queryParams: params ?? widget.request.queryParams,
+      headers: headers ?? widget.request.headers,
+      body: body ?? _bodyController.text,
     );
-    Provider.of<RequestProvider>(
-      context,
-      listen: false,
-    ).updateSelectedRequest(updatedRequest);
+    Provider.of<RequestProvider>(context, listen: false).updateSelectedRequest(updatedRequest);
   }
 
   @override
@@ -68,31 +72,24 @@ class _RequestEditorState extends State<RequestEditor>
         children: [
           // Main Action Bar: [URL BAR] [SEND] [SAVE]
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 24.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
             child: Row(
               children: [
                 // URL Bar (Expanded)
                 Expanded(
                   child: Container(
-                    height: 46, // Increased to match professional desktop feel
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surfaceDark
-                          : AppColors.surfaceLight,
+                      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                       borderRadius: BorderRadius.circular(8.0),
                       border: Border.all(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
                         width: 1.2,
                       ),
                     ),
                     child: Row(
                       children: [
-                        // Method Selector (Purely transparent)
+                        // Method Selector
                         Container(
                           width: 90,
                           padding: const EdgeInsets.only(left: 12),
@@ -101,9 +98,7 @@ class _RequestEditorState extends State<RequestEditor>
                               value: _method,
                               isExpanded: true,
                               icon: const Icon(Icons.arrow_drop_down, size: 20),
-                              dropdownColor: isDark
-                                  ? AppColors.surfaceDark
-                                  : AppColors.surfaceLight,
+                              dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                               items: HttpMethod.values.map((method) {
                                 return DropdownMenuItem(
                                   value: method,
@@ -132,9 +127,7 @@ class _RequestEditorState extends State<RequestEditor>
                           thickness: 1,
                           indent: 12,
                           endIndent: 12,
-                          color: isDark
-                              ? AppColors.borderDark
-                              : AppColors.borderLight,
+                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
                         ),
 
                         // URL Input
@@ -143,9 +136,7 @@ class _RequestEditorState extends State<RequestEditor>
                             controller: _urlController,
                             style: TextStyle(
                               fontSize: 14,
-                              color: isDark
-                                  ? AppColors.textDark
-                                  : AppColors.textLight,
+                              color: isDark ? AppColors.textDark : AppColors.textLight,
                             ),
                             decoration: const InputDecoration(
                               hintText: 'https://api.example.com/v1/resource',
@@ -166,13 +157,9 @@ class _RequestEditorState extends State<RequestEditor>
                             setState(() => _isFavorite = !_isFavorite);
                           },
                           icon: Icon(
-                            _isFavorite
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
+                            _isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
                             size: 20,
-                            color: _isFavorite
-                                ? Colors.amber
-                                : AppColors.slate400,
+                            color: _isFavorite ? Colors.amber : AppColors.slate400,
                           ),
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
@@ -185,7 +172,7 @@ class _RequestEditorState extends State<RequestEditor>
 
                 const SizedBox(width: 12),
 
-                // Send Button [send >]
+                // Send Button
                 ElevatedButton(
                   onPressed: () {
                     // TODO: Execute request
@@ -195,7 +182,7 @@ class _RequestEditorState extends State<RequestEditor>
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    minimumSize: const Size(0, 54), // Height matched to URL bar
+                    minimumSize: const Size(0, 46),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -205,10 +192,7 @@ class _RequestEditorState extends State<RequestEditor>
                     children: const [
                       Text(
                         'Send',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(width: 8),
                       Icon(Icons.send_rounded, size: 16),
@@ -218,28 +202,26 @@ class _RequestEditorState extends State<RequestEditor>
 
                 const SizedBox(width: 4),
 
-                // Save Button (TRANSPARENT, NO BORDER)
+                // Save Button
                 IconButton(
-                  onPressed: _onSave,
+                  onPressed: () => _onSave(),
                   icon: Icon(
                     Icons.save_outlined,
-                    size: 26,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
+                    size: 22,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
                   tooltip: 'Save',
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     padding: const EdgeInsets.all(8),
-                    minimumSize: const Size(46, 46), // Size matched to others
+                    minimumSize: const Size(46, 46),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Configuration Tabs (Offset to align with Method text)
+          // Tabs
           Container(
             padding: const EdgeInsets.only(left: 12),
             child: TabBar(
@@ -250,20 +232,13 @@ class _RequestEditorState extends State<RequestEditor>
               unselectedLabelColor: AppColors.slate500,
               indicatorColor: AppColors.primary,
               indicatorSize: TabBarIndicatorSize.label,
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.normal,
-              ),
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               dividerColor: Colors.transparent,
               labelPadding: const EdgeInsets.symmetric(horizontal: 16),
               tabs: const [
-                Tab(text: 'Query'), // Params
+                Tab(text: 'Params'),
                 Tab(text: 'Headers'),
-                Tab(text: 'Auth'),
                 Tab(text: 'Body'),
               ],
             ),
@@ -276,10 +251,19 @@ class _RequestEditorState extends State<RequestEditor>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildParamsTab(),
-                _buildHeadersTab(),
-                _buildAuthTab(),
-                _buildBodyTab(),
+                KeyValueEditor(
+                  key: ValueKey('params_${widget.request.id}'),
+                  initialValues: widget.request.queryParams,
+                  onChanged: (params) => _onSave(params: params),
+                  keyHint: 'Parameter',
+                ),
+                KeyValueEditor(
+                  key: ValueKey('headers_${widget.request.id}'),
+                  initialValues: widget.request.headers,
+                  onChanged: (headers) => _onSave(headers: headers),
+                  keyHint: 'Header',
+                ),
+                _buildBodyTab(isDark),
               ],
             ),
           ),
@@ -290,34 +274,46 @@ class _RequestEditorState extends State<RequestEditor>
 
   Color _getMethodColor(HttpMethod method) {
     switch (method) {
-      case HttpMethod.get:
-        return AppColors.methodGet;
-      case HttpMethod.post:
-        return AppColors.methodPost;
-      case HttpMethod.put:
-        return AppColors.methodPut;
-      case HttpMethod.delete:
-        return AppColors.methodDelete;
-      case HttpMethod.patch:
-        return AppColors.methodPatch;
+      case HttpMethod.get: return AppColors.methodGet;
+      case HttpMethod.post: return AppColors.methodPost;
+      case HttpMethod.put: return AppColors.methodPut;
+      case HttpMethod.delete: return AppColors.methodDelete;
+      case HttpMethod.patch: return AppColors.methodPatch;
     }
   }
 
-  Widget _buildParamsTab() {
-    return const Center(child: Text('Query Parameters Editor'));
-  }
-
-  Widget _buildHeadersTab() {
-    return const Center(child: Text('Headers Editor'));
-  }
-
-  Widget _buildBodyTab() {
-    return const Center(child: Text('Body Editor (JSON, Text, etc.)'));
-  }
-
-  Widget _buildAuthTab() {
-    return const Center(
-      child: Text('Authentication Editor (Basic, Bearer, etc.)'),
+  Widget _buildBodyTab(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _bodyController,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        style: AppTheme.codeStyle(
+          fontSize: 13,
+          color: isDark ? AppColors.textDark : AppColors.textLight,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Enter request body...',
+          hintStyle: TextStyle(color: AppColors.slate500, fontSize: 13),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: AppColors.primary),
+          ),
+          filled: true,
+          fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        ),
+        onChanged: (val) => _onSave(body: val),
+      ),
     );
   }
 }

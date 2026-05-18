@@ -69,7 +69,7 @@ class _ResponseViewerState extends State<ResponseViewer> with SingleTickerProvid
               indicatorColor: AppColors.primary,
               indicatorSize: TabBarIndicatorSize.label,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               dividerColor: Colors.transparent,
               tabs: const [
                 Tab(text: 'Response Body'),
