@@ -10,6 +10,8 @@ import 'package:gk_http_client/providers/request_provider.dart';
 import 'package:gk_http_client/providers/theme_provider.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/views/request_sidebar.dart';
+import 'package:gk_http_client/widgets/request_editor.dart';
+import 'package:gk_http_client/widgets/response_viewer.dart';
 import 'package:gk_http_client/widgets/empty_request_editor.dart';
 
 class WorkspaceScreen extends StatefulWidget {
@@ -91,9 +93,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 // Request Editor / Response Area
                 Expanded(
                   child: requestProvider.selectedRequest != null
-                      ? Center(
-                          child: Text('Request Editor Placeholder'),
-                        ) // TODO: Implement RequestEditor
+                      ? Column(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: RequestEditor(
+                                request: requestProvider.selectedRequest!,
+                              ),
+                            ),
+                            if (requestProvider.currentResponse != null)
+                              Expanded(
+                                flex: 2,
+                                child: ResponseViewer(
+                                  response: requestProvider.currentResponse!,
+                                ),
+                              ),
+                          ],
+                        )
                       : const EmptyRequestEditor(),
                 ),
               ],

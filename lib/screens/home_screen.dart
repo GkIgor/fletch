@@ -155,15 +155,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  PopupMenuButton(
+                    PopupMenuButton(
                     icon: Icon(Icons.more_horiz, color: AppColors.slate400),
                     itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit'),
+                      ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Text('Delete'),
                       ),
                     ],
-                    onSelected: onDelete,
+                    onSelected: (value) {
+                      final provider = Provider.of<WorkspaceProvider>(context, listen: false);
+                      if (value == 'edit') {
+                        _showEditWorkspaceDialog(context, provider, workspace);
+                      } else if (value == 'delete') {
+                        provider.removeWorkspace(workspace.id);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -292,6 +303,47 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditWorkspaceDialog(
+    BuildContext context,
+    WorkspaceProvider workspaceProvider,
+    WorkspaceModel workspace,
+  ) {
+    final controller = TextEditingController(text: workspace.name);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Workspace'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Workspace Name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                await workspaceProvider.updateWorkspaceName(
+                  workspace.id,
+                  controller.text,
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

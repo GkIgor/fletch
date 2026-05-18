@@ -69,6 +69,56 @@ class WorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateWorkspaceName(String workspaceId, String newName) async {
+    final ws = _workspaces[workspaceId];
+
+    if (ws != null) {
+      ws.name = newName;
+      await _repository.save(ws);
+      notifyListeners();
+    }
+  }
+
+  Future<void> selectEnvironment(String? environmentId) async {
+    if (_currentWorkspace != null) {
+      _currentWorkspace!.selectedEnvironmentId = environmentId;
+      await _repository.save(_currentWorkspace!);
+      notifyListeners();
+    }
+  }
+
+  Future<void> addEnvironment(String name) async {
+    if (_currentWorkspace != null) {
+      final env = EnvironmentModel(name: name);
+      _currentWorkspace!.environments.add(env);
+      await _repository.save(_currentWorkspace!);
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeEnvironment(String environmentId) async {
+    if (_currentWorkspace != null) {
+      _currentWorkspace!.environments.removeWhere((e) => e.id == environmentId);
+      if (_currentWorkspace!.selectedEnvironmentId == environmentId) {
+        _currentWorkspace!.selectedEnvironmentId = null;
+      }
+      await _repository.save(_currentWorkspace!);
+      notifyListeners();
+    }
+  }
+
+  EnvironmentModel? get activeEnvironment {
+    if (_currentWorkspace == null) return null;
+    if (_currentWorkspace!.selectedEnvironmentId == null) return null;
+    try {
+      return _currentWorkspace!.environments.firstWhere(
+        (e) => e.id == _currentWorkspace!.selectedEnvironmentId,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   void openWorkspace(String ws) {
     final workspace = _workspaces[ws];
 
