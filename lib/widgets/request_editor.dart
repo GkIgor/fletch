@@ -3,8 +3,8 @@ import 'package:gk_http_client/models/http_method.dart';
 import 'package:gk_http_client/models/http_request.dart';
 import 'package:gk_http_client/providers/request_provider.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/theme/app_theme.dart';
 import 'package:gk_http_client/widgets/key_value_editor.dart';
+import 'package:gk_http_client/widgets/body_editor.dart';
 import 'package:provider/provider.dart';
 
 class RequestEditor extends StatefulWidget {
@@ -18,7 +18,6 @@ class RequestEditor extends StatefulWidget {
 
 class _RequestEditorState extends State<RequestEditor> with SingleTickerProviderStateMixin {
   late TextEditingController _urlController;
-  late TextEditingController _bodyController;
   late TabController _tabController;
   late HttpMethod _method;
   bool _isFavorite = false;
@@ -27,7 +26,6 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.request.url);
-    _bodyController = TextEditingController(text: widget.request.body);
     _method = widget.request.method;
     _tabController = TabController(length: 3, vsync: this);
   }
@@ -37,7 +35,6 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
     super.didUpdateWidget(oldWidget);
     if (oldWidget.request.id != widget.request.id) {
       _urlController.text = widget.request.url;
-      _bodyController.text = widget.request.body ?? '';
       _method = widget.request.method;
     }
   }
@@ -45,18 +42,23 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
   @override
   void dispose() {
     _urlController.dispose();
-    _bodyController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  void _onSave({Map<String, String>? params, Map<String, String>? headers, String? body}) {
+  void _onSave({
+    Map<String, String>? params,
+    Map<String, String>? headers,
+    String? body,
+    BodyType? bodyType,
+  }) {
     final updatedRequest = widget.request.copyWith(
       url: _urlController.text,
       method: _method,
       queryParams: params ?? widget.request.queryParams,
       headers: headers ?? widget.request.headers,
-      body: body ?? _bodyController.text,
+      body: body ?? widget.request.body,
+      bodyType: bodyType ?? widget.request.bodyType,
     );
     Provider.of<RequestProvider>(context, listen: false).updateSelectedRequest(updatedRequest);
   }
@@ -66,7 +68,7 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -244,7 +246,7 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
             ),
           ),
 
-          const Divider(height: 1),
+          const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
 
           // Tab Content
           Expanded(
@@ -263,7 +265,14 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
                   onChanged: (headers) => _onSave(headers: headers),
                   keyHint: 'Header',
                 ),
-                _buildBodyTab(isDark),
+                BodyEditor(
+                  key: ValueKey('body_${widget.request.id}'),
+                  request: widget.request,
+                  onChanged: (updatedRequest) {
+                    Provider.of<RequestProvider>(context, listen: false)
+                        .updateSelectedRequest(updatedRequest);
+                  },
+                ),
               ],
             ),
           ),
@@ -280,40 +289,5 @@ class _RequestEditorState extends State<RequestEditor> with SingleTickerProvider
       case HttpMethod.delete: return AppColors.methodDelete;
       case HttpMethod.patch: return AppColors.methodPatch;
     }
-  }
-
-  Widget _buildBodyTab(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _bodyController,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: AppTheme.codeStyle(
-          fontSize: 13,
-          color: isDark ? AppColors.textDark : AppColors.textLight,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Enter request body...',
-          hintStyle: TextStyle(color: AppColors.slate500, fontSize: 13),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: AppColors.primary),
-          ),
-          filled: true,
-          fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        ),
-        onChanged: (val) => _onSave(body: val),
-      ),
-    );
   }
 }
