@@ -174,21 +174,23 @@ class _BodyEditorState extends State<BodyEditor> {
             Container(
               width: 40,
               padding: const EdgeInsets.only(top: 16),
-              // color: AppColors.slate800,
               color: AppColors.slate800.withValues(alpha: 0.5),
-              child: ListView.builder(
-                controller: _lineNumbersScrollController,
-                itemCount: lineCount,
-                physics: const NeverScrollableScrollPhysics(), // Managed by listener
-                itemBuilder: (context, index) => Container(
-                  height: 19.3, // Match TextField line height approximately
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      color: AppColors.slate400,
-                      fontSize: 14,
-                      fontFamily: 'monospace',
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                child: ListView.builder(
+                  controller: _lineNumbersScrollController,
+                  itemCount: lineCount,
+                  physics: const NeverScrollableScrollPhysics(), // Managed by listener
+                  itemBuilder: (context, index) => Container(
+                    height: 19, // Match TextField line height approximately
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        color: AppColors.slate500,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                 ),
