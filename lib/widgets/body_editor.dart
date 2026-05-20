@@ -182,14 +182,17 @@ class _BodyEditorState extends State<BodyEditor> {
                   itemCount: lineCount,
                   physics: const NeverScrollableScrollPhysics(), // Managed by listener
                   itemBuilder: (context, index) => Container(
-                    height: 19, // Match TextField line height approximately
+                    height: 18, // Match TextField line height approximately
                     alignment: Alignment.center,
+                    margin: const EdgeInsets.symmetric(vertical: .7),
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
                         color: AppColors.slate500,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600
+                        // fontWeight: FontWeight.w800,
+                        // fontFamily: 'monospace',
                       ),
                     ),
                   ),
