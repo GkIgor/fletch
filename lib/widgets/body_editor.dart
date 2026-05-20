@@ -5,6 +5,8 @@ import 'package:gk_http_client/theme/app_theme.dart';
 import 'package:dotted_border/dotted_border.dart' as db;
 import 'package:file_picker/file_picker.dart' as picker;
 import 'package:path/path.dart' as p;
+import 'package:gk_http_client/widgets/code_highlight_controller.dart';
+import 'package:gk_http_client/widgets/code_input_formatter.dart';
 
 enum BodyType { none, json, formData, xml, binary }
 
@@ -23,14 +25,24 @@ class BodyEditor extends StatefulWidget {
 }
 
 class _BodyEditorState extends State<BodyEditor> {
-  late TextEditingController _textController;
+  late CodeHighlightController _textController;
   late ScrollController _textScrollController;
   late ScrollController _lineNumbersScrollController;
+
+  String _getLanguageFromType(BodyType type) {
+    if (type == BodyType.json) return 'json';
+    if (type == BodyType.xml) return 'xml';
+    return 'none';
+  }
 
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController(text: widget.request.body);
+    _textController = CodeHighlightController(
+      text: widget.request.body ?? '',
+      language: _getLanguageFromType(widget.request.bodyType),
+      isDark: true,
+    );
     _textScrollController = ScrollController();
     _lineNumbersScrollController = ScrollController();
 
@@ -77,6 +89,9 @@ class _BodyEditorState extends State<BodyEditor> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    _textController.language = _getLanguageFromType(widget.request.bodyType);
+    _textController.isDark = isDark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,6 +229,9 @@ class _BodyEditorState extends State<BodyEditor> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
+                inputFormatters: [
+                  CodeInputFormatter(),
+                ],
                 style: AppTheme.codeStyle(
                   fontSize: 13,
                   color: Colors.white, // Contrast for code

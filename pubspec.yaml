@@ -42,6 +42,7 @@ dependencies:
 
   # Syntax highlighting
   flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
 
   # Persistência
   hive: ^2.2.3
