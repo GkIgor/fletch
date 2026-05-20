@@ -5,9 +5,11 @@ import 'package:gk_http_client/models/collection_model.dart';
 
 import 'package:gk_http_client/repository/collection_repository.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:gk_http_client/services/http_service.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
+  final HttpService _httpService = HttpService();
 
   List<RequestCollection> _collections = [];
 
@@ -110,6 +112,30 @@ class RequestProvider with ChangeNotifier {
   void setCurrentResponse(HttpResponse? response) {
     _currentResponse = response;
     notifyListeners();
+  }
+
+  Future<void> executeRequest(HttpRequest request) async {
+    _isLoading = true;
+    _currentResponse = null;
+    notifyListeners();
+
+    try {
+      final response = await _httpService.send(request);
+      _currentResponse = response;
+    } catch (e) {
+      debugPrint('Erro inesperado ao enviar requisição: $e');
+      _currentResponse = HttpResponse(
+        statusCode: 0,
+        statusMessage: 'Error',
+        headers: {},
+        body: e.toString(),
+        responseTime: 0,
+        contentLength: 0,
+      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void setLoading(bool loading) {
