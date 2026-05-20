@@ -110,8 +110,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
             padding: const EdgeInsets.only(bottom: 12.0, left: 4),
             child: Row(
               children: [
-                SizedBox(
-                  width: 200,
+                Expanded(
+                  flex: 2,
                   child: Text(
                     widget.keyHint.toUpperCase(),
                     style: TextStyle(
@@ -123,13 +123,16 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                Text(
-                  widget.valueHint.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    color: AppColors.slate500,
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    widget.valueHint.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: AppColors.slate500,
+                    ),
                   ),
                 ),
               ],
@@ -153,8 +156,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Key Field
-                    SizedBox(
-                      width: 200,
+                    Expanded(
+                      flex: 2,
                       child: TextField(
                         controller: row.keyController,
                         onChanged: (val) {
@@ -184,8 +187,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
                     const SizedBox(width: 24),
 
                     // Value Field
-                    SizedBox(
-                      width: 300,
+                    Expanded(
+                      flex: 3,
                       child: TextField(
                         controller: row.valueController,
                         onChanged: (val) {

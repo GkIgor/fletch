@@ -345,6 +345,11 @@ class _RequestEditorState extends State<RequestEditor>
             ),
           ),
 
+          const Divider(
+            height: 1,
+            thickness: 1,
+          ),
+
           // Split Content (Left = Request tabs/editors, Right = Response)
           Expanded(
             child: Row(
@@ -394,8 +399,6 @@ class _RequestEditorState extends State<RequestEditor>
                       const Divider(
                         height: 1,
                         thickness: 1,
-                        indent: 16,
-                        endIndent: 16,
                       ),
 
                       // Tab Content

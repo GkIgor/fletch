@@ -6,7 +6,6 @@ import 'package:gk_http_client/models/http_response.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/theme/app_theme.dart';
 import 'package:gk_http_client/widgets/code_highlight_controller.dart';
-import 'package:gk_http_client/widgets/body_editor.dart'; // Para reutilizar o BodyType enum
 import 'package:file_picker/file_picker.dart' as picker;
 import 'package:path/path.dart' as p;
 
@@ -20,7 +19,7 @@ class ResponseViewer extends StatefulWidget {
 }
 
 class _ResponseViewerState extends State<ResponseViewer> {
-  late BodyType _selectedFormat;
+  late String _selectedTab;
   late CodeHighlightController _textController;
   late ScrollController _textScrollController;
   late ScrollController _lineNumbersScrollController;
@@ -37,8 +36,8 @@ class _ResponseViewerState extends State<ResponseViewer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.response != widget.response) {
       _detectContentType();
-      _textController.language = _getLanguageFromType(_selectedFormat);
-      _textController.text = _getFormattedBody(_selectedFormat);
+      _textController.language = _getLanguageFromTab(_selectedTab);
+      _textController.text = _getFormattedBody(_selectedTab);
     }
   }
 
@@ -53,13 +52,15 @@ class _ResponseViewerState extends State<ResponseViewer> {
   void _detectContentType() {
     final contentType = _getHeaderValue('content-type') ?? _getHeaderValue('Content-Type') ?? '';
     if (contentType.toLowerCase().contains('json')) {
-      _selectedFormat = BodyType.json;
+      _selectedTab = 'JSON';
+    } else if (contentType.toLowerCase().contains('html')) {
+      _selectedTab = 'HTML';
     } else if (contentType.toLowerCase().contains('xml')) {
-      _selectedFormat = BodyType.xml;
+      _selectedTab = 'XML';
     } else if (contentType.toLowerCase().contains('octet-stream') || contentType.toLowerCase().contains('binary')) {
-      _selectedFormat = BodyType.binary;
+      _selectedTab = 'Binary';
     } else {
-      _selectedFormat = BodyType.json; // Default
+      _selectedTab = 'JSON'; // Default fallback
     }
   }
 
@@ -73,8 +74,8 @@ class _ResponseViewerState extends State<ResponseViewer> {
 
   void _initControllers() {
     _textController = CodeHighlightController(
-      text: _getFormattedBody(_selectedFormat),
-      language: _getLanguageFromType(_selectedFormat),
+      text: _getFormattedBody(_selectedTab),
+      language: _getLanguageFromTab(_selectedTab),
       isDark: true,
     );
     _textScrollController = ScrollController();
@@ -87,15 +88,15 @@ class _ResponseViewerState extends State<ResponseViewer> {
     });
   }
 
-  String _getLanguageFromType(BodyType type) {
-    if (type == BodyType.json) return 'json';
-    if (type == BodyType.xml) return 'xml';
+  String _getLanguageFromTab(String tab) {
+    if (tab == 'JSON') return 'json';
+    if (tab == 'XML' || tab == 'HTML') return 'xml'; // HTML highlighting is compatible with xml
     return 'none';
   }
 
-  String _getFormattedBody(BodyType format) {
+  String _getFormattedBody(String tab) {
     if (widget.response.body == null) return '';
-    if (format == BodyType.json) {
+    if (tab == 'JSON') {
       try {
         if (widget.response.body is Map || widget.response.body is List) {
           return const JsonEncoder.withIndent('  ').convert(widget.response.body);
@@ -109,7 +110,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
   }
 
   void _copyToClipboard() {
-    final text = _getFormattedBody(_selectedFormat);
+    final text = _getFormattedBody(_selectedTab);
     if (text.isNotEmpty) {
       Clipboard.setData(ClipboardData(text: text));
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,8 +124,8 @@ class _ResponseViewerState extends State<ResponseViewer> {
 
   Future<void> _saveResponseToFile() async {
     try {
-      final text = _getFormattedBody(_selectedFormat);
-      final extension = _selectedFormat == BodyType.json ? 'json' : (_selectedFormat == BodyType.xml ? 'xml' : 'txt');
+      final text = _getFormattedBody(_selectedTab);
+      final extension = _selectedTab == 'JSON' ? 'json' : (_selectedTab == 'XML' ? 'xml' : (_selectedTab == 'HTML' ? 'html' : 'txt'));
       final result = await picker.FilePicker.platform.saveFile(
         dialogTitle: 'Save Response',
         fileName: 'response.$extension',
@@ -368,7 +369,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     _textController.isDark = isDark;
-    _textController.language = _getLanguageFromType(_selectedFormat);
+    _textController.language = _getLanguageFromTab(_selectedTab);
 
     final lineCount = _textController.text.split('\n').length;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
@@ -379,9 +380,15 @@ class _ResponseViewerState extends State<ResponseViewer> {
       ),
       child: Column(
         children: [
-          // 1. Info Header
-          Padding(
+          // 1. Info Header (Matched to Editor background color)
+          Container(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
+              border: Border(
+                bottom: BorderSide(color: borderColor),
+              ),
+            ),
             child: Row(
               children: [
                 _buildStatusBadge(),
@@ -420,33 +427,32 @@ class _ResponseViewerState extends State<ResponseViewer> {
             ),
           ),
 
-          const Divider(height: 1, thickness: 1),
-
-          // 2. Tab selector (None, JSON, Form Data, XML, Binary)
+          // 2. Tab selector (None, JSON, XML, HTML, Binary)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             alignment: Alignment.centerLeft,
             child: Row(
               children: [
-                _buildTab('None', BodyType.none),
-                _buildTab('JSON', BodyType.json),
-                _buildTab('Form Data', BodyType.formData),
-                _buildTab('XML', BodyType.xml),
-                _buildTab('Binary', BodyType.binary),
+                _buildTab('None'),
+                _buildTab('JSON'),
+                _buildTab('XML'),
+                _buildTab('HTML'),
+                _buildTab('Binary'),
               ],
             ),
           ),
 
-          const Divider(height: 1, thickness: 1),
+          // 3. Tab Divider with horizontal margins (indent and endIndent)
+          Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: borderColor),
 
-          // 3. Response Content Area (Editor styled with line numbers)
+          // 4. Response Content Area (Editor styled with line numbers inside identical BodyEditor box style)
           Expanded(
             child: _buildContentArea(lineCount, borderColor, isDark),
           ),
 
           const Divider(height: 1, thickness: 1),
 
-          // 4. Footer
+          // 5. Footer
           Container(
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -528,14 +534,14 @@ class _ResponseViewerState extends State<ResponseViewer> {
     );
   }
 
-  Widget _buildTab(String label, BodyType format) {
-    final isActive = _selectedFormat == format;
+  Widget _buildTab(String label) {
+    final isActive = _selectedTab == label;
     return InkWell(
       onTap: () {
         setState(() {
-          _selectedFormat = format;
-          _textController.language = _getLanguageFromType(format);
-          _textController.text = _getFormattedBody(format);
+          _selectedTab = label;
+          _textController.language = _getLanguageFromTab(label);
+          _textController.text = _getFormattedBody(label);
         });
       },
       child: Container(
@@ -561,7 +567,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
   }
 
   Widget _buildContentArea(int lineCount, Color borderColor, bool isDark) {
-    if (_selectedFormat == BodyType.none) {
+    if (_selectedTab == 'None') {
       return Center(
         child: Text(
           'No Response Body',
@@ -573,7 +579,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
       );
     }
 
-    if (_selectedFormat == BodyType.binary) {
+    if (_selectedTab == 'Binary') {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -612,67 +618,180 @@ class _ResponseViewerState extends State<ResponseViewer> {
       );
     }
 
-    // JSON, XML, or Form Data (displayed as Text with syntax highlight and line numbers)
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Line Numbers
-        Container(
-          width: 40,
-          padding: const EdgeInsets.only(top: 16),
-          color: isDark ? AppColors.slate900 : AppColors.slate100,
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-            child: ListView.builder(
-              controller: _lineNumbersScrollController,
-              itemCount: lineCount,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) => Container(
-                height: 18,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.symmetric(vertical: 0.7),
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: AppColors.slate500,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+    if (_selectedTab == 'HTML') {
+      return LightweightHtmlViewer(html: _getFormattedBody('HTML'));
+    }
+
+    // JSON or XML: Styled inside the exact same rounded outer container as BodyEditor
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Line Numbers
+              Container(
+                width: 40,
+                padding: const EdgeInsets.only(top: 16),
+                color: isDark ? AppColors.slate800.withValues(alpha: 0.5) : AppColors.slate100,
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                  child: ListView.builder(
+                    controller: _lineNumbersScrollController,
+                    itemCount: lineCount,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) => Container(
+                      height: 18,
+                      alignment: Alignment.center,
+                      margin: const EdgeInsets.symmetric(vertical: 0.7),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: AppColors.slate500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+
+              // Separator border
+              Container(
+                width: 1,
+                color: borderColor,
+              ),
+
+              // Text Area
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  scrollController: _textScrollController,
+                  maxLines: null,
+                  expands: true,
+                  readOnly: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  style: AppTheme.codeStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.all(16),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
 
-        // Separator border
-        Container(
-          width: 1,
-          color: borderColor,
-        ),
+class LightweightHtmlViewer extends StatelessWidget {
+  final String html;
 
-        // Text area
-        Expanded(
-          child: TextField(
-            controller: _textController,
-            scrollController: _textScrollController,
-            maxLines: null,
-            expands: true,
-            readOnly: true,
-            textAlignVertical: TextAlignVertical.top,
-            style: AppTheme.codeStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white : Colors.black,
-            ),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.all(16),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              filled: false,
-            ),
+  const LightweightHtmlViewer({super.key, required this.html});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Extract title
+    final titleMatch = RegExp(r'<title>(.*?)</title>', caseSensitive: false, dotAll: true).firstMatch(html);
+    final title = titleMatch?.group(1)?.trim() ?? '';
+
+    // Extract h1
+    final h1Match = RegExp(r'<h1>(.*?)</h1>', caseSensitive: false, dotAll: true).firstMatch(html);
+    final h1 = h1Match?.group(1)?.trim() ?? '';
+
+    // Extract clean body text
+    String cleanBody = html;
+    cleanBody = cleanBody.replaceAll(RegExp(r'<head>[^]*?</head>', caseSensitive: false), '');
+    cleanBody = cleanBody.replaceAll(RegExp(r'<script[^>]*?>[^]*?</script>', caseSensitive: false), '');
+    cleanBody = cleanBody.replaceAll(RegExp(r'<style[^>]*?>[^]*?</style>', caseSensitive: false), '');
+    cleanBody = cleanBody.replaceAll(RegExp(r'</?(p|div|tr|h1|h2|h3|h4|h5|h6|br|hr)[^>]*?>', caseSensitive: false), '\n');
+    cleanBody = cleanBody.replaceAll(RegExp(r'<[^>]*?>'), '');
+    cleanBody = cleanBody
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&nbsp;', ' ');
+    cleanBody = cleanBody.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).join('\n\n');
+
+    if (cleanBody.length > 2000) {
+      cleanBody = '${cleanBody.substring(0, 2000)}...';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.web_rounded,
+                size: 44,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 16),
+              if (h1.isNotEmpty) ...[
+                Text(
+                  h1,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (title.isNotEmpty && title != h1) ...[
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (cleanBody.isNotEmpty && cleanBody != h1 && cleanBody != title) ...[
+                const Divider(height: 32, indent: 24, endIndent: 24),
+                Text(
+                  cleanBody,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

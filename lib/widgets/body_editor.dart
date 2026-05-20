@@ -99,14 +99,17 @@ class _BodyEditorState extends State<BodyEditor> {
         // Selector Row
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Row(
-            children: [
-              _buildTypeOption('None', BodyType.none),
-              _buildTypeOption('JSON', BodyType.json),
-              _buildTypeOption('Form Data', BodyType.formData),
-              _buildTypeOption('XML', BodyType.xml),
-              _buildTypeOption('Binary', BodyType.binary),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTypeOption('None', BodyType.none),
+                _buildTypeOption('JSON', BodyType.json),
+                _buildTypeOption('Form Data', BodyType.formData),
+                _buildTypeOption('XML', BodyType.xml),
+                _buildTypeOption('Binary', BodyType.binary),
+              ],
+            ),
           ),
         ),
 
