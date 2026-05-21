@@ -4,6 +4,7 @@ import 'package:gk_http_client/providers/workspace_provider.dart';
 import 'package:gk_http_client/services/navigation_service.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/widgets/home_header.dart';
+import 'package:gk_http_client/widgets/dialogs/create_workspace_dialog.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -275,36 +276,10 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     WorkspaceProvider workspaceProvider,
   ) {
-    final controller = TextEditingController();
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create Workspace'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'Workspace Name'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.isNotEmpty) {
-                final ws = WorkspaceModel(name: controller.text);
-                await workspaceProvider.addWorkspace(ws);
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
+      builder: (context) => CreateWorkspaceDialog(
+        workspaceProvider: workspaceProvider,
       ),
     );
   }

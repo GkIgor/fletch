@@ -3,12 +3,14 @@ enum WorkspaceItemType { folder, request }
 class WorkspaceModel {
   final String id;
   String name;
+  String description;
   String icon;
   List<EnvironmentModel> environments = [];
   String? selectedEnvironmentId;
 
   WorkspaceModel({
     required this.name,
+    this.description = '',
     String? id,
     List<EnvironmentModel>? environments,
     this.selectedEnvironmentId,
@@ -20,6 +22,7 @@ class WorkspaceModel {
     return {
       'id': id,
       'name': name,
+      'description': description,
       'icon': icon,
       'environments': environments.map((e) => e.toMap()).toList(),
       'selectedEnvironmentId': selectedEnvironmentId,
@@ -41,8 +44,9 @@ class WorkspaceModel {
 
     return WorkspaceModel(
       name: map['name'],
+      description: map['description'] ?? '',
       id: map['id'],
-      icon: map['icon'],
+      icon: map['icon'] ?? 'folder',
       environments: loadedEnvs,
       selectedEnvironmentId: map['selectedEnvironmentId'],
     );
