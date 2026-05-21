@@ -39,6 +39,7 @@ class WorkspaceProvider extends ChangeNotifier {
 
     final workspaces = await _repository.getAll();
 
+    _workspaces.clear();
     for (var ws in workspaces) {
       _workspaces[ws.id] = ws;
     }
@@ -49,11 +50,13 @@ class WorkspaceProvider extends ChangeNotifier {
 
   Future<void> addWorkspace(WorkspaceModel ws) async {
     await _repository.save(ws);
+    _workspaces[ws.id] = ws;
     notifyListeners();
   }
 
   Future<void> removeWorkspace(String workspace) async {
     await _service.removeWorkspace(workspace);
+    _workspaces.remove(workspace);
     notifyListeners();
   }
 
@@ -121,9 +124,7 @@ class WorkspaceProvider extends ChangeNotifier {
 
   void openWorkspace(String ws) {
     final workspace = _workspaces[ws];
-
-    if (workspace != null) _workspaces.clear();
-
     _currentWorkspace = workspace;
+    notifyListeners();
   }
 }
