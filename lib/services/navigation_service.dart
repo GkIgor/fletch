@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AppRoute { home, workspace }
+enum AppRoute { home, workspace, folders }
 
 class NavigationService {
   static final ValueNotifier<AppRoute> currentRoute = ValueNotifier(
@@ -15,10 +15,13 @@ class NavigationService {
       case AppRoute.workspace:
         currentRoute.value = route;
         break;
+      case AppRoute.folders:
+        currentRoute.value = route;
+        break;
     }
   }
 
   static void goBack() {
-    currentRoute.value = .home;
+    currentRoute.value = AppRoute.home;
   }
 }

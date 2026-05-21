@@ -183,8 +183,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Mock Collection Navigation
-                      _buildSidebarNavButton(Icons.folder_open_rounded, labelColor),
+                      // Folder Overview Navigation
+                      Tooltip(
+                        message: 'Global Folders',
+                        child: GestureDetector(
+                          onTap: () => NavigationService.navigateTo(AppRoute.folders),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.folder_open_rounded,
+                                  color: labelColor.withValues(alpha: 0.6),
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       // Mock Environment Navigation
                       _buildSidebarNavButton(Icons.language_rounded, labelColor),

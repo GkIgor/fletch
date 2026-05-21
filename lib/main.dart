@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gk_http_client/providers/folder_overview_provider.dart';
 import 'package:gk_http_client/providers/user_provider.dart';
 import 'package:gk_http_client/providers/workspace_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gk_http_client/core/app_config.dart';
+import 'package:gk_http_client/screens/folder_overview_screen.dart';
 import 'package:gk_http_client/screens/home_screen.dart';
 import 'package:gk_http_client/screens/workspace_screen.dart';
 import 'package:gk_http_client/services/navigation_service.dart';
@@ -27,6 +29,8 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => WorkspaceProvider()..loadWorkspaces(),
         ),
+        ChangeNotifierProvider(create: (_) => FolderOverviewProvider()),
+
       ],
       child: const Application(),
     ),
@@ -45,6 +49,7 @@ class Application extends StatelessWidget {
       AppRoute.workspace: (context) {
         return WorkspaceScreen();
       },
+      AppRoute.folders: (context) => const FolderOverviewScreen(),
     };
 
     return MaterialApp(

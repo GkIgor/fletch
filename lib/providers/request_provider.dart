@@ -76,6 +76,16 @@ class RequestProvider with ChangeNotifier {
     }
   }
 
+  /// Forces a specific collection to be expanded (used when navigating
+  /// from the global folder overview).
+  void expandCollection(String collectionId) {
+    final index = _collections.indexWhere((c) => c.id == collectionId);
+    if (index != -1 && !_collections[index].isExpanded) {
+      _collections[index] = _collections[index].copyWith(isExpanded: true);
+      notifyListeners();
+    }
+  }
+
   void addRequestToCollection(String collectionId, HttpRequest request) {
     final collection = _collections.firstWhere((c) => c.id == collectionId);
     collection.addRequest(request);
