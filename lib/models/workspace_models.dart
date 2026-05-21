@@ -7,6 +7,8 @@ class WorkspaceModel {
   String icon;
   List<EnvironmentModel> environments = [];
   String? selectedEnvironmentId;
+  final DateTime createdAt;
+  int requestCount;
 
   WorkspaceModel({
     required this.name,
@@ -15,7 +17,10 @@ class WorkspaceModel {
     List<EnvironmentModel>? environments,
     this.selectedEnvironmentId,
     this.icon = 'folder',
+    DateTime? createdAt,
+    this.requestCount = 0,
   }) : id = id ?? "ws_${DateTime.now().microsecondsSinceEpoch}",
+       createdAt = createdAt ?? DateTime.now(),
        environments = environments ?? [EnvironmentModel(name: 'Default')];
 
   Map<String, dynamic> toMap() {
@@ -26,6 +31,8 @@ class WorkspaceModel {
       'icon': icon,
       'environments': environments.map((e) => e.toMap()).toList(),
       'selectedEnvironmentId': selectedEnvironmentId,
+      'createdAt': createdAt.toIso8601String(),
+      'requestCount': requestCount,
     };
   }
 
@@ -49,6 +56,8 @@ class WorkspaceModel {
       icon: map['icon'] ?? 'folder',
       environments: loadedEnvs,
       selectedEnvironmentId: map['selectedEnvironmentId'],
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+      requestCount: map['requestCount'] ?? 0,
     );
   }
 }

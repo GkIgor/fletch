@@ -4,6 +4,7 @@ import 'package:gk_http_client/models/http_response.dart';
 import 'package:gk_http_client/models/collection_model.dart';
 
 import 'package:gk_http_client/repository/collection_repository.dart';
+import 'package:gk_http_client/repository/workspace_repository.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/services/http_service.dart';
 
@@ -20,6 +21,8 @@ class RequestProvider with ChangeNotifier {
   bool _isLoading = false;
 
   String _searchFilter = '';
+  
+  String? _workspaceId;
 
   List<RequestCollection> get collections => _collections;
   HttpRequest? get selectedRequest => _selectedRequest;
@@ -50,6 +53,7 @@ class RequestProvider with ChangeNotifier {
   Future<void> removeCollection(String collectionId) async {
     _collections.removeWhere((c) => c.id == collectionId);
     await _repository.delete(collectionId);
+    await _updateWorkspaceRequestCount();
     notifyListeners();
   }
 
@@ -178,20 +182,39 @@ class RequestProvider with ChangeNotifier {
   }
 
   Future<void> loadCollections(String workspaceId) async {
+    _workspaceId = workspaceId;
     _collections = await _repository.getAll(workspaceId);
 
     if (_collections.isNotEmpty && _collections[0].requests.isNotEmpty) {
       _selectedRequest = _collections[0].requests[0];
     }
 
+    await _updateWorkspaceRequestCount();
     notifyListeners();
   }
 
   Future<void> _saveCollections() async {
     try {
       await _repository.saveAll(_collections);
+      await _updateWorkspaceRequestCount();
     } catch (e) {
       debugPrint('Erro ao salvar coleções: $e');
+    }
+  }
+
+  Future<void> _updateWorkspaceRequestCount() async {
+    final wsId = _workspaceId;
+    if (wsId == null) return;
+    try {
+      final totalRequests = _collections.fold<int>(0, (sum, c) => sum + c.requests.length);
+      final wsRepo = WorkspaceRepository();
+      final ws = await wsRepo.getById(wsId);
+      if (ws != null) {
+        ws.requestCount = totalRequests;
+        await wsRepo.save(ws);
+      }
+    } catch (e) {
+      debugPrint('Erro ao atualizar contador de requests do workspace: $e');
     }
   }
 

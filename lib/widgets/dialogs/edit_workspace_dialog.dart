@@ -2,20 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:gk_http_client/models/workspace_models.dart';
 import 'package:gk_http_client/providers/workspace_provider.dart';
 
-class CreateWorkspaceDialog extends StatefulWidget {
+class EditWorkspaceDialog extends StatefulWidget {
   final WorkspaceProvider workspaceProvider;
+  final WorkspaceModel workspace;
 
-  const CreateWorkspaceDialog({super.key, required this.workspaceProvider});
+  const EditWorkspaceDialog({
+    super.key,
+    required this.workspaceProvider,
+    required this.workspace,
+  });
 
   @override
-  State<CreateWorkspaceDialog> createState() => _CreateWorkspaceDialogState();
+  State<EditWorkspaceDialog> createState() => _EditWorkspaceDialogState();
 }
 
-class _CreateWorkspaceDialogState extends State<CreateWorkspaceDialog> {
+class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
-  String _selectedIcon = 'bolt';
+  late final TextEditingController _nameController;
+  late final TextEditingController _descController;
+  late String _selectedIcon;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.workspace.name);
+    _descController = TextEditingController(text: widget.workspace.description);
+    _selectedIcon = widget.workspace.icon;
+  }
 
   @override
   void dispose() {
@@ -55,7 +68,7 @@ class _CreateWorkspaceDialogState extends State<CreateWorkspaceDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Create New Workspace',
+                    'Edit Workspace',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -227,12 +240,20 @@ class _CreateWorkspaceDialogState extends State<CreateWorkspaceDialog> {
                   ElevatedButton(
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        final ws = WorkspaceModel(
-                          name: _nameController.text.trim(),
-                          description: _descController.text.trim(),
-                          icon: _selectedIcon,
+                        // Update name
+                        await widget.workspaceProvider.updateWorkspaceName(
+                          widget.workspace.id,
+                          _nameController.text.trim(),
                         );
-                        await widget.workspaceProvider.addWorkspace(ws);
+                        // Update icon
+                        await widget.workspaceProvider.updateWorkspaceIcon(
+                          widget.workspace.id,
+                          _selectedIcon,
+                        );
+                        // Update description (custom update)
+                        widget.workspace.description = _descController.text.trim();
+                        await widget.workspaceProvider.addWorkspace(widget.workspace);
+
                         if (context.mounted) {
                           Navigator.pop(context);
                         }
@@ -256,7 +277,7 @@ class _CreateWorkspaceDialogState extends State<CreateWorkspaceDialog> {
                       ),
                     ),
                     child: const Text(
-                      'Create Workspace',
+                      'Save Changes',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

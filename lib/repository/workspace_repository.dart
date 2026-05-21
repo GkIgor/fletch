@@ -56,6 +56,24 @@ class WorkspaceRepository {
     await file.writeAsString(jsonEncode(map));
   }
 
+  Future<WorkspaceModel?> getById(String id) async {
+    final file = File('$_path/$id.json');
+    if (!file.existsSync()) return null;
+    try {
+      final content = await file.readAsString();
+      final Map<String, dynamic> map = jsonDecode(content);
+      final String? fileSignature = map['signature'];
+
+      final dataToValidate = Map<String, dynamic>.from(map)..remove('signature');
+      final String currentHash = SecurityUtils.generateDynamicHash(jsonEncode(dataToValidate));
+
+      if (fileSignature != currentHash) return null;
+      return WorkspaceModel.fromMap(map);
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> delete(String id) async {
     final file = File('$_path/$id.json');
     await file.delete();
