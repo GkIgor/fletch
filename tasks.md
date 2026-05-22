@@ -18,14 +18,14 @@ Checklist de status do projeto e roteiro de implementação.
 
 ## 🚀 O que falta implementar (Essencial)
 - [x] **Request Editor:** Interface para editar Método HTTP, URL, Query Params, Headers e Body.
-- [ ] **Execução de Requisições:** Integração com o pacote `dio` para disparar as chamadas reais.
+- [x] **Execução de Requisições:** Integração com o pacote `dio` para disparar as chamadas reais.
 - [x] **Response Viewer:** Painel para exibir o resultado da requisição.
 - [ ] **Importação/Exportação Oficial:** Único método permitido para mover coleções entre diferentes máquinas, garantindo a re-validação do hash.
 - [x] **Gerenciamento de Workspaces:** Tela funcional para criar, editar e deletar workspaces.
 - [x] **Seletor de Ambientes:** Implementar a lógica real de variáveis de ambiente (Selector funcional).
 
 ## 🛠️ Recursos de um Cliente HTTP Profissional (Roadmap)
-- [ ] **Ambientes (Environments):** Variáveis dinâmicas (ex: `{{base_url}}`).
+- [x] **Ambientes (Environments):** Variáveis dinâmicas (ex: `{{base_url}}`).
 - [ ] **Autenticação:** Suporte a Basic Auth, Bearer Token, API Keys e OAuth2.
 - [ ] **Histórico:** Lista de requisições enviadas recentemente.
 - [ ] **Scripts:** Pre-request e Post-request scripts para automação.
