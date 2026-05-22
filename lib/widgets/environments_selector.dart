@@ -19,7 +19,7 @@ class EnvironmentsSelector extends StatelessWidget {
       offset: const Offset(0, 40),
       onSelected: (envId) {
         if (envId == 'manage') {
-          // TODO: Open environment management dialog
+          wsProvider.isManagingEnvironments = true;
         } else {
           wsProvider.selectEnvironment(envId);
         }
@@ -38,6 +38,12 @@ class EnvironmentsSelector extends StatelessWidget {
                 const Icon(Icons.check, size: 16, color: AppColors.primary)
               else
                 const SizedBox(width: 16),
+              const SizedBox(width: 8),
+              Icon(
+                WorkspaceProvider.icons[env.icon] ?? Icons.language_rounded,
+                size: 14,
+                color: WorkspaceProvider.iconColors[env.icon] ?? AppColors.primary,
+              ),
               const SizedBox(width: 8),
               Text(env.name),
             ],
@@ -63,7 +69,15 @@ class EnvironmentsSelector extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.public, size: 14, color: AppColors.slate500),
+            Icon(
+              activeEnv != null
+                  ? (WorkspaceProvider.icons[activeEnv.icon] ?? Icons.language_rounded)
+                  : Icons.public,
+              size: 14,
+              color: activeEnv != null
+                  ? (WorkspaceProvider.iconColors[activeEnv.icon] ?? AppColors.slate500)
+                  : AppColors.slate500,
+            ),
             const SizedBox(width: 8),
             Text(
               activeEnv?.name ?? 'No Environment',

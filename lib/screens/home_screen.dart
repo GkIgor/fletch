@@ -5,7 +5,9 @@ import 'package:gk_http_client/providers/workspace_provider.dart';
 import 'package:gk_http_client/services/navigation_service.dart';
 import 'package:gk_http_client/widgets/dialogs/create_workspace_dialog.dart';
 import 'package:gk_http_client/widgets/dialogs/edit_workspace_dialog.dart';
+import 'package:gk_http_client/widgets/dialogs/select_workspace_for_environments_dialog.dart';
 import 'package:provider/provider.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -187,7 +189,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildSidebarNavButton(Icons.folder_open_rounded, labelColor),
                       const SizedBox(height: 16),
                       // Mock Environment Navigation
-                      _buildSidebarNavButton(Icons.language_rounded, labelColor),
+                      _buildSidebarNavButton(
+                        Icons.language_rounded,
+                        labelColor,
+                        onTap: () => _showSelectWorkspaceForEnvironmentsDialog(context),
+                      ),
                       const Spacer(),
                       // Settings button
                       _buildSidebarNavButton(Icons.settings_rounded, labelColor),
@@ -457,20 +463,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSidebarNavButton(IconData icon, Color color) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            color: color.withValues(alpha: 0.6),
-            size: 20,
+  Widget _buildSidebarNavButton(IconData icon, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: color.withValues(alpha: 0.6),
+              size: 20,
+            ),
           ),
         ),
       ),
@@ -575,6 +584,13 @@ class _HomeScreenState extends State<HomeScreen> {
         workspaceProvider: workspaceProvider,
         workspace: workspace,
       ),
+    );
+  }
+
+  void _showSelectWorkspaceForEnvironmentsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const SelectWorkspaceForEnvironmentsDialog(),
     );
   }
 

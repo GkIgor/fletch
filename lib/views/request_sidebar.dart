@@ -201,6 +201,8 @@ class _Collection extends StatelessWidget {
             isSelected: isSelected,
             onTap: () {
               provider.selectRequest(request);
+              Provider.of<WorkspaceProvider>(context, listen: false)
+                  .isManagingEnvironments = false;
             },
             onMoreOptions: () {
               // TODO: Request options

@@ -65,11 +65,15 @@ class WorkspaceModel {
 class EnvironmentModel {
   final String id;
   String name;
+  String description;
+  String icon;
   Map<String, WorkspaceSecretKey> variables;
 
   EnvironmentModel({
     String? id,
     required this.name,
+    this.description = '',
+    this.icon = 'language',
     Map<String, WorkspaceSecretKey>? variables,
   }) : id = id ?? "env_${DateTime.now().microsecondsSinceEpoch}",
        variables = variables ?? {};
@@ -78,6 +82,8 @@ class EnvironmentModel {
     return {
       'id': id,
       'name': name,
+      'description': description,
+      'icon': icon,
       'variables': variables.map((k, v) => MapEntry(k, v.toMap())),
     };
   }
@@ -95,6 +101,8 @@ class EnvironmentModel {
     return EnvironmentModel(
       id: map['id'],
       name: map['name'],
+      description: map['description'] ?? '',
+      icon: map['icon'] ?? 'language',
       variables: loadedVars,
     );
   }

@@ -149,9 +149,65 @@ class WorkspaceProvider extends ChangeNotifier {
     }
   }
 
+  bool _isManagingEnvironments = false;
+  bool get isManagingEnvironments => _isManagingEnvironments;
+
+  set isManagingEnvironments(bool value) {
+    _isManagingEnvironments = value;
+    notifyListeners();
+  }
+
   void openWorkspace(String ws) {
     final workspace = _workspaces[ws];
     _currentWorkspace = workspace;
+    _isManagingEnvironments = false;
     notifyListeners();
+  }
+
+  Future<void> addEnvironmentWithNameAndDescription(String name, String description, String icon) async {
+    if (_currentWorkspace != null) {
+      final env = EnvironmentModel(name: name, description: description, icon: icon);
+      _currentWorkspace!.environments.add(env);
+      await _repository.save(_currentWorkspace!);
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateEnvironmentDetails(String envId, String name, String description, String icon) async {
+    if (_currentWorkspace != null) {
+      final index = _currentWorkspace!.environments.indexWhere((e) => e.id == envId);
+      if (index != -1) {
+        _currentWorkspace!.environments[index].name = name;
+        _currentWorkspace!.environments[index].description = description;
+        _currentWorkspace!.environments[index].icon = icon;
+        await _repository.save(_currentWorkspace!);
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> addOrUpdateVariable(String envId, String key, String newKey, WorkspaceSecretKey secretKey) async {
+    if (_currentWorkspace != null) {
+      try {
+        final env = _currentWorkspace!.environments.firstWhere((e) => e.id == envId);
+        if (key != newKey) {
+          env.variables.remove(key);
+        }
+        env.variables[newKey] = secretKey;
+        await _repository.save(_currentWorkspace!);
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> removeVariable(String envId, String key) async {
+    if (_currentWorkspace != null) {
+      try {
+        final env = _currentWorkspace!.environments.firstWhere((e) => e.id == envId);
+        env.variables.remove(key);
+        await _repository.save(_currentWorkspace!);
+        notifyListeners();
+      } catch (_) {}
+    }
   }
 }

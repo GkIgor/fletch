@@ -12,6 +12,7 @@ import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/views/request_sidebar.dart';
 import 'package:gk_http_client/widgets/request_editor.dart';
 import 'package:gk_http_client/widgets/empty_request_editor.dart';
+import 'package:gk_http_client/widgets/environments_management_view.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key});
@@ -89,14 +90,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   color: isDark ? AppColors.borderDark : AppColors.borderLight,
                 ),
 
-                // Request Editor Area
+                // Request Editor Area or Environment Manager Area
                 Expanded(
-                  child: requestProvider.selectedRequest != null
-                      ? RequestEditor(
-                          key: ValueKey(requestProvider.selectedRequest!.id),
-                          request: requestProvider.selectedRequest!,
-                        )
-                      : const EmptyRequestEditor(),
+                  child: wsProvider.isManagingEnvironments
+                      ? const EnvironmentsManagementView()
+                      : requestProvider.selectedRequest != null
+                          ? RequestEditor(
+                              key: ValueKey(requestProvider.selectedRequest!.id),
+                              request: requestProvider.selectedRequest!,
+                            )
+                          : const EmptyRequestEditor(),
                 ),
               ],
             ),
