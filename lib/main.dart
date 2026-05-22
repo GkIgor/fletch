@@ -53,14 +53,12 @@ class Application extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeProvider.themeMode,
-      home: SelectionArea(
-        child: ValueListenableBuilder(
-          valueListenable: NavigationService.currentRoute,
-          builder: (context, route, _) {
-            final builder = routes[route];
-            return builder != null ? builder(context) : const SizedBox();
-          },
-        ),
+      home: ValueListenableBuilder(
+        valueListenable: NavigationService.currentRoute,
+        builder: (context, route, _) {
+          final builder = routes[route];
+          return builder != null ? builder(context) : const SizedBox();
+        },
       ),
     );
   }

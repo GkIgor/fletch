@@ -580,7 +580,7 @@ class _EnvironmentsManagementViewState extends State<EnvironmentsManagementView>
     final textColor = isDark ? Colors.white : AppColors.textLight;
     final secondaryTextColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final sidebarBg = isDark ? AppColors.sidebarDark : AppColors.slate50;
+    final sidebarBg = isDark ? AppColors.surfaceDark : Colors.white;
 
     return Row(
       key: const ValueKey('SplitView'),
@@ -622,52 +622,58 @@ class _EnvironmentsManagementViewState extends State<EnvironmentsManagementView>
               Divider(height: 1, color: borderColor),
               Expanded(
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: workspace.environments.length,
                   itemBuilder: (context, index) {
                     final env = workspace.environments[index];
                     final isCurrentSelected = env.id == selectedEnv.id;
-                    final isActive = workspace.selectedEnvironmentId == env.id;
 
-                    final accentColor = WorkspaceProvider.iconColors[env.icon] ?? AppColors.primary;
+                    final iconData = WorkspaceProvider.icons[env.icon] ?? Icons.language_rounded;
+                    final envColor = WorkspaceProvider.iconColors[env.icon] ?? AppColors.primary;
 
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          _selectedEnvId = env.id;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isCurrentSelected
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : Colors.transparent,
-                          border: Border(
-                            left: BorderSide(
-                              color: isCurrentSelected ? accentColor : Colors.transparent,
-                              width: 3,
-                            ),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedEnvId = env.id;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isCurrentSelected
+                                ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: isCurrentSelected
+                                ? Border.all(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                    width: 1,
+                                  )
+                                : null,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                env.name,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: isCurrentSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isCurrentSelected ? textColor : secondaryTextColor,
+                          child: Row(
+                            children: [
+                              Icon(
+                                iconData,
+                                color: isCurrentSelected ? const Color(0xFF10B981) : envColor.withValues(alpha: 0.7),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  env.name,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isCurrentSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isCurrentSelected ? const Color(0xFF10B981) : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (isActive)
-                              Icon(
-                                Icons.star_rounded,
-                                size: 14,
-                                color: accentColor,
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -799,14 +805,16 @@ class _EnvironmentsManagementViewState extends State<EnvironmentsManagementView>
 
               // Variable Editor Table
               Expanded(
-                child: _VariableListEditor(
-                  key: ValueKey(selectedEnv.id),
-                  envId: selectedEnv.id,
-                  variables: selectedEnv.variables,
-                  wsProvider: wsProvider,
-                  borderColor: borderColor,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
+                child: SingleChildScrollView(
+                  child: _VariableListEditor(
+                    key: ValueKey(selectedEnv.id),
+                    envId: selectedEnv.id,
+                    variables: selectedEnv.variables,
+                    wsProvider: wsProvider,
+                    borderColor: borderColor,
+                    textColor: textColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
                 ),
               ),
             ],
@@ -1313,104 +1321,127 @@ class _VariableListEditorState extends State<_VariableListEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Table Header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.slate800.withValues(alpha: 0.3)
-                : AppColors.slate50,
-            border: Border(bottom: BorderSide(color: widget.borderColor)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Text(
-                  'Name',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: widget.secondaryTextColor),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  'Value',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: widget.secondaryTextColor),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'Type',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: widget.secondaryTextColor),
-                ),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 32,
-                child: Text(
-                  'Actions',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: widget.secondaryTextColor),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tableBg = isDark
+        ? AppColors.slate900.withValues(alpha: 0.3)
+        : Colors.white;
 
-        // Table Rows
-        Expanded(
-          child: widget.variables.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Container(
+            decoration: BoxDecoration(
+              color: tableBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: widget.borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Table Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.slate800.withValues(alpha: 0.3)
+                        : AppColors.slate50,
+                    border: Border(bottom: BorderSide(color: widget.borderColor)),
+                  ),
+                  child: Row(
                     children: [
-                      Icon(
-                        Icons.settings_input_component_rounded,
-                        size: 40,
-                        color: widget.secondaryTextColor.withValues(alpha: 0.5),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          'VARIABLE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.secondaryTextColor,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No variables in this environment.',
-                        style: TextStyle(fontSize: 14, color: widget.secondaryTextColor),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 5,
+                        child: Text(
+                          'VALUE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.secondaryTextColor,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _addEmptyVariable,
-                        icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Variable'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'TYPE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.secondaryTextColor,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'ACTIONS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.secondaryTextColor,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                )
-              : ListView.separated(
+                ),
+
+                // Table Rows
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
                   itemCount: _keysList.length + 1,
-                  separatorBuilder: (context, index) => Divider(height: 1, color: widget.borderColor.withValues(alpha: 0.5)),
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: widget.borderColor.withValues(alpha: 0.5),
+                  ),
                   itemBuilder: (context, index) {
                     if (index == _keysList.length) {
                       // Add Variable button row
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            onPressed: _addEmptyVariable,
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('Add Variable', style: TextStyle(fontWeight: FontWeight.bold)),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                            ),
+                      return InkWell(
+                        onTap: _addEmptyVariable,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 18,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Add New Variable',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -1446,8 +1477,11 @@ class _VariableListEditorState extends State<_VariableListEditor> {
                     );
                   },
                 ),
+              ],
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1542,37 +1576,92 @@ class _VariableRowWidgetState extends State<_VariableRowWidget> {
     }
   }
 
+  Widget _buildTypeBadge(bool isSecret) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isSecret) {
+      final orangeColor = isDark ? Colors.orangeAccent : Colors.orange[800]!;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: orangeColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: orangeColor.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_rounded, size: 12, color: orangeColor),
+            const SizedBox(width: 4),
+            Text(
+              'Secret',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: orangeColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final grayColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: (isDark ? AppColors.slate800 : AppColors.slate100).withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: (isDark ? AppColors.borderDark : AppColors.borderLight).withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.text_fields_rounded, size: 12, color: grayColor),
+            const SizedBox(width: 4),
+            Text(
+              'Text',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: grayColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inputBg = isDark ? Colors.transparent : Colors.white;
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       child: Row(
         children: [
           // Key field
           Expanded(
-            flex: 3,
+            flex: 4,
             child: TextFormField(
               controller: _keyController,
               focusNode: _keyFocusNode,
               onChanged: (_) => _onChanged(),
-              style: TextStyle(fontSize: 13, fontFamily: 'JetBrains Mono', color: widget.textColor),
+              style: const TextStyle(
+                fontSize: 13,
+                fontFamily: 'JetBrains Mono',
+                color: Color(0xFF10B981),
+              ),
               decoration: InputDecoration(
-                filled: true,
-                fillColor: inputBg,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: false,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 hintText: 'VARIABLE_NAME',
-                hintStyle: TextStyle(fontSize: 12, color: widget.secondaryTextColor.withValues(alpha: 0.5)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(color: widget.borderColor.withValues(alpha: 0.7)),
+                hintStyle: TextStyle(
+                  fontSize: 12,
+                  color: widget.secondaryTextColor.withValues(alpha: 0.3),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
               ),
             ),
           ),
@@ -1580,39 +1669,45 @@ class _VariableRowWidgetState extends State<_VariableRowWidget> {
 
           // Value field
           Expanded(
-            flex: 4,
+            flex: 5,
             child: TextFormField(
               controller: _valueController,
               focusNode: _valueFocusNode,
               obscureText: _isSecret && _obscureText,
               onChanged: (_) => _onChanged(),
-              style: TextStyle(fontSize: 13, fontFamily: 'JetBrains Mono', color: widget.textColor),
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'JetBrains Mono',
+                color: widget.textColor,
+              ),
               decoration: InputDecoration(
-                filled: true,
-                fillColor: inputBg,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: false,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 hintText: 'value',
-                hintStyle: TextStyle(fontSize: 12, color: widget.secondaryTextColor.withValues(alpha: 0.5)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(color: widget.borderColor.withValues(alpha: 0.7)),
+                hintStyle: TextStyle(
+                  fontSize: 12,
+                  color: widget.secondaryTextColor.withValues(alpha: 0.3),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
                 suffixIcon: _isSecret
                     ? IconButton(
                         icon: Icon(
                           _obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                           size: 16,
-                          color: widget.secondaryTextColor,
+                          color: widget.secondaryTextColor.withValues(alpha: 0.6),
                         ),
                         onPressed: () {
                           setState(() {
                             _obscureText = !_obscureText;
                           });
                         },
+                        splashRadius: 16,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       )
                     : null,
               ),
@@ -1623,49 +1718,53 @@ class _VariableRowWidgetState extends State<_VariableRowWidget> {
           // Type selector (Text / Secret)
           Expanded(
             flex: 2,
-            child: Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: widget.borderColor.withValues(alpha: 0.7)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<bool>(
-                  value: _isSecret,
-                  dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-                  icon: Icon(Icons.arrow_drop_down, size: 18, color: widget.secondaryTextColor),
-                  style: TextStyle(fontSize: 12, color: widget.textColor, fontWeight: FontWeight.w600),
-                  onChanged: (bool? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _isSecret = newValue;
-                      });
-                      _saveChangesImmediately();
-                    }
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  hoverColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                ),
+                child: PopupMenuButton<bool>(
+                  initialValue: _isSecret,
+                  onSelected: (bool newValue) {
+                    setState(() {
+                      _isSecret = newValue;
+                    });
+                    _saveChangesImmediately();
                   },
-                  items: const [
-                    DropdownMenuItem<bool>(
+                  tooltip: 'Change Type',
+                  offset: const Offset(0, 30),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<bool>(
                       value: false,
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.text_fields_rounded, size: 14, color: AppColors.primary),
-                          SizedBox(width: 6),
-                          Text('Text'),
+                          Icon(Icons.text_fields_rounded, size: 14, color: AppColors.textSecondaryLight),
+                          SizedBox(width: 8),
+                          Text('Text', style: TextStyle(fontSize: 12)),
                         ],
                       ),
                     ),
-                    DropdownMenuItem<bool>(
+                    const PopupMenuItem<bool>(
                       value: true,
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.lock_outline_rounded, size: 14, color: Colors.orangeAccent),
-                          SizedBox(width: 6),
-                          Text('Secret'),
+                          SizedBox(width: 8),
+                          Text('Secret', style: TextStyle(fontSize: 12)),
                         ],
                       ),
                     ),
                   ],
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: _buildTypeBadge(_isSecret),
+                  ),
                 ),
               ),
             ),
@@ -1673,14 +1772,18 @@ class _VariableRowWidgetState extends State<_VariableRowWidget> {
           const SizedBox(width: 16),
 
           // Delete button
-          SizedBox(
-            width: 32,
-            child: IconButton(
-              icon: Icon(Icons.delete_outline_rounded, size: 18, color: widget.secondaryTextColor),
-              onPressed: widget.onDeleted,
-              tooltip: 'Delete row',
-              splashRadius: 18,
-              padding: EdgeInsets.zero,
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 18, color: widget.secondaryTextColor),
+                onPressed: widget.onDeleted,
+                tooltip: 'Delete row',
+                splashRadius: 18,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ),
           ),
         ],
