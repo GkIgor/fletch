@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart' as picker;
 import 'package:path/path.dart' as p;
 import 'package:gk_http_client/widgets/code_highlight_controller.dart';
 import 'package:gk_http_client/widgets/code_input_formatter.dart';
+import 'package:gk_http_client/widgets/interpolated_text_controller.dart';
 
 enum BodyType { none, json, formData, xml, binary }
 
@@ -408,6 +409,31 @@ class _FormDataRow extends StatefulWidget {
 class _FormDataRowState extends State<_FormDataRow> {
   bool _isHovering = false;
   bool _isTrashHovering = false;
+  late final InterpolatedTextController _keyController;
+  late final InterpolatedTextController _valueController;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyController = InterpolatedTextController(text: widget.entry.key);
+    _valueController = InterpolatedTextController(text: widget.entry.value);
+  }
+
+  @override
+  void didUpdateWidget(_FormDataRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.entry != widget.entry) {
+      _keyController.text = widget.entry.key;
+      _valueController.text = widget.entry.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _keyController.dispose();
+    _valueController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -440,7 +466,7 @@ class _FormDataRowState extends State<_FormDataRow> {
             Expanded(
               flex: 3,
               child: TextField(
-                controller: TextEditingController(text: widget.entry.key)..selection = TextSelection.fromPosition(TextPosition(offset: widget.entry.key.length)),
+                controller: _keyController,
                 onChanged: (val) {
                   widget.entry.key = val;
                   widget.onChanged();
@@ -474,7 +500,7 @@ class _FormDataRowState extends State<_FormDataRow> {
                       isDark: widget.isDark,
                     )
                   : TextField(
-                      controller: TextEditingController(text: widget.entry.value)..selection = TextSelection.fromPosition(TextPosition(offset: widget.entry.value.length)),
+                      controller: _valueController,
                       onChanged: (val) {
                         widget.entry.value = val;
                         widget.onChanged();

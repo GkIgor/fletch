@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:gk_http_client/widgets/interpolated_text_controller.dart';
 
 class KeyValueEditor extends StatefulWidget {
   final Map<String, String> initialValues;
@@ -29,8 +30,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
         .map((e) => _RowData(
               key: e.key,
               value: e.value,
-              keyController: TextEditingController(text: e.key),
-              valueController: TextEditingController(text: e.value),
+              keyController: InterpolatedTextController(text: e.key),
+              valueController: InterpolatedTextController(text: e.value),
               focusNode: FocusNode(),
             ))
         .toList();
@@ -67,8 +68,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
 
     setState(() {
       _rows.add(_RowData(
-        keyController: TextEditingController(),
-        valueController: TextEditingController(),
+        keyController: InterpolatedTextController(),
+        valueController: InterpolatedTextController(),
         focusNode: focusNode,
       ));
     });
@@ -228,8 +229,8 @@ class _KeyValueEditorState extends State<KeyValueEditor> {
 class _RowData {
   String key;
   String value;
-  final TextEditingController keyController;
-  final TextEditingController valueController;
+  final InterpolatedTextController keyController;
+  final InterpolatedTextController valueController;
   final FocusNode focusNode;
 
   _RowData({

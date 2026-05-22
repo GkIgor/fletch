@@ -18,20 +18,44 @@ class HttpService {
     ),
   );
 
-  Future<HttpResponse> send(HttpRequest request) async {
+  String _interpolate(String value, Map<String, String>? variables) {
+    if (variables == null || variables.isEmpty) return value;
+    final regex = RegExp(r'\{\{([^}]+)\}\}');
+    return value.replaceAllMapped(regex, (match) {
+      final varName = match.group(1)?.trim() ?? '';
+      return variables[varName] ?? '';
+    });
+  }
+
+  Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables}) async {
     final stopwatch = Stopwatch()..start();
 
     // 1. Validar e preparar URL
-    String url = request.url.trim();
+    String url = _interpolate(request.url, variables).trim();
     if (url.isNotEmpty && !url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'http://$url';
     }
 
-    // 2. Mapear Query Parameters e Headers
-    final Map<String, dynamic> headers = Map<String, dynamic>.from(request.headers);
-    final Map<String, dynamic> queryParams = Map<String, dynamic>.from(request.queryParams);
+    // 2. Mapear Query Parameters e Headers com Interpolação
+    final Map<String, dynamic> headers = {};
+    request.headers.forEach((key, val) {
+      final interpolatedKey = _interpolate(key, variables).trim();
+      final interpolatedVal = _interpolate(val, variables);
+      if (interpolatedKey.isNotEmpty) {
+        headers[interpolatedKey] = interpolatedVal;
+      }
+    });
 
-    // 3. Configurar Body baseado no BodyType
+    final Map<String, dynamic> queryParams = {};
+    request.queryParams.forEach((key, val) {
+      final interpolatedKey = _interpolate(key, variables).trim();
+      final interpolatedVal = _interpolate(val, variables);
+      if (interpolatedKey.isNotEmpty) {
+        queryParams[interpolatedKey] = interpolatedVal;
+      }
+    });
+
+    // 3. Configurar Body baseado no BodyType com Interpolação
     dynamic data;
     try {
       if (request.bodyType == BodyType.json) {
@@ -39,10 +63,11 @@ class HttpService {
           if (!headers.containsKey('content-type') && !headers.containsKey('Content-Type')) {
             headers['Content-Type'] = 'application/json';
           }
+          final interpolatedBody = _interpolate(request.body!, variables);
           try {
-            data = jsonDecode(request.body!);
+            data = jsonDecode(interpolatedBody);
           } catch (_) {
-            data = request.body; // Caso o JSON seja inválido, envia a String bruta
+            data = interpolatedBody; // Caso o JSON seja inválido, envia a String bruta
           }
         }
       } else if (request.bodyType == BodyType.xml) {
@@ -50,36 +75,41 @@ class HttpService {
           if (!headers.containsKey('content-type') && !headers.containsKey('Content-Type')) {
             headers['Content-Type'] = 'application/xml';
           }
-          data = request.body;
+          data = _interpolate(request.body!, variables);
         }
       } else if (request.bodyType == BodyType.formData) {
         final map = <String, dynamic>{};
         for (final entry in request.formData) {
           if (!entry.enabled) continue;
-          if (entry.isFile && entry.value.isNotEmpty) {
-            final file = File(entry.value);
+          final interpolatedKey = _interpolate(entry.key, variables).trim();
+          final interpolatedValue = _interpolate(entry.value, variables);
+          if (interpolatedKey.isEmpty) continue;
+
+          if (entry.isFile && interpolatedValue.isNotEmpty) {
+            final file = File(interpolatedValue);
             if (await file.exists()) {
-              map[entry.key] = await MultipartFile.fromFile(
-                entry.value,
-                filename: p.basename(entry.value),
+              map[interpolatedKey] = await MultipartFile.fromFile(
+                interpolatedValue,
+                filename: p.basename(interpolatedValue),
               );
             } else {
-              throw Exception('Arquivo não encontrado: ${entry.value}');
+              throw Exception('Arquivo não encontrado: $interpolatedValue');
             }
           } else {
-            map[entry.key] = entry.value;
+            map[interpolatedKey] = interpolatedValue;
           }
         }
         data = FormData.fromMap(map);
       } else if (request.bodyType == BodyType.binary) {
         if (request.binaryPath != null && request.binaryPath!.isNotEmpty) {
-          final file = File(request.binaryPath!);
+          final interpolatedPath = _interpolate(request.binaryPath!, variables);
+          final file = File(interpolatedPath);
           if (await file.exists()) {
             data = file.openRead();
             final length = await file.length();
             headers['Content-Length'] = length.toString();
           } else {
-            throw Exception('Arquivo binário não encontrado: ${request.binaryPath}');
+            throw Exception('Arquivo binário não encontrado: $interpolatedPath');
           }
         }
       }

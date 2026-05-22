@@ -118,13 +118,13 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRequest(HttpRequest request) async {
+  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables}) async {
     _isLoading = true;
     _currentResponse = null;
     notifyListeners();
 
     try {
-      final response = await _httpService.send(request);
+      final response = await _httpService.send(request, variables: variables);
       _currentResponse = response;
     } catch (e) {
       debugPrint('Erro inesperado ao enviar requisição: $e');

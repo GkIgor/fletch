@@ -6,6 +6,8 @@ import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/widgets/key_value_editor.dart';
 import 'package:gk_http_client/widgets/body_editor.dart';
 import 'package:gk_http_client/widgets/response_viewer.dart';
+import 'package:gk_http_client/widgets/interpolated_text_controller.dart';
+import 'package:gk_http_client/providers/workspace_provider.dart';
 import 'package:provider/provider.dart';
 
 class RequestEditor extends StatefulWidget {
@@ -19,7 +21,7 @@ class RequestEditor extends StatefulWidget {
 
 class _RequestEditorState extends State<RequestEditor>
     with SingleTickerProviderStateMixin {
-  late TextEditingController _urlController;
+  late InterpolatedTextController _urlController;
   late TabController _tabController;
   late HttpMethod _method;
   bool _isFavorite = false;
@@ -27,7 +29,7 @@ class _RequestEditorState extends State<RequestEditor>
   @override
   void initState() {
     super.initState();
-    _urlController = TextEditingController(text: widget.request.url);
+    _urlController = InterpolatedTextController(text: widget.request.url);
     _method = widget.request.method;
     _tabController = TabController(length: 4, vsync: this);
   }
@@ -290,10 +292,14 @@ class _RequestEditorState extends State<RequestEditor>
                       listen: false,
                     ).selectedRequest;
                     if (currentReq != null) {
+                      final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
+                      final activeEnv = wsProvider.activeEnvironment;
+                      final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
+
                       Provider.of<RequestProvider>(
                         context,
                         listen: false,
-                      ).executeRequest(currentReq);
+                      ).executeRequest(currentReq, variables: variables);
                     }
                   },
                   style: ElevatedButton.styleFrom(
