@@ -162,193 +162,200 @@ class _RequestEditorState extends State<RequestEditor>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Main Action Bar: [URL BAR] [SEND] [SAVE]
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 24.0,
-            ),
-            child: Row(
-              children: [
-                // URL Bar (Expanded)
-                Expanded(
-                  child: Container(
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surfaceDark
-                          : AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // Method Selector
-                        Container(
-                          width: 90,
-                          padding: const EdgeInsets.only(left: 12),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<HttpMethod>(
-                              value: _method,
-                              isExpanded: true,
-                              icon: const Icon(Icons.arrow_drop_down, size: 20),
-                              dropdownColor: isDark
-                                  ? AppColors.surfaceDark
-                                  : AppColors.surfaceLight,
-                              items: HttpMethod.values.map((method) {
-                                return DropdownMenuItem(
-                                  value: method,
-                                  child: Text(
-                                    method.value,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: _getMethodColor(method),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() => _method = value);
-                                  _onSave();
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-
-                        VerticalDivider(
-                          width: 24,
-                          thickness: 1,
-                          indent: 12,
-                          endIndent: 12,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 450;
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 24.0,
+                ),
+                child: Row(
+                  children: [
+                    // URL Bar (Expanded)
+                    Expanded(
+                      child: Container(
+                        height: 46,
+                        decoration: BoxDecoration(
                           color: isDark
-                              ? AppColors.borderDark
-                              : AppColors.borderLight,
+                              ? AppColors.surfaceDark
+                              : AppColors.surfaceLight,
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.borderDark
+                                : AppColors.borderLight,
+                            width: 1.2,
+                          ),
                         ),
-
-                        // URL Input
-                        Expanded(
-                          child: TextField(
-                            controller: _urlController,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark
-                                  ? AppColors.textDark
-                                  : AppColors.textLight,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'https://api.example.com/v1/resource',
-                              hintStyle: TextStyle(
-                                color: AppColors.slate400.withValues(alpha: 0.5),
+                        child: Row(
+                          children: [
+                            // Method Selector
+                            Container(
+                              width: isNarrow ? 75 : 90,
+                              padding: EdgeInsets.only(left: isNarrow ? 8 : 12),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<HttpMethod>(
+                                  value: _method,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.arrow_drop_down, size: 20),
+                                  dropdownColor: isDark
+                                      ? AppColors.surfaceDark
+                                      : AppColors.surfaceLight,
+                                  items: HttpMethod.values.map((method) {
+                                    return DropdownMenuItem(
+                                      value: method,
+                                      child: Text(
+                                        method.value,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: _getMethodColor(method),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() => _method = value);
+                                      _onSave();
+                                    }
+                                  },
+                                ),
                               ),
-                              contentPadding: EdgeInsets.zero,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              filled: false,
-                              isDense: true,
                             ),
-                            onChanged: (_) => _onSave(),
-                          ),
-                        ),
 
-                        // Favorite Icon
-                        IconButton(
-                          onPressed: () {
-                            setState(() => _isFavorite = !_isFavorite);
-                          },
-                          icon: Icon(
-                            _isFavorite
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            size: 20,
-                            color: _isFavorite
-                                ? Colors.amber
-                                : AppColors.slate400,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ),
-                  ),
-                ),
+                            VerticalDivider(
+                              width: 24,
+                              thickness: 1,
+                              indent: 12,
+                              endIndent: 12,
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.borderLight,
+                            ),
 
-                const SizedBox(width: 12),
+                            // URL Input
+                            Expanded(
+                              child: TextField(
+                                controller: _urlController,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? AppColors.textDark
+                                      : AppColors.textLight,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'https://api.example.com/v1/resource',
+                                  hintStyle: TextStyle(
+                                    color: AppColors.slate400.withValues(alpha: 0.5),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  filled: false,
+                                  isDense: true,
+                                ),
+                                onChanged: (_) => _onSave(),
+                              ),
+                            ),
 
-                // Send Button
-                ElevatedButton(
-                  onPressed: () {
-                    _onSave();
-                    final currentReq = Provider.of<RequestProvider>(
-                      context,
-                      listen: false,
-                    ).selectedRequest;
-                    if (currentReq != null) {
-                      final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
-                      final activeEnv = wsProvider.activeEnvironment;
-                      final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
-
-                      Provider.of<RequestProvider>(
-                        context,
-                        listen: false,
-                      ).executeRequest(currentReq, variables: variables);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    minimumSize: const Size(0, 46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text(
-                        'Send',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                            // Favorite Icon
+                            IconButton(
+                              onPressed: () {
+                                setState(() => _isFavorite = !_isFavorite);
+                              },
+                              icon: Icon(
+                                _isFavorite
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                size: 20,
+                                color: _isFavorite
+                                    ? Colors.amber
+                                    : AppColors.slate400,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.send_rounded, size: 16),
-                    ],
-                  ),
-                ),
+                    ),
 
-                const SizedBox(width: 4),
+                    const SizedBox(width: 12),
 
-                // Save Button
-                IconButton(
-                  onPressed: () => _onSave(),
-                  icon: Icon(
-                    Icons.save_outlined,
-                    size: 22,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                  ),
-                  tooltip: 'Save',
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    padding: const EdgeInsets.all(8),
-                    minimumSize: const Size(46, 46),
-                  ),
+                    // Send Button
+                    ElevatedButton(
+                      onPressed: () {
+                        _onSave();
+                        final currentReq = Provider.of<RequestProvider>(
+                          context,
+                          listen: false,
+                        ).selectedRequest;
+                        if (currentReq != null) {
+                          final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
+                          final activeEnv = wsProvider.activeEnvironment;
+                          final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
+
+                          Provider.of<RequestProvider>(
+                            context,
+                            listen: false,
+                          ).executeRequest(currentReq, variables: variables);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 20),
+                        minimumSize: const Size(0, 46),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      child: isNarrow
+                          ? const Icon(Icons.send_rounded, size: 16)
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text(
+                                  'Send',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.send_rounded, size: 16),
+                              ],
+                            ),
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // Save Button
+                    IconButton(
+                      onPressed: () => _onSave(),
+                      icon: Icon(
+                        Icons.save_outlined,
+                        size: 22,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                      tooltip: 'Save',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(46, 46),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
 
           const Divider(

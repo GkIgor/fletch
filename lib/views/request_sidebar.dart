@@ -18,7 +18,8 @@ import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
 import 'package:gk_http_client/utils/converters/yaml_helper.dart';
 
 class RequestSidebar extends StatefulWidget {
-  const RequestSidebar({super.key});
+  final double width;
+  const RequestSidebar({super.key, this.width = 280.0});
 
   @override
   State<RequestSidebar> createState() => _RequestSidebarState();
@@ -57,7 +58,7 @@ class _RequestSidebarState extends State<RequestSidebar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      width: 280,
+      width: widget.width,
       color: isDark ? AppColors.sidebarDark : AppColors.slate50,
       child: Column(
         children: [
@@ -322,12 +323,16 @@ class _SidebarFooterActions extends StatelessWidget {
                     children: [
                       Icon(Icons.add_rounded, size: 16, color: AppColors.slate500),
                       const SizedBox(width: 4),
-                      Text(
-                        'New Collection',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.slate500,
+                      Flexible(
+                        child: Text(
+                          'New Collection',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.slate500,
+                          ),
                         ),
                       ),
                     ],

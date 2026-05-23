@@ -22,6 +22,7 @@ class WorkspaceScreen extends StatefulWidget {
 }
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
+  double _sidebarWidth = 280.0;
   @override
   Widget build(BuildContext context) {
     final wsProvider = Provider.of<WorkspaceProvider>(context);
@@ -81,13 +82,28 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             child: Row(
               children: [
                 // Sidebar
-                const RequestSidebar(),
+                RequestSidebar(width: _sidebarWidth),
 
-                // Vertical Divider
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                // Resizable Vertical Divider / Resize Handle
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onHorizontalDragUpdate: (details) {
+                    setState(() {
+                      _sidebarWidth = (_sidebarWidth + details.delta.dx).clamp(180.0, 500.0);
+                    });
+                  },
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.resizeColumn,
+                    child: SizedBox(
+                      width: 8,
+                      child: Center(
+                        child: Container(
+                          width: 1,
+                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
 
                 // Request Editor Area or Environment Manager Area
