@@ -300,6 +300,16 @@ class _CollectionFolderState extends State<CollectionFolder> {
 
     return [
       PopupMenuItem(
+        onTap: () => provider.startCollectionRun(widget.collection),
+        child: Row(
+          children: [
+            Icon(Icons.play_circle_outline_rounded, size: 16, color: color),
+            const SizedBox(width: 8),
+            const Text('Run Folder'),
+          ],
+        ),
+      ),
+      PopupMenuItem(
         onTap: () => _createNewRequest(context, provider),
         child: Row(
           children: [

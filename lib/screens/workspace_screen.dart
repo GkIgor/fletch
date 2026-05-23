@@ -13,6 +13,7 @@ import 'package:gk_http_client/views/request_sidebar.dart';
 import 'package:gk_http_client/widgets/request_editor.dart';
 import 'package:gk_http_client/widgets/empty_request_editor.dart';
 import 'package:gk_http_client/widgets/environments_management_view.dart';
+import 'package:gk_http_client/widgets/runner_view.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key});
@@ -110,12 +111,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 Expanded(
                   child: wsProvider.isManagingEnvironments
                       ? const EnvironmentsManagementView()
-                      : requestProvider.selectedRequest != null
-                          ? RequestEditor(
-                              key: ValueKey(requestProvider.selectedRequest!.id),
-                              request: requestProvider.selectedRequest!,
-                            )
-                          : const EmptyRequestEditor(),
+                      : requestProvider.isRunnerActive
+                          ? const RunnerView()
+                          : requestProvider.selectedRequest != null
+                              ? RequestEditor(
+                                  key: ValueKey(requestProvider.selectedRequest!.id),
+                                  request: requestProvider.selectedRequest!,
+                                )
+                              : const EmptyRequestEditor(),
                 ),
               ],
             ),

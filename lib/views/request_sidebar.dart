@@ -355,6 +355,13 @@ class _SidebarFooterActions extends StatelessWidget {
             onTap: () => _exportCollections(context, provider, wsProvider),
             isDark: isDark,
           ),
+          const SizedBox(width: 8),
+          _ActionButton(
+            icon: Icons.play_circle_outline_rounded,
+            tooltip: 'Run Workspace',
+            onTap: () => provider.startWorkspaceRun(),
+            isDark: isDark,
+          ),
         ],
       ),
     );

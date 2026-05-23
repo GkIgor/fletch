@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gk_http_client/models/http_request.dart';
 import 'package:gk_http_client/models/http_response.dart';
 import 'package:gk_http_client/models/collection_model.dart';
+import 'package:gk_http_client/models/runner_item_state.dart';
 
 import 'package:gk_http_client/repository/collection_repository.dart';
 import 'package:gk_http_client/repository/workspace_repository.dart';
@@ -12,7 +13,9 @@ import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
-  final HttpService _httpService = HttpService();
+  final HttpService _httpService;
+
+  RequestProvider({HttpService? httpService}) : _httpService = httpService ?? HttpService();
 
   List<RequestCollection> _collections = [];
 
@@ -28,12 +31,32 @@ class RequestProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> _corruptedCollections = [];
 
+  // Runner state
+  bool _isRunnerActive = false;
+  bool _isRunningWorkspace = false;
+  RequestCollection? _runnerCollection;
+  List<RunnerItemState> _runnerItems = [];
+  bool _isCurrentlyRunning = false;
+  int _runnerCurrentIndex = -1;
+  int _runnerDelayMs = 0;
+  RunnerItemState? _selectedRunnerItem;
+  bool _stopExecution = false;
+
   List<RequestCollection> get collections => _collections;
   List<Map<String, dynamic>> get corruptedCollections => _corruptedCollections;
   HttpRequest? get selectedRequest => _selectedRequest;
   HttpResponse? get currentResponse => _currentResponse;
   bool get isLoading => _isLoading;
   String get searchFilter => _searchFilter;
+
+  bool get isRunnerActive => _isRunnerActive;
+  bool get isRunningWorkspace => _isRunningWorkspace;
+  RequestCollection? get runnerCollection => _runnerCollection;
+  List<RunnerItemState> get runnerItems => _runnerItems;
+  bool get isCurrentlyRunning => _isCurrentlyRunning;
+  int get runnerCurrentIndex => _runnerCurrentIndex;
+  int get runnerDelayMs => _runnerDelayMs;
+  RunnerItemState? get selectedRunnerItem => _selectedRunnerItem;
 
   static const Map<String, IconData> icons = {
     'folder': Icons.folder_rounded,
@@ -457,6 +480,154 @@ class RequestProvider with ChangeNotifier {
     }
 
     _saveCollections();
+    notifyListeners();
+  }
+
+  // Runner Actions
+  List<HttpRequest> _gatherRequestsRecursively(String collectionId) {
+    final List<HttpRequest> gathered = [];
+    
+    final collectionIdx = _collections.indexWhere((c) => c.id == collectionId);
+    if (collectionIdx != -1) {
+      gathered.addAll(_collections[collectionIdx].requests);
+    }
+    
+    final children = _collections.where((c) => c.parentId == collectionId).toList();
+    children.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    
+    for (var child in children) {
+      gathered.addAll(_gatherRequestsRecursively(child.id));
+    }
+    
+    return gathered;
+  }
+
+  List<HttpRequest> _gatherWorkspaceRequests() {
+    final List<HttpRequest> gathered = [];
+    final rootCollections = _collections.where((c) => c.parentId == null).toList();
+    rootCollections.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    
+    for (var root in rootCollections) {
+      gathered.addAll(_gatherRequestsRecursively(root.id));
+    }
+    
+    return gathered;
+  }
+
+  void startCollectionRun(RequestCollection collection) {
+    _isRunnerActive = true;
+    _isRunningWorkspace = false;
+    _runnerCollection = collection;
+    
+    final requests = _gatherRequestsRecursively(collection.id);
+    _runnerItems = requests.map((req) => RunnerItemState(request: req)).toList();
+    _isCurrentlyRunning = false;
+    _runnerCurrentIndex = -1;
+    _selectedRunnerItem = null;
+    notifyListeners();
+  }
+
+  void startWorkspaceRun() {
+    _isRunnerActive = true;
+    _isRunningWorkspace = true;
+    _runnerCollection = null;
+    
+    final requests = _gatherWorkspaceRequests();
+    _runnerItems = requests.map((req) => RunnerItemState(request: req)).toList();
+    _isCurrentlyRunning = false;
+    _runnerCurrentIndex = -1;
+    _selectedRunnerItem = null;
+    notifyListeners();
+  }
+
+  void closeRunner() {
+    _isRunnerActive = false;
+    _isRunningWorkspace = false;
+    _runnerCollection = null;
+    _runnerItems = [];
+    _isCurrentlyRunning = false;
+    _runnerCurrentIndex = -1;
+    _selectedRunnerItem = null;
+    notifyListeners();
+  }
+
+  void setRunnerDelay(int ms) {
+    _runnerDelayMs = ms;
+    notifyListeners();
+  }
+
+  void selectRunnerItem(RunnerItemState? item) {
+    _selectedRunnerItem = item;
+    notifyListeners();
+  }
+
+  void setRunnerItemSelection(int index, bool selected) {
+    if (index >= 0 && index < _runnerItems.length) {
+      _runnerItems[index].isSelected = selected;
+      notifyListeners();
+    }
+  }
+
+  void toggleAllRunnerItems(bool selected) {
+    for (var item in _runnerItems) {
+      item.isSelected = selected;
+    }
+    notifyListeners();
+  }
+
+  void stopRunnerExecution() {
+    _stopExecution = true;
+    _isCurrentlyRunning = false;
+    notifyListeners();
+  }
+
+  Future<void> executeRunnerSession({Map<String, String>? variables}) async {
+    if (_isCurrentlyRunning) return;
+    _isCurrentlyRunning = true;
+    _stopExecution = false;
+    
+    for (var item in _runnerItems) {
+      if (item.isSelected) {
+        item.reset();
+      }
+    }
+    notifyListeners();
+
+    bool isFirst = true;
+
+    for (int i = 0; i < _runnerItems.length; i++) {
+      if (_stopExecution) break;
+      final item = _runnerItems[i];
+      if (!item.isSelected) continue;
+
+      if (!isFirst && _runnerDelayMs > 0) {
+        await Future.delayed(Duration(milliseconds: _runnerDelayMs));
+        if (_stopExecution) break;
+      }
+      isFirst = false;
+
+      _runnerCurrentIndex = i;
+      item.status = 'running';
+      notifyListeners();
+
+      try {
+        final response = await _httpService.send(item.request, variables: variables);
+        item.response = response;
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          item.status = 'success';
+        } else {
+          item.status = 'failure';
+          item.errorMessage = 'HTTP Status: ${response.statusCode}';
+        }
+      } catch (e) {
+        item.status = 'failure';
+        item.errorMessage = e.toString();
+      }
+
+      notifyListeners();
+    }
+
+    _isCurrentlyRunning = false;
     notifyListeners();
   }
 }
