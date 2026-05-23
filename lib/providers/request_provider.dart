@@ -108,6 +108,13 @@ class RequestProvider with ChangeNotifier {
     }
   }
 
+  void toggleAllCollections({required bool expanded}) {
+    for (int i = 0; i < _collections.length; i++) {
+      _collections[i] = _collections[i].copyWith(isExpanded: expanded);
+    }
+    notifyListeners();
+  }
+
   void addRequestToCollection(String collectionId, HttpRequest request) {
     final collection = _collections.firstWhere((c) => c.id == collectionId);
     collection.addRequest(request);

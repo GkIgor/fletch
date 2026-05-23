@@ -62,6 +62,11 @@ class _RequestSidebarState extends State<RequestSidebar> {
       color: isDark ? AppColors.sidebarDark : AppColors.slate50,
       child: Column(
         children: [
+          _CollectionsHeader(
+            isDark: isDark,
+            provider: requestProvider,
+          ),
+
           _SearchFilter(
             isDark: isDark,
             controller: _searchController,
@@ -630,6 +635,91 @@ class _Collection extends StatelessWidget {
               },
             );
           }),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionsHeader extends StatelessWidget {
+  const _CollectionsHeader({
+    required this.isDark,
+    required this.provider,
+  });
+
+  final bool isDark;
+  final RequestProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool anyExpanded = provider.collections.any((c) => c.isExpanded);
+    final bool anyCollapsed = provider.collections.any((c) => !c.isExpanded);
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final textColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: borderColor)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Collections',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: textColor,
+            ),
+          ),
+          if (provider.collections.isNotEmpty) ...[  
+            const Spacer(),
+            // Expand all
+            Tooltip(
+              message: 'Expand All',
+              waitDuration: const Duration(milliseconds: 400),
+              child: InkWell(
+                onTap: anyCollapsed
+                    ? () => provider.toggleAllCollections(expanded: true)
+                    : null,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.unfold_more_rounded,
+                    size: 16,
+                    color: anyCollapsed
+                        ? textColor
+                        : textColor.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            // Collapse all
+            Tooltip(
+              message: 'Collapse All',
+              waitDuration: const Duration(milliseconds: 400),
+              child: InkWell(
+                onTap: anyExpanded
+                    ? () => provider.toggleAllCollections(expanded: false)
+                    : null,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.unfold_less_rounded,
+                    size: 16,
+                    color: anyExpanded
+                        ? textColor
+                        : textColor.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
