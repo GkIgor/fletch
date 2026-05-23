@@ -53,7 +53,7 @@ class _CollectionFolderState extends State<CollectionFolder> {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 8.0,
-              vertical: 6.0,
+              vertical: 4.0,
             ),
             child: Row(
               children: [

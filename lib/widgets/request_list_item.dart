@@ -45,7 +45,7 @@ class _RequestListItemState extends State<RequestListItem> {
         },
         borderRadius: BorderRadius.circular(6),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? (isDark ? folderColor.withValues(alpha: 0.15) : folderColor.withValues(alpha: 0.12))
