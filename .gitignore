@@ -32,7 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
-
+/temp/
 # Symbolication related
 app.*.symbols
 
