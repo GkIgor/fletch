@@ -14,7 +14,6 @@ class CollectionFolder extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
   final Widget child; // List of requests and nested collections
-  final double depth;
 
   const CollectionFolder({
     super.key,
@@ -22,7 +21,6 @@ class CollectionFolder extends StatefulWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.child,
-    this.depth = 0,
   });
 
   @override
@@ -39,6 +37,7 @@ class _CollectionFolderState extends State<CollectionFolder> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final collectionProvider = Provider.of<RequestProvider>(context);
     final folderColor = RequestProvider.colors[widget.collection.color] ?? AppColors.primary;
+    final folderIcon = RequestProvider.icons[widget.collection.icon] ?? Icons.folder_rounded;
 
     Widget folderHeader = MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -52,16 +51,24 @@ class _CollectionFolderState extends State<CollectionFolder> {
           onTap: widget.onToggle,
           borderRadius: BorderRadius.circular(6),
           child: Padding(
-            padding: EdgeInsets.only(
-              left: 8.0 + widget.depth * 12.0,
-              right: 8.0,
-              top: 6.0,
-              bottom: 6.0,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8.0,
+              vertical: 6.0,
             ),
             child: Row(
               children: [
+                AnimatedRotation(
+                  turns: widget.isExpanded ? 0.25 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppColors.slate400,
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Icon(
-                  widget.isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
+                  folderIcon,
                   size: 16,
                   color: folderColor,
                 ),
@@ -140,7 +147,7 @@ class _CollectionFolderState extends State<CollectionFolder> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.folder_rounded,
+                folderIcon,
                 size: 16,
                 color: folderColor,
               ),
@@ -266,7 +273,20 @@ class _CollectionFolderState extends State<CollectionFolder> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         dragTargetHeader,
-        if (widget.isExpanded) widget.child,
+        if (widget.isExpanded)
+          Container(
+            margin: const EdgeInsets.only(left: 16),
+            padding: const EdgeInsets.only(left: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: folderColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                  width: 1.5,
+                ),
+              ),
+            ),
+            child: widget.child,
+          ),
       ],
     );
   }

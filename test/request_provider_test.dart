@@ -200,4 +200,28 @@ void main() {
     // Await background saves
     await Future.delayed(const Duration(milliseconds: 100));
   });
+
+  test('Editing a nested collection preserves parentId', () async {
+    final provider = RequestProvider();
+    final workspaceId = 'test-ws-id';
+
+    final root = RequestCollection(
+      id: 'root-folder',
+      name: 'Root Folder',
+      workspaceId: workspaceId,
+    );
+    await provider.addCollection(root);
+
+    await provider.createSubCollection('root-folder', 'Sub Folder');
+    final sub = provider.collections.firstWhere((c) => c.name == 'Sub Folder');
+    expect(sub.parentId, equals('root-folder'));
+
+    // Simulate editing
+    final editedSub = sub.copyWith(name: 'Sub Folder Edited');
+    await provider.updateCollection(editedSub);
+
+    final updatedSub = provider.collections.firstWhere((c) => c.id == sub.id);
+    expect(updatedSub.name, equals('Sub Folder Edited'));
+    expect(updatedSub.parentId, equals('root-folder'));
+  });
 }

@@ -12,7 +12,6 @@ class RequestListItem extends StatefulWidget {
   final String collectionId;
   final bool isSelected;
   final VoidCallback onTap;
-  final double depth;
 
   const RequestListItem({
     super.key,
@@ -20,7 +19,6 @@ class RequestListItem extends StatefulWidget {
     required this.collectionId,
     required this.isSelected,
     required this.onTap,
-    this.depth = 0,
   });
 
   @override
@@ -47,12 +45,7 @@ class _RequestListItemState extends State<RequestListItem> {
         },
         borderRadius: BorderRadius.circular(6),
         child: Container(
-          padding: EdgeInsets.only(
-            left: 8.0 + widget.depth * 12.0,
-            right: 8.0,
-            top: 8.0,
-            bottom: 8.0,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? (isDark ? folderColor.withValues(alpha: 0.15) : folderColor.withValues(alpha: 0.12))

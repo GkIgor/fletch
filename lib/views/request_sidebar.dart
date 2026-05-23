@@ -85,7 +85,6 @@ class _RequestSidebarState extends State<RequestSidebar> {
                             context: context,
                             provider: requestProvider,
                             collection: collection,
-                            depth: 0,
                           );
                         })
                       : requestProvider.filteredCollections.map((collection) {
@@ -93,7 +92,6 @@ class _RequestSidebarState extends State<RequestSidebar> {
                             context: context,
                             provider: requestProvider,
                             collection: collection,
-                            depth: 0,
                           );
                         })),
 
@@ -499,13 +497,11 @@ class _Collection extends StatelessWidget {
   final BuildContext context;
   final RequestProvider provider;
   final RequestCollection collection;
-  final double depth;
 
   const _Collection({
     required this.context,
     required this.provider,
     required this.collection,
-    required this.depth,
   });
 
   @override
@@ -513,7 +509,6 @@ class _Collection extends StatelessWidget {
     return CollectionFolder(
       collection: collection,
       isExpanded: collection.isExpanded,
-      depth: depth,
       onToggle: () {
         provider.toggleCollectionExpansion(collection.id);
       },
@@ -525,7 +520,6 @@ class _Collection extends StatelessWidget {
                     context: context,
                     provider: provider,
                     collection: subColl,
-                    depth: depth + 1,
                   )),
           ...collection.requests.map((request) {
             final isSelected = provider.selectedRequest?.id == request.id;
@@ -534,7 +528,6 @@ class _Collection extends StatelessWidget {
               request: request,
               collectionId: collection.id,
               isSelected: isSelected,
-              depth: depth + 1,
               onTap: () {
                 provider.selectRequest(request);
                 Provider.of<WorkspaceProvider>(context, listen: false)

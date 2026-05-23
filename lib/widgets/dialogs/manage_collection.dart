@@ -67,9 +67,9 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
           children: [
             Row(
               children: [
-                const Icon(Icons.create_new_folder),
+                Icon(_editing ? Icons.edit_note_rounded : Icons.create_new_folder),
                 const SizedBox(width: 8),
-                const Text('Create New Collection'),
+                Text(_editing ? 'Edit Collection' : 'Create New Collection'),
               ],
             ),
             Divider(
@@ -292,6 +292,8 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
       icon: currentIcon,
       color: currentColor,
       id: _editing ? widget.collection!.id : null,
+      parentId: _editing ? widget.collection!.parentId : null,
+      sortOrder: _editing ? widget.collection!.sortOrder : 0,
     );
 
     if (!_editing) {
