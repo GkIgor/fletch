@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:gk_http_client/models/collection_model.dart';
 import 'package:gk_http_client/models/http_method.dart';
 import 'package:gk_http_client/models/http_request.dart';
 import 'package:gk_http_client/providers/request_provider.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/widgets/dialogs/manage_collection.dart';
+import 'package:gk_http_client/widgets/dialogs/rename_request_dialog.dart';
 import 'package:provider/provider.dart';
 
-class CollectionFolder extends StatelessWidget {
+class CollectionFolder extends StatefulWidget {
   final RequestCollection collection;
   final bool isExpanded;
   final VoidCallback onToggle;
-  final Widget child; // Lista de requisições
+  final Widget child; // List of requests and nested collections
+  final double depth;
 
   const CollectionFolder({
     super.key,
@@ -19,57 +22,103 @@ class CollectionFolder extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.child,
+    this.depth = 0,
   });
+
+  @override
+  State<CollectionFolder> createState() => _CollectionFolderState();
+}
+
+class _CollectionFolderState extends State<CollectionFolder> {
+  bool _isHovered = false;
+  bool _isDragOver = false;
+  double _dragY = 0.0;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final collectionProvider = Provider.of<RequestProvider>(context);
+    final folderColor = RequestProvider.colors[widget.collection.color] ?? AppColors.primary;
 
-    final folderHeader = InkWell(
-      onTap: onToggle,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            Icon(
-              isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
-              size: 16,
-              color: AppColors.slate400,
+    Widget folderHeader = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _isHovered ? folderColor.withValues(alpha: 0.08) : null,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: InkWell(
+          onTap: widget.onToggle,
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 8.0 + widget.depth * 12.0,
+              right: 8.0,
+              top: 6.0,
+              bottom: 6.0,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                collection.name,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textDark : AppColors.textLight,
-                ),
-              ),
-            ),
-            Opacity(
-              opacity: 0.7,
-              child: PopupMenuButton<void>(
-                itemBuilder: (_) =>
-                    _popupMenuItems(collectionProvider, context),
-                icon: const Icon(
-                  Icons.more_horiz_rounded,
+            child: Row(
+              children: [
+                Icon(
+                  widget.isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
                   size: 16,
-                  color: AppColors.slate400,
+                  color: folderColor,
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.collection.name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textDark : AppColors.textLight,
+                    ),
+                  ),
+                ),
+                Opacity(
+                  opacity: 0.7,
+                  child: PopupMenuButton<void>(
+                    onSelected: (_) {},
+                    itemBuilder: (_) => _buildPopupMenuItems(collectionProvider, context),
+                    icon: const Icon(
+                      Icons.more_horiz_rounded,
+                      size: 16,
+                      color: AppColors.slate400,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
 
+    // Apply Tooltip if description is present
+    if (widget.collection.description != null && widget.collection.description!.isNotEmpty) {
+      folderHeader = Tooltip(
+        message: widget.collection.description!,
+        waitDuration: const Duration(milliseconds: 500),
+        child: folderHeader,
+      );
+    }
+
+    // Wrap header in GestureDetector for right-click context menu
+    folderHeader = GestureDetector(
+      onSecondaryTapDown: (details) {
+        _showContextMenu(details.globalPosition, collectionProvider);
+      },
+      child: folderHeader,
+    );
+
+    // Make the header Draggable
     final draggableHeader = Draggable<Map<String, dynamic>>(
       data: {
         'type': 'collection',
-        'collectionId': collection.id,
+        'collectionId': widget.collection.id,
       },
       feedback: Material(
         color: Colors.transparent,
@@ -78,7 +127,7 @@ class CollectionFolder extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primary, width: 1.5),
+            border: Border.all(color: folderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
@@ -93,11 +142,11 @@ class CollectionFolder extends StatelessWidget {
               Icon(
                 Icons.folder_rounded,
                 size: 16,
-                color: AppColors.slate400,
+                color: folderColor,
               ),
               const SizedBox(width: 8),
               Text(
-                collection.name,
+                widget.collection.name,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -115,16 +164,22 @@ class CollectionFolder extends StatelessWidget {
       child: folderHeader,
     );
 
-    return DragTarget<Map<String, dynamic>>(
+    // DragTarget managing drop target regions
+    final dragTargetHeader = DragTarget<Map<String, dynamic>>(
       onWillAcceptWithDetails: (details) {
         final data = details.data;
-        if (data['type'] == 'request') {
-          return true;
-        }
+        if (data['type'] == 'request') return true;
         if (data['type'] == 'collection') {
-          return data['collectionId'] != collection.id;
+          return data['collectionId'] != widget.collection.id;
         }
         return false;
+      },
+      onMove: (details) {
+        final renderBox = context.findRenderObject() as RenderBox;
+        final localPos = renderBox.globalToLocal(details.offset);
+        setState(() {
+          _dragY = localPos.dy;
+        });
       },
       onAcceptWithDetails: (details) {
         final data = details.data;
@@ -132,71 +187,176 @@ class CollectionFolder extends StatelessWidget {
           collectionProvider.moveRequest(
             requestId: data['requestId'] as String,
             sourceCollectionId: data['collectionId'] as String,
-            targetCollectionId: collection.id,
+            targetCollectionId: widget.collection.id,
           );
         } else if (data['type'] == 'collection') {
-          collectionProvider.reorderCollections(
-            data['collectionId'] as String,
-            collection.id,
-          );
+          final draggedId = data['collectionId'] as String;
+          if (_dragY < 8) {
+            collectionProvider.reorderCollections(draggedId, widget.collection.id, before: true);
+          } else if (_dragY > 24) {
+            collectionProvider.reorderCollections(draggedId, widget.collection.id, before: false);
+          } else {
+            collectionProvider.nestCollection(draggedId, widget.collection.id);
+          }
         }
+        setState(() {
+          _isDragOver = false;
+        });
+      },
+      onLeave: (_) {
+        setState(() {
+          _isDragOver = false;
+        });
       },
       builder: (context, candidateData, rejectedData) {
-        final isHovered = candidateData.isNotEmpty;
+        _isDragOver = candidateData.isNotEmpty;
+        final isRequest = candidateData.isNotEmpty && candidateData.first?['type'] == 'request';
+
+        bool isTopZone = false;
+        bool isBottomZone = false;
+        bool isMiddleZone = isRequest;
+
+        if (_isDragOver && !isRequest) {
+          if (_dragY < 8) {
+            isTopZone = true;
+          } else if (_dragY > 24) {
+            isBottomZone = true;
+          } else {
+            isMiddleZone = true;
+          }
+        }
+
+        Widget headerWidget = draggableHeader;
+
+        if (isMiddleZone) {
+          headerWidget = DottedBorder(
+            color: folderColor,
+            strokeWidth: 1.5,
+            dashPattern: const [4, 4],
+            borderType: BorderType.RRect,
+            radius: const Radius.circular(6),
+            padding: EdgeInsets.zero,
+            child: headerWidget,
+          );
+        }
 
         return Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: isHovered
-                ? Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5)
-                : null,
-            color: isHovered
-                ? AppColors.primary.withValues(alpha: 0.05)
-                : null,
+            border: Border(
+              top: isTopZone
+                  ? BorderSide(color: folderColor, width: 2.0)
+                  : BorderSide.none,
+              bottom: isBottomZone
+                  ? BorderSide(color: folderColor, width: 2.0)
+                  : BorderSide.none,
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              draggableHeader,
-              if (isExpanded)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: child,
-                ),
-            ],
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: isMiddleZone ? folderColor.withValues(alpha: 0.12) : null,
+            ),
+            child: headerWidget,
           ),
         );
       },
     );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        dragTargetHeader,
+        if (widget.isExpanded) widget.child,
+      ],
+    );
   }
 
-  List<PopupMenuItem<void>> _popupMenuItems(
+  List<PopupMenuEntry<void>> _buildPopupMenuItems(
     RequestProvider provider,
     BuildContext context,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? Colors.white70 : Colors.black87;
+
     return [
       PopupMenuItem(
-        onTap: () async {
-          await _createNewRequest(context, provider);
-        },
-        child: const Text('Create New Request'),
+        onTap: () => _createNewRequest(context, provider),
+        child: Row(
+          children: [
+            Icon(Icons.add_rounded, size: 16, color: color),
+            const SizedBox(width: 8),
+            const Text('Create New Request'),
+          ],
+        ),
       ),
       PopupMenuItem(
-        onTap: () {
-          _openEditCollectionDialog(
-            context,
-            Theme.of(context).brightness == Brightness.dark,
+        onTap: () => _createNewSubFolder(context, provider),
+        child: Row(
+          children: [
+            Icon(Icons.create_new_folder_rounded, size: 16, color: color),
+            const SizedBox(width: 8),
+            const Text('Create Sub-Folder'),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        onTap: () => _openEditCollectionDialog(context, isDark),
+        child: Row(
+          children: [
+            Icon(Icons.edit_rounded, size: 16, color: color),
+            const SizedBox(width: 8),
+            const Text('Edit Folder'),
+          ],
+        ),
+      ),
+      const PopupMenuDivider(),
+      PopupMenuItem(
+        onTap: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Delete Folder'),
+              content: Text('Are you sure you want to delete "${widget.collection.name}"? This will delete all requests and nested folders inside it.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
           );
+          if (confirm == true) {
+            await provider.removeCollection(widget.collection.id);
+          }
         },
-        child: const Text('Edit'),
-      ),
-      PopupMenuItem(
-        onTap: () async {
-          await provider.removeCollection(collection.id);
-        },
-        child: const Text('Delete'),
+        child: const Row(
+          children: [
+            Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text('Delete Folder', style: TextStyle(color: Colors.redAccent)),
+          ],
+        ),
       ),
     ];
+  }
+
+  void _showContextMenu(Offset position, RequestProvider provider) {
+    final relativeRect = RelativeRect.fromLTRB(
+      position.dx,
+      position.dy,
+      position.dx + 1,
+      position.dy + 1,
+    );
+    showMenu<void>(
+      context: context,
+      position: relativeRect,
+      items: _buildPopupMenuItems(provider, context),
+    );
   }
 
   void _openEditCollectionDialog(BuildContext context, bool isDark) {
@@ -214,7 +374,7 @@ class CollectionFolder extends StatelessWidget {
             icons: icons,
             colors: colors,
             isDark: isDark,
-            collection: collection,
+            collection: widget.collection,
           ),
         );
       },
@@ -232,10 +392,27 @@ class CollectionFolder extends StatelessWidget {
       url: '',
     );
 
-    final updatedCollection = collection.copyWith(
-      requests: [...collection.requests, newRequest],
+    final updatedCollection = widget.collection.copyWith(
+      requests: [...widget.collection.requests, newRequest],
     );
 
     await provider.updateCollection(updatedCollection);
+  }
+
+  Future<void> _createNewSubFolder(
+    BuildContext context,
+    RequestProvider provider,
+  ) async {
+    final subFolderName = await showDialog<String>(
+      context: context,
+      builder: (context) => const RenameRequestDialog(
+        initialName: 'New Sub-folder',
+        title: 'Create Sub-Folder',
+        label: 'SUB-FOLDER NAME',
+      ),
+    );
+    if (subFolderName != null && subFolderName.trim().isNotEmpty) {
+      await provider.createSubCollection(widget.collection.id, subFolderName.trim());
+    }
   }
 }

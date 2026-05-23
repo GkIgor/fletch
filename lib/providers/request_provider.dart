@@ -24,7 +24,10 @@ class RequestProvider with ChangeNotifier {
   
   String? _workspaceId;
 
+  List<Map<String, dynamic>> _corruptedCollections = [];
+
   List<RequestCollection> get collections => _collections;
+  List<Map<String, dynamic>> get corruptedCollections => _corruptedCollections;
   HttpRequest? get selectedRequest => _selectedRequest;
   HttpResponse? get currentResponse => _currentResponse;
   bool get isLoading => _isLoading;
@@ -195,6 +198,8 @@ class RequestProvider with ChangeNotifier {
     loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     _collections = loaded;
 
+    _corruptedCollections = await _repository.getCorruptedCollections(workspaceId);
+
     if (_collections.isNotEmpty && _collections[0].requests.isNotEmpty) {
       _selectedRequest = _collections[0].requests[0];
     }
@@ -232,33 +237,120 @@ class RequestProvider with ChangeNotifier {
     return _collections.map((c) => c.toJson()).toList();
   }
 
-  Future<void> importCollections(List<Map<String, dynamic>> data) async {
+  Future<void> importCollections(List<Map<String, dynamic>> data, String workspaceId) async {
     try {
-      _collections = data
-          .map((json) => RequestCollection.fromJson(json))
-          .toList();
+      final List<RequestCollection> imported = data.map((json) {
+        json['workspaceId'] = workspaceId;
+        json.remove('signature');
+        return RequestCollection.fromJson(json);
+      }).toList();
+
+      _collections.addAll(imported);
+
+      for (int i = 0; i < _collections.length; i++) {
+        _collections[i] = _collections[i].copyWith(sortOrder: i);
+      }
 
       await _saveCollections();
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao importar coleções: $e');
+      rethrow;
     }
   }
 
-  void reorderCollections(String draggedId, String targetId) {
+  void reorderCollections(String draggedId, String targetId, {bool before = true}) {
     final dragIndex = _collections.indexWhere((c) => c.id == draggedId);
-    final targetIndex = _collections.indexWhere((c) => c.id == targetId);
-    if (dragIndex != -1 && targetIndex != -1 && dragIndex != targetIndex) {
-      final dragged = _collections.removeAt(dragIndex);
-      _collections.insert(targetIndex, dragged);
-      
-      // Atualiza sortOrder de todas as coleções
-      for (int i = 0; i < _collections.length; i++) {
-        _collections[i] = _collections[i].copyWith(sortOrder: i);
+    if (dragIndex == -1) return;
+
+    final dragged = _collections[dragIndex];
+    _collections.removeAt(dragIndex);
+
+    int targetIndex = _collections.indexWhere((c) => c.id == targetId);
+    if (targetIndex != -1) {
+      final target = _collections[targetIndex];
+      final updatedDragged = dragged.copyWith(
+        parentId: target.parentId,
+        clearParentId: target.parentId == null,
+      );
+      final insertIndex = before ? targetIndex : targetIndex + 1;
+      _collections.insert(insertIndex, updatedDragged);
+    } else {
+      _collections.insert(dragIndex, dragged);
+    }
+
+    for (int i = 0; i < _collections.length; i++) {
+      _collections[i] = _collections[i].copyWith(sortOrder: i);
+    }
+
+    _saveCollections();
+    notifyListeners();
+  }
+
+  void nestCollection(String draggedId, String targetParentId) {
+    final idx = _collections.indexWhere((c) => c.id == draggedId);
+    if (idx != -1) {
+      _collections[idx] = _collections[idx].copyWith(parentId: targetParentId);
+
+      final parentIdx = _collections.indexWhere((c) => c.id == targetParentId);
+      if (parentIdx != -1 && !_collections[parentIdx].isExpanded) {
+        _collections[parentIdx] = _collections[parentIdx].copyWith(isExpanded: true);
       }
-      
+
       _saveCollections();
       notifyListeners();
+    }
+  }
+
+  Future<void> createSubCollection(String parentCollectionId, String name) async {
+    final parentIdx = _collections.indexWhere((c) => c.id == parentCollectionId);
+    if (parentIdx == -1) return;
+
+    final parent = _collections[parentIdx];
+    final subCollection = RequestCollection(
+      name: name,
+      workspaceId: parent.workspaceId,
+      parentId: parentCollectionId,
+      icon: 'folder',
+      color: parent.color,
+      sortOrder: _collections.length,
+    );
+
+    _collections.add(subCollection);
+    await _saveCollections();
+    notifyListeners();
+  }
+
+  Future<void> reSignCollection(Map<String, dynamic> collectionData) async {
+    try {
+      collectionData.remove('signature');
+      final collection = RequestCollection.fromJson(collectionData);
+      await _repository.save(collection);
+
+      _corruptedCollections.removeWhere((c) => c['id'] == collection.id);
+      _collections.add(collection);
+      _collections.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erro ao re-assinar coleção: $e');
+    }
+  }
+
+  Future<void> reSignAllCorrupted() async {
+    final List<Map<String, dynamic>> toProcess = List.from(_corruptedCollections);
+    for (var data in toProcess) {
+      await reSignCollection(data);
+    }
+  }
+
+  Future<void> discardCorruptedCollection(String id) async {
+    try {
+      await _repository.delete(id);
+      _corruptedCollections.removeWhere((c) => c['id'] == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erro ao descartar coleção corrompida: $e');
     }
   }
 

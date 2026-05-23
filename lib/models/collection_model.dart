@@ -11,6 +11,7 @@ class RequestCollection {
   List<HttpRequest> requests;
   String workspaceId;
   int sortOrder;
+  String? parentId;
 
   RequestCollection({
     String? id,
@@ -22,6 +23,7 @@ class RequestCollection {
     this.color = '#8b5cf6',
     this.description,
     this.sortOrder = 0,
+    this.parentId,
   }) : id = id ?? const Uuid().v4(),
        requests = requests ?? [];
 
@@ -46,6 +48,8 @@ class RequestCollection {
     List<HttpRequest>? requests,
     bool? isExpanded,
     int? sortOrder,
+    String? parentId,
+    bool clearParentId = false,
   }) {
     return RequestCollection(
       id: id,
@@ -57,6 +61,7 @@ class RequestCollection {
       color: color,
       description: description,
       sortOrder: sortOrder ?? this.sortOrder,
+      parentId: clearParentId ? null : (parentId ?? this.parentId),
     );
   }
 
@@ -71,6 +76,7 @@ class RequestCollection {
       'color': color,
       'description': description,
       'sortOrder': sortOrder,
+      'parentId': parentId,
     };
   }
 
@@ -87,6 +93,7 @@ class RequestCollection {
       color: json['color'] as String? ?? '#8b5cf6',
       description: json['description'] as String?,
       sortOrder: json['sortOrder'] as int? ?? 0,
+      parentId: json['parentId'] as String?,
     );
   }
 }

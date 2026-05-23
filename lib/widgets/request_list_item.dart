@@ -12,6 +12,7 @@ class RequestListItem extends StatefulWidget {
   final String collectionId;
   final bool isSelected;
   final VoidCallback onTap;
+  final double depth;
 
   const RequestListItem({
     super.key,
@@ -19,6 +20,7 @@ class RequestListItem extends StatefulWidget {
     required this.collectionId,
     required this.isSelected,
     required this.onTap,
+    this.depth = 0,
   });
 
   @override
@@ -32,6 +34,8 @@ class _RequestListItemState extends State<RequestListItem> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final requestProvider = Provider.of<RequestProvider>(context, listen: false);
+    final collection = requestProvider.collections.firstWhere((c) => c.id == widget.collectionId);
+    final folderColor = RequestProvider.colors[collection.color] ?? AppColors.primary;
 
     final itemWidget = MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -43,14 +47,21 @@ class _RequestListItemState extends State<RequestListItem> {
         },
         borderRadius: BorderRadius.circular(6),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: EdgeInsets.only(
+            left: 8.0 + widget.depth * 12.0,
+            right: 8.0,
+            top: 8.0,
+            bottom: 8.0,
+          ),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? (isDark ? AppColors.slate800 : AppColors.slate200)
-                : null,
+                ? (isDark ? folderColor.withValues(alpha: 0.15) : folderColor.withValues(alpha: 0.12))
+                : (_isHovered
+                    ? (isDark ? folderColor.withValues(alpha: 0.08) : folderColor.withValues(alpha: 0.05))
+                    : null),
             borderRadius: BorderRadius.circular(6),
             border: widget.isSelected
-                ? const Border(left: BorderSide(color: AppColors.primary, width: 3))
+                ? Border(left: BorderSide(color: folderColor, width: 3))
                 : const Border(
                     left: BorderSide(color: Colors.transparent, width: 3),
                   ),
@@ -68,7 +79,7 @@ class _RequestListItemState extends State<RequestListItem> {
                     fontSize: 13,
                     fontWeight: widget.isSelected ? FontWeight.w500 : FontWeight.normal,
                     color: widget.isSelected
-                        ? (isDark ? AppColors.textDark : AppColors.textLight)
+                        ? (isDark ? AppColors.textDark : folderColor)
                         : (isDark
                             ? AppColors.textSecondaryDark
                             : AppColors.textSecondaryLight),
@@ -77,10 +88,10 @@ class _RequestListItemState extends State<RequestListItem> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // Botão de opções "...": visível no hover ou se selecionado
-              if (_isHovered || widget.isSelected)
-                Opacity(
-                  opacity: 0.7,
+              Opacity(
+                opacity: (_isHovered || widget.isSelected) ? 0.7 : 0.0,
+                child: IgnorePointer(
+                  ignoring: !(_isHovered || widget.isSelected),
                   child: PopupMenuButton<String>(
                     onSelected: (val) => _handleMenuSelection(val, requestProvider),
                     itemBuilder: (_) => _buildPopupMenuItems(context),
@@ -93,6 +104,7 @@ class _RequestListItemState extends State<RequestListItem> {
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -112,7 +124,7 @@ class _RequestListItemState extends State<RequestListItem> {
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primary, width: 1.5),
+            border: Border.all(color: folderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
@@ -168,10 +180,10 @@ class _RequestListItemState extends State<RequestListItem> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
             border: isHovered
-                ? Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5)
+                ? Border.all(color: folderColor.withValues(alpha: 0.5), width: 1.5)
                 : null,
             color: isHovered
-                ? AppColors.primary.withValues(alpha: 0.05)
+                ? folderColor.withValues(alpha: 0.05)
                 : null,
           ),
           child: GestureDetector(

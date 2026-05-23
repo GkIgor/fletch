@@ -20,9 +20,9 @@ Checklist de status do projeto e roteiro de implementação.
   - [x] Ações contextuais: Excluir requisição.
   - [x] Ações contextuais: Mover para outra pasta/coleção (via diálogo).
   - [x] Menu suspenso acionado por botão `...` ou clique com botão direito.
-- [ ] **Importação/Exportação Oficial na UI:** Botões e diálogos para exportar coleções e importar recalculando assinatura.
-- [ ] **Feedback de Segurança e Validação de Hash:** Exibir aviso (diálogo/banner) se assinatura falhar, com opção de re-assinar.
-- [ ] **Formatador de JSON:** Botão "Beautify" no Body Editor para alinhar/formatar o JSON de forma legível.
+- [x] **Importação/Exportação Oficial na UI:** Botões e diálogos para exportar coleções e importar recalculando assinatura.
+- [x] **Feedback de Segurança e Validação de Hash:** Exibir aviso (diálogo/banner) se assinatura falhar, com opção de re-assinar.
+- [x] **Formatador de JSON:** Botão "Beautify" no Body Editor para alinhar/formatar o JSON de forma legível.
 - [ ] **Empty Methods:** Diversos placeholders espalhados pelo código (ex: `// TODO: Request options`).
 
 ## 🚀 O que falta implementar (Essencial)

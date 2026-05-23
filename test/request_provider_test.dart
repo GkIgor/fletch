@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gk_http_client/core/app_config.dart';
@@ -120,5 +121,83 @@ void main() {
     expect(provider.collections[1].id, equals(collectionA.id));
     expect(provider.collections[0].sortOrder, equals(0));
     expect(provider.collections[1].sortOrder, equals(1));
+
+    // Await background saves
+    await Future.delayed(const Duration(milliseconds: 100));
+  });
+
+  test('RequestProvider sub-collections and security flows', () async {
+    final provider = RequestProvider();
+    final workspaceId = 'test-ws-id';
+
+    // Add root collection
+    final root = RequestCollection(
+      id: 'root-folder',
+      name: 'Root Folder',
+      workspaceId: workspaceId,
+    );
+    await provider.addCollection(root);
+
+    // 1. Create sub-collection
+    await provider.createSubCollection('root-folder', 'Sub Folder');
+    expect(provider.collections.length, equals(2));
+
+    final sub = provider.collections.firstWhere((c) => c.name == 'Sub Folder');
+    expect(sub.parentId, equals('root-folder'));
+
+    // 2. Nest existing collection
+    final another = RequestCollection(
+      id: 'another-folder',
+      name: 'Another Folder',
+      workspaceId: workspaceId,
+    );
+    await provider.addCollection(another);
+    expect(provider.collections.length, equals(3));
+    expect(provider.collections.last.parentId, isNull);
+
+    provider.nestCollection('another-folder', 'root-folder');
+    expect(provider.collections.firstWhere((c) => c.id == 'another-folder').parentId, equals('root-folder'));
+
+    // 3. Import collections
+    final exported = provider.exportCollections();
+    final newProvider = RequestProvider();
+
+    // Import into a new workspace
+    await newProvider.importCollections(exported, 'imported-ws-id');
+    expect(newProvider.collections.length, equals(3));
+    expect(newProvider.collections.every((c) => c.workspaceId == 'imported-ws-id'), isTrue);
+
+    // Await background saves from import
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // 4. Security warnings simulation
+    // We modify a file on disk directly to corrupt its signature
+    final collectionsDir = Directory(AppConfig.collectionsDir);
+    final jsonFile = File('${collectionsDir.path}/${root.id}.json');
+    expect(jsonFile.existsSync(), isTrue);
+
+    // Read, modify, write without correct signature
+    final jsonContent = await jsonFile.readAsString();
+    final Map<String, dynamic> jsonMap = jsonDecode(jsonContent);
+    jsonMap['name'] = 'Corrupted Folder';
+    jsonMap['signature'] = 'invalid-signature-hash';
+    await jsonFile.writeAsString(jsonEncode(jsonMap));
+
+    // Reload collections and verify that the corrupted collection is detected
+    final checkProvider = RequestProvider();
+    await checkProvider.loadCollections('imported-ws-id');
+
+    expect(checkProvider.collections.any((c) => c.id == 'root-folder'), isFalse);
+    expect(checkProvider.corruptedCollections.length, equals(1));
+    expect(checkProvider.corruptedCollections[0]['id'], equals('root-folder'));
+
+    // Re-sign the corrupted collection
+    await checkProvider.reSignCollection(checkProvider.corruptedCollections[0]);
+    expect(checkProvider.corruptedCollections, isEmpty);
+    expect(checkProvider.collections.any((c) => c.id == 'root-folder'), isTrue);
+    expect(checkProvider.collections.firstWhere((c) => c.id == 'root-folder').name, equals('Corrupted Folder'));
+
+    // Await background saves
+    await Future.delayed(const Duration(milliseconds: 100));
   });
 }

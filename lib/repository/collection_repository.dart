@@ -94,6 +94,46 @@ class CollectionRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getCorruptedCollections(String workspaceId) async {
+    final dir = Directory(_path);
+    if (!dir.existsSync()) {
+      return [];
+    }
+
+    final files = dir.listSync().where((f) => f.path.endsWith('.json'));
+    final List<Map<String, dynamic>> corrupted = [];
+
+    for (var entity in files) {
+      final file = File(entity.path);
+
+      if (file.statSync().size > 10 * 1024 * 1024) continue;
+
+      try {
+        final content = file.readAsStringSync();
+        final Map<String, dynamic> map = jsonDecode(content);
+
+        if (map['workspaceId'] != workspaceId) continue;
+
+        final String? fileSignature = map['signature'];
+
+        final dataToValidate = Map<String, dynamic>.from(map)
+          ..remove('signature');
+
+        final String currentHash = SecurityUtils.generateDynamicHash(
+          jsonEncode(dataToValidate),
+        );
+
+        if (fileSignature != currentHash) {
+          corrupted.add(map);
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return corrupted;
+  }
+
   Future<RequestCollection?> getById(String collectionId) async {
     final file = File('$_path/$collectionId.json');
 

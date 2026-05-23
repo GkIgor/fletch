@@ -3,8 +3,15 @@ import 'package:gk_http_client/theme/app_colors.dart';
 
 class RenameRequestDialog extends StatefulWidget {
   final String initialName;
+  final String title;
+  final String label;
 
-  const RenameRequestDialog({super.key, required this.initialName});
+  const RenameRequestDialog({
+    super.key,
+    required this.initialName,
+    this.title = 'Rename Request',
+    this.label = 'REQUEST NAME',
+  });
 
   @override
   State<RenameRequestDialog> createState() => _RenameRequestDialogState();
@@ -50,7 +57,7 @@ class _RenameRequestDialogState extends State<RenameRequestDialog> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Rename Request',
+                  widget.title,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -67,7 +74,7 @@ class _RenameRequestDialogState extends State<RenameRequestDialog> {
                 fontSize: 14,
               ),
               decoration: InputDecoration(
-                labelText: 'REQUEST NAME',
+                labelText: widget.label,
                 labelStyle: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,

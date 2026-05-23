@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gk_http_client/models/http_request.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
@@ -87,6 +88,28 @@ class _BodyEditorState extends State<BodyEditor> {
     widget.onChanged(updated);
   }
 
+  void _beautifyJson() {
+    final text = _textController.text;
+    if (text.trim().isEmpty) return;
+    try {
+      final parsed = jsonDecode(text);
+      final prettyString = const JsonEncoder.withIndent('  ').convert(parsed);
+      setState(() {
+        _textController.text = prettyString;
+      });
+      _updateRequest(body: prettyString);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invalid JSON: ${e.toString()}'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          width: 300,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -100,17 +123,38 @@ class _BodyEditorState extends State<BodyEditor> {
         // Selector Row
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildTypeOption('None', BodyType.none),
-                _buildTypeOption('JSON', BodyType.json),
-                _buildTypeOption('Form Data', BodyType.formData),
-                _buildTypeOption('XML', BodyType.xml),
-                _buildTypeOption('Binary', BodyType.binary),
-              ],
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildTypeOption('None', BodyType.none),
+                      _buildTypeOption('JSON', BodyType.json),
+                      _buildTypeOption('Form Data', BodyType.formData),
+                      _buildTypeOption('XML', BodyType.xml),
+                      _buildTypeOption('Binary', BodyType.binary),
+                    ],
+                  ),
+                ),
+              ),
+              if (widget.request.bodyType == BodyType.json && _textController.text.trim().isNotEmpty)
+                TextButton.icon(
+                  onPressed: _beautifyJson,
+                  icon: const Icon(Icons.format_align_left_rounded, size: 14, color: AppColors.primary),
+                  label: const Text(
+                    'Beautify',
+                    style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
           ),
         ),
 
