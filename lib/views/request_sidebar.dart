@@ -198,14 +198,12 @@ class _Collection extends StatelessWidget {
 
           return RequestListItem(
             request: request,
+            collectionId: collection.id,
             isSelected: isSelected,
             onTap: () {
               provider.selectRequest(request);
               Provider.of<WorkspaceProvider>(context, listen: false)
                   .isManagingEnvironments = false;
-            },
-            onMoreOptions: () {
-              // TODO: Request options
             },
           );
         }).toList(),

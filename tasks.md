@@ -12,9 +12,18 @@ Checklist de status do projeto e roteiro de implementação.
 
 ## ⚠️ O que precisa de melhoria (Melhorias Técnicas)
 - [x] **RequestListItem:** O método `_editRequest` (double tap) agora está funcional no RequestEditor.
-- [ ] **RequestSidebar:** O botão de "More Options" (`onMoreOptions`) nas requisições é um TODO.
+- [x] **RequestSidebar (Gerenciamento de Requisições e Pastas):**
+  - [x] Drag & Drop para mover livremente requisições entre pastas (coleções).
+  - [x] Drag & Drop para reordenar pastas (coleções) na sidebar.
+  - [x] Ações contextuais: Duplicar requisição.
+  - [x] Ações contextuais: Renomear requisição.
+  - [x] Ações contextuais: Excluir requisição.
+  - [x] Ações contextuais: Mover para outra pasta/coleção (via diálogo).
+  - [x] Menu suspenso acionado por botão `...` ou clique com botão direito.
+- [ ] **Importação/Exportação Oficial na UI:** Botões e diálogos para exportar coleções e importar recalculando assinatura.
+- [ ] **Feedback de Segurança e Validação de Hash:** Exibir aviso (diálogo/banner) se assinatura falhar, com opção de re-assinar.
+- [ ] **Formatador de JSON:** Botão "Beautify" no Body Editor para alinhar/formatar o JSON de forma legível.
 - [ ] **Empty Methods:** Diversos placeholders espalhados pelo código (ex: `// TODO: Request options`).
-- [ ] **Feedback de Erro:** A persistência ignora arquivos silenciosamente se o hash falhar; adicionar avisos ao usuário quando um arquivo for bloqueado por segurança.
 
 ## 🚀 O que falta implementar (Essencial)
 - [x] **Request Editor:** Interface para editar Método HTTP, URL, Query Params, Headers e Body.

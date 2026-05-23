@@ -45,8 +45,12 @@ class RequestProvider with ChangeNotifier {
   };
 
   Future<void> addCollection(RequestCollection collection) async {
-    _collections.add(collection);
-    _saveCollections();
+    final maxSortOrder = _collections.isEmpty
+        ? 0
+        : _collections.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b);
+    final collectionWithSortOrder = collection.copyWith(sortOrder: maxSortOrder + 1);
+    _collections.add(collectionWithSortOrder);
+    await _saveCollections();
     notifyListeners();
   }
 
@@ -86,6 +90,10 @@ class RequestProvider with ChangeNotifier {
   void removeRequestFromCollection(String collectionId, String requestId) {
     final collection = _collections.firstWhere((c) => c.id == collectionId);
     collection.removeRequest(requestId);
+    if (_selectedRequest?.id == requestId) {
+      _selectedRequest = null;
+      _currentResponse = null;
+    }
     _saveCollections();
     notifyListeners();
   }
@@ -183,7 +191,9 @@ class RequestProvider with ChangeNotifier {
 
   Future<void> loadCollections(String workspaceId) async {
     _workspaceId = workspaceId;
-    _collections = await _repository.getAll(workspaceId);
+    final loaded = await _repository.getAll(workspaceId);
+    loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    _collections = loaded;
 
     if (_collections.isNotEmpty && _collections[0].requests.isNotEmpty) {
       _selectedRequest = _collections[0].requests[0];
@@ -233,5 +243,99 @@ class RequestProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Erro ao importar coleções: $e');
     }
+  }
+
+  void reorderCollections(String draggedId, String targetId) {
+    final dragIndex = _collections.indexWhere((c) => c.id == draggedId);
+    final targetIndex = _collections.indexWhere((c) => c.id == targetId);
+    if (dragIndex != -1 && targetIndex != -1 && dragIndex != targetIndex) {
+      final dragged = _collections.removeAt(dragIndex);
+      _collections.insert(targetIndex, dragged);
+      
+      // Atualiza sortOrder de todas as coleções
+      for (int i = 0; i < _collections.length; i++) {
+        _collections[i] = _collections[i].copyWith(sortOrder: i);
+      }
+      
+      _saveCollections();
+      notifyListeners();
+    }
+  }
+
+  void moveRequest({
+    required String requestId,
+    required String sourceCollectionId,
+    required String targetCollectionId,
+    String? targetRequestId,
+  }) {
+    final sourceIdx = _collections.indexWhere((c) => c.id == sourceCollectionId);
+    final targetIdx = _collections.indexWhere((c) => c.id == targetCollectionId);
+
+    if (sourceIdx == -1 || targetIdx == -1) return;
+
+    final sourceColl = _collections[sourceIdx];
+    final targetColl = _collections[targetIdx];
+
+    final reqIdx = sourceColl.requests.indexWhere((r) => r.id == requestId);
+    if (reqIdx == -1) return;
+
+    final request = sourceColl.requests.removeAt(reqIdx);
+
+    if (targetRequestId != null) {
+      final targetReqIdx = targetColl.requests.indexWhere((r) => r.id == targetRequestId);
+      if (targetReqIdx != -1) {
+        targetColl.requests.insert(targetReqIdx, request);
+      } else {
+        targetColl.requests.add(request);
+      }
+    } else {
+      targetColl.requests.add(request);
+    }
+
+    _saveCollections();
+    notifyListeners();
+  }
+
+  void duplicateRequest(String collectionId, HttpRequest request) {
+    final idx = _collections.indexWhere((c) => c.id == collectionId);
+    if (idx == -1) return;
+
+    final collection = _collections[idx];
+    final reqIdx = collection.requests.indexWhere((r) => r.id == request.id);
+    if (reqIdx == -1) return;
+
+    final duplicated = HttpRequest(
+      name: '${request.name} Copy',
+      method: request.method,
+      url: request.url,
+      queryParams: Map<String, String>.from(request.queryParams),
+      headers: Map<String, String>.from(request.headers),
+      body: request.body,
+      bodyType: request.bodyType,
+      formData: request.formData.map((e) => e.copyWith()).toList(),
+      binaryPath: request.binaryPath,
+    );
+
+    collection.requests.insert(reqIdx + 1, duplicated);
+    _saveCollections();
+    notifyListeners();
+  }
+
+  void renameRequest(String collectionId, String requestId, String newName) {
+    final idx = _collections.indexWhere((c) => c.id == collectionId);
+    if (idx == -1) return;
+
+    final collection = _collections[idx];
+    final reqIdx = collection.requests.indexWhere((r) => r.id == requestId);
+    if (reqIdx == -1) return;
+
+    collection.requests[reqIdx] = collection.requests[reqIdx].copyWith(name: newName);
+
+    if (_selectedRequest?.id == requestId) {
+      _selectedRequest = collection.requests[reqIdx];
+    }
+
+    _saveCollections();
+    notifyListeners();
   }
 }

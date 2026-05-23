@@ -26,54 +26,147 @@ class CollectionFolder extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final collectionProvider = Provider.of<RequestProvider>(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: onToggle,
-          borderRadius: BorderRadius.circular(6),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                Icon(
-                  isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
+    final folderHeader = InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            Icon(
+              isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded,
+              size: 16,
+              color: AppColors.slate400,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                collection.name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
+                ),
+              ),
+            ),
+            Opacity(
+              opacity: 0.7,
+              child: PopupMenuButton<void>(
+                itemBuilder: (_) =>
+                    _popupMenuItems(collectionProvider, context),
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
                   size: 16,
                   color: AppColors.slate400,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    collection.name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textDark : AppColors.textLight,
-                    ),
-                  ),
-                ),
-                Opacity(
-                  opacity: 0.7, // TODO: Hover effect to show/hide
-                  child: PopupMenuButton(
-                    itemBuilder: (_) =>
-                        _popupMenuItems(collectionProvider, context),
-                    icon: const Icon(
-                      Icons.more_horiz_rounded,
-                      size: 16,
-                      color: AppColors.slate400,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+
+    final draggableHeader = Draggable<Map<String, dynamic>>(
+      data: {
+        'type': 'collection',
+        'collectionId': collection.id,
+      },
+      feedback: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.primary, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 8,
+                offset: const Offset(2, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.folder_rounded,
+                size: 16,
+                color: AppColors.slate400,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                collection.name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
+                ),
+              ),
+            ],
           ),
         ),
-        if (isExpanded)
-          Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: child, // Container para os RequestListItems
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.4,
+        child: folderHeader,
+      ),
+      child: folderHeader,
+    );
+
+    return DragTarget<Map<String, dynamic>>(
+      onWillAcceptWithDetails: (details) {
+        final data = details.data;
+        if (data['type'] == 'request') {
+          return true;
+        }
+        if (data['type'] == 'collection') {
+          return data['collectionId'] != collection.id;
+        }
+        return false;
+      },
+      onAcceptWithDetails: (details) {
+        final data = details.data;
+        if (data['type'] == 'request') {
+          collectionProvider.moveRequest(
+            requestId: data['requestId'] as String,
+            sourceCollectionId: data['collectionId'] as String,
+            targetCollectionId: collection.id,
+          );
+        } else if (data['type'] == 'collection') {
+          collectionProvider.reorderCollections(
+            data['collectionId'] as String,
+            collection.id,
+          );
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovered = candidateData.isNotEmpty;
+
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: isHovered
+                ? Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5)
+                : null,
+            color: isHovered
+                ? AppColors.primary.withValues(alpha: 0.05)
+                : null,
           ),
-      ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              draggableHeader,
+              if (isExpanded)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: child,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
