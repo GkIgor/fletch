@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/services/http_service.dart';
-import 'package:gk_http_client/widgets/body_editor.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/services/http_service.dart';
+import 'package:fletch/widgets/body_editor.dart';
 
 void main() {
   group('HttpService Tests', () {

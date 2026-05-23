@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="assets/icon/app_icon.png" alt="GK HTTP Client" width="80" />
+  <img src="assets/icon/app_icon.png" alt="Fletch" width="150" height="150" />
 </p>
 
-<h3 align="center">GK HTTP Client</h3>
+<h3 align="center">Fletch</h3>
 <p align="center">Open source HTTP client. No Electron. No Node. No browser.</p>
 
 <p align="center">
-  <a href="https://github.com/GkIgor/gk_http_client/actions/workflows/release.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/GkIgor/gk_http_client/release.yml?branch=main&label=build&style=flat-square" alt="Build Status" />
+  <a href="https://github.com/GkIgor/fletch/actions/workflows/release.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/GkIgor/fletch/release.yml?branch=main&label=build&style=flat-square" alt="Build Status" />
   </a>
   <a href="./test">
     <img src="https://img.shields.io/badge/tests-10%20suites-brightgreen?style=flat-square" alt="Tests" />
   </a>
-  <a href="https://github.com/GkIgor/gk_http_client/releases">
+  <a href="https://github.com/GkIgor/fletch/releases">
     <img src="https://img.shields.io/badge/version-1.0.0-8b5cf6?style=flat-square" alt="Version" />
   </a>
   <a href="./LICENSE">
@@ -22,26 +22,27 @@
 
 ---
 
-Most HTTP clients today ship a full Chromium instance to render their UI. GK HTTP Client does not. It is built with [Flutter](https://flutter.dev) and rendered by [Impeller](https://docs.flutter.dev/perf/impeller) — a native GPU renderer — which means the binary is under 50 MB and RAM usage sits around 360 MB at steady state, without a browser process in sight.
+Most HTTP clients today ship a full Chromium instance to render their UI. Fletch does not. It is built with [Flutter](https://flutter.dev) and rendered by [Impeller](https://docs.flutter.dev/perf/impeller) — a native GPU renderer — which means the binary is under 50 MB and RAM usage sits around 360 MB at steady state, without a browser process in sight.
 
 The goal is an HTTP client that is fast, auditable, and maintenance-friendly — free of the Node.js / Electron / Tauri dependency chain. Collections are stored on disk with [Hive](https://pub.dev/packages/hive). There is no telemetry, no tracking, and no required account.
 
-![GK HTTP Client screenshot](docs/screenshot.png)
+![Fletch screenshot](docs/screenshot_main.png)
+![Fletch screenshot](docs/screenshot_workspace.png)
 
 ## Why not Electron
 
 Electron apps embed Chromium (~150 MB compressed) and a Node.js runtime on top of your application code. This trades a familiar tech stack for significant overhead: slow startup, high memory usage, large installers, and an attack surface that grows with every Chromium release.
 
-GK HTTP Client draws its own pixels via a compiled Dart binary and the Impeller renderer. The result is a sub-50 MB archive that starts in under a second and uses roughly the same RAM as a native desktop app.
+Fletch draws its own pixels via a compiled Dart binary and the Impeller renderer. The result is a sub-50 MB archive that starts in under a second and uses roughly the same RAM as a native desktop app.
 
 ## Installation
 
-Download the latest binary for your platform from the [Releases](https://github.com/GkIgor/gk_http_client/releases) page.
+Download the latest binary for your platform from the [Releases](https://github.com/GkIgor/fletch/releases) page.
 
 | Platform | Archive |
 |---|---|
-| Linux (x64) | `gk_http_client-linux.tar.gz` |
-| Windows (x64) | `gk_http_client-windows.zip` |
+| Linux (x64) | `fletch-linux.tar.gz` |
+| Windows (x64) | `fletch-windows.zip` |
 
 ## Building from source
 
@@ -56,8 +57,8 @@ sudo apt-get install clang cmake ninja-build pkg-config libgtk-3-dev
 Then:
 
 ```sh
-git clone https://github.com/GkIgor/gk_http_client.git
-cd gk_http_client
+git clone https://github.com/GkIgor/fletch.git
+cd fletch
 flutter pub get
 flutter run -d linux       # or -d windows
 ```

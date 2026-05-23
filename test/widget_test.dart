@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 // import 'package:flutter/material.dart';
-// import 'package:gk_http_client/views/home_screen.dart';
+// import 'package:fletch/views/home_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

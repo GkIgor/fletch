@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/widgets/interpolated_text_controller.dart';
+import 'package:fletch/widgets/interpolated_text_controller.dart';
 
 void main() {
   testWidgets('InterpolatedTextController highlights variables correctly', (WidgetTester tester) async {

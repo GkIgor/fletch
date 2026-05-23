@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/services/navigation_service.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:fletch/services/navigation_service.dart';
+import 'package:fletch/theme/app_colors.dart';
 
 class WorkspaceTopBarLogo extends StatelessWidget {
   const WorkspaceTopBarLogo({super.key, required this.name});
@@ -22,7 +22,7 @@ class WorkspaceTopBarLogo extends StatelessWidget {
             ),
             child: const Center(
               child: Text(
-                'GK',
+                'F',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

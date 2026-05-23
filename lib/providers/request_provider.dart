@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/models/http_response.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/models/runner_item_state.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/http_response.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/models/runner_item_state.dart';
 
-import 'package:gk_http_client/repository/collection_repository.dart';
-import 'package:gk_http_client/repository/workspace_repository.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/services/http_service.dart';
-import 'package:gk_http_client/utils/converters/postman_converter.dart';
-import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
+import 'package:fletch/repository/collection_repository.dart';
+import 'package:fletch/repository/workspace_repository.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/services/http_service.dart';
+import 'package:fletch/utils/converters/postman_converter.dart';
+import 'package:fletch/utils/converters/insomnia_converter.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();

@@ -1,6 +1,6 @@
 {
-    "name": "gk_http_client",
-    "short_name": "gk_http_client",
+    "name": "Fletch",
+    "short_name": "Fletch",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

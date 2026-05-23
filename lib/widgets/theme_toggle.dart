@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/providers/theme_provider.dart';
+import 'package:fletch/providers/theme_provider.dart';
 
 class ThemeToggle extends StatelessWidget {
   const ThemeToggle({super.key, required this.themeProvider});

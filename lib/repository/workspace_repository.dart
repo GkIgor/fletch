@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:gk_http_client/core/app_config.dart';
-import 'package:gk_http_client/models/workspace_models.dart';
-import 'package:gk_http_client/utils/utils.dart';
+import 'package:fletch/core/app_config.dart';
+import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/utils/utils.dart';
 
 class WorkspaceRepository {
   final String _path = AppConfig.workspaceDir;

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "gk_http_client" "\0"
+            VALUE "FileDescription", "Fletch" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "gk_http_client" "\0"
+            VALUE "InternalName", "fletch" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "gk_http_client.exe" "\0"
-            VALUE "ProductName", "gk_http_client" "\0"
+            VALUE "OriginalFilename", "fletch.exe" "\0"
+            VALUE "ProductName", "Fletch" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

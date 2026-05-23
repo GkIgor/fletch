@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'http_method.dart';
-import 'package:gk_http_client/widgets/body_editor.dart';
+import 'package:fletch/widgets/body_editor.dart';
 
 /// Modelo de entrada para Form Data
 class FormDataEntry {

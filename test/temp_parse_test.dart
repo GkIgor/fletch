@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/utils/converters/yaml_helper.dart';
-import 'package:gk_http_client/utils/converters/postman_converter.dart';
-import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
-import 'package:gk_http_client/utils/converters/format_detector.dart';
+import 'package:fletch/utils/converters/yaml_helper.dart';
+import 'package:fletch/utils/converters/postman_converter.dart';
+import 'package:fletch/utils/converters/insomnia_converter.dart';
+import 'package:fletch/utils/converters/format_detector.dart';
 
 void main() {
   group('Real-World Temp Files Parsing Tests', () {

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/models/http_response.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/http_response.dart';
 import 'package:path/path.dart' as p;
-import 'package:gk_http_client/widgets/body_editor.dart';
+import 'package:fletch/widgets/body_editor.dart';
 
 class HttpService {
   final Dio _dio;

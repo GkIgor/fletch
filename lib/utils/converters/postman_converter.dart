@@ -1,8 +1,8 @@
 import 'package:uuid/uuid.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/widgets/body_editor.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/widgets/body_editor.dart';
 
 class PostmanConverter {
   static List<RequestCollection> importCollection(Map<String, dynamic> postmanJson, String workspaceId) {

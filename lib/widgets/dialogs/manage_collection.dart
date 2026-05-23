@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/providers/request_provider.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
+import 'package:fletch/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 
 class NewCollectionDialogBody extends StatefulWidget {

@@ -1,5 +1,5 @@
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/models/http_response.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/http_response.dart';
 
 class RunnerItemState {
   final HttpRequest request;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/providers/request_provider.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/widgets/dialogs/move_request_dialog.dart';
-import 'package:gk_http_client/widgets/dialogs/rename_request_dialog.dart';
-import 'package:gk_http_client/widgets/method_badge.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/widgets/dialogs/move_request_dialog.dart';
+import 'package:fletch/widgets/dialogs/rename_request_dialog.dart';
+import 'package:fletch/widgets/method_badge.dart';
 import 'package:provider/provider.dart';
 
 class RequestListItem extends StatefulWidget {

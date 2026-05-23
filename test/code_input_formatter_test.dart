@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/widgets/code_input_formatter.dart';
+import 'package:fletch/widgets/code_input_formatter.dart';
 
 void main() {
   final formatter = CodeInputFormatter();

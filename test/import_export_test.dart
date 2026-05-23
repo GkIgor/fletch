@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/widgets/body_editor.dart';
-import 'package:gk_http_client/utils/converters/format_detector.dart';
-import 'package:gk_http_client/utils/converters/postman_converter.dart';
-import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
-import 'package:gk_http_client/utils/converters/yaml_helper.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/widgets/body_editor.dart';
+import 'package:fletch/utils/converters/format_detector.dart';
+import 'package:fletch/utils/converters/postman_converter.dart';
+import 'package:fletch/utils/converters/insomnia_converter.dart';
+import 'package:fletch/utils/converters/yaml_helper.dart';
 
 void main() {
   group('FormatDetector Tests', () {

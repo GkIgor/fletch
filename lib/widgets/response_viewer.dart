@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gk_http_client/models/http_response.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/theme/app_theme.dart';
-import 'package:gk_http_client/widgets/code_highlight_controller.dart';
+import 'package:fletch/models/http_response.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/theme/app_theme.dart';
+import 'package:fletch/widgets/code_highlight_controller.dart';
 import 'package:file_picker/file_picker.dart' as picker;
 import 'package:path/path.dart' as p;
 

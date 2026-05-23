@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/widgets/code_highlight_controller.dart';
+import 'package:fletch/widgets/code_highlight_controller.dart';
 
 void main() {
   testWidgets('Test CodeHighlightController builds correct spans', (WidgetTester tester) async {

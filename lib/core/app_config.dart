@@ -1,7 +1,7 @@
 import 'dart:io';
 
 class AppConfig {
-  static const String _applicationName = 'gk_http_client';
+  static const String _applicationName = 'fletch';
   static String? home = Platform.environment['HOME'];
   static String workspaceDir = '$home/.$_applicationName/workspaces';
   static String collectionsDir = '$home/.$_applicationName/collections';

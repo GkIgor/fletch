@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/theme/app_theme.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/theme/app_theme.dart';
 
 class MethodBadge extends StatelessWidget {
   final HttpMethod method;

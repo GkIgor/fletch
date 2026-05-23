@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/workspace_models.dart';
-import 'package:gk_http_client/providers/theme_provider.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
-import 'package:gk_http_client/services/navigation_service.dart';
-import 'package:gk_http_client/widgets/dialogs/create_workspace_dialog.dart';
-import 'package:gk_http_client/widgets/dialogs/edit_workspace_dialog.dart';
-import 'package:gk_http_client/widgets/dialogs/select_workspace_for_environments_dialog.dart';
+import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/providers/theme_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
+import 'package:fletch/services/navigation_service.dart';
+import 'package:fletch/widgets/dialogs/create_workspace_dialog.dart';
+import 'package:fletch/widgets/dialogs/edit_workspace_dialog.dart';
+import 'package:fletch/widgets/dialogs/select_workspace_for_environments_dialog.dart';
 import 'package:provider/provider.dart';
 
 
@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildWindowDot(const Color(0xFF10B981)),
                     const SizedBox(width: 20),
                     Text(
-                      'HTTP Client - GK',
+                      'Fletch',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: const Center(
                           child: Text(
-                            'GK',
+                            'FL',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,

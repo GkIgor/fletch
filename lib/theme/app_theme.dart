@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Sistema de tema do GK HTTP Client baseado no design Stitch
+/// Sistema de tema do Fletch baseado no design Stitch
 class AppTheme {
   AppTheme._();
 

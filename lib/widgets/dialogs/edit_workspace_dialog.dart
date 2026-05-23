@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/workspace_models.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
+import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/providers/workspace_provider.dart';
 
 class EditWorkspaceDialog extends StatefulWidget {
   final WorkspaceProvider workspaceProvider;

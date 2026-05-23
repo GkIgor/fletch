@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/providers/user_provider.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
+import 'package:fletch/providers/user_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:gk_http_client/core/app_config.dart';
-import 'package:gk_http_client/screens/home_screen.dart';
-import 'package:gk_http_client/screens/workspace_screen.dart';
-import 'package:gk_http_client/services/navigation_service.dart';
-import 'package:gk_http_client/providers/theme_provider.dart';
-import 'package:gk_http_client/providers/request_provider.dart';
-import 'package:gk_http_client/theme/app_theme.dart';
+import 'package:fletch/core/app_config.dart';
+import 'package:fletch/screens/home_screen.dart';
+import 'package:fletch/screens/workspace_screen.dart';
+import 'package:fletch/services/navigation_service.dart';
+import 'package:fletch/providers/theme_provider.dart';
+import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +48,7 @@ class Application extends StatelessWidget {
     };
 
     return MaterialApp(
-      title: 'GK HTTP Client',
+      title: 'Fletch',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

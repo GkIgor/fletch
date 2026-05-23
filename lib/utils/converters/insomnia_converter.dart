@@ -1,7 +1,7 @@
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/widgets/body_editor.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/widgets/body_editor.dart';
 
 class InsomniaConverter {
   static List<RequestCollection> importCollection(Map<String, dynamic> insomniaJson, String workspaceId) {
@@ -171,7 +171,7 @@ class InsomniaConverter {
       "modified": DateTime.now().millisecondsSinceEpoch,
       "created": DateTime.now().millisecondsSinceEpoch,
       "name": workspaceName,
-      "description": "Exported from gk_http_client",
+      "description": "Exported from Fletch",
       "cornerColor": null,
       "colors": {},
       "_type": "workspace"
@@ -251,7 +251,7 @@ class InsomniaConverter {
       "_type": "export",
       "__export_format": exportFormat,
       "__export_date": DateTime.now().toIso8601String(),
-      "__export_source": "gk_http_client:v1.0.0",
+      "__export_source": "fletch:v1.0.0",
       "resources": resources
     };
   }

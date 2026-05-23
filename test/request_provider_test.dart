@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gk_http_client/core/app_config.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/models/http_request.dart';
-import 'package:gk_http_client/models/http_method.dart';
-import 'package:gk_http_client/providers/request_provider.dart';
+import 'package:fletch/core/app_config.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/http_method.dart';
+import 'package:fletch/providers/request_provider.dart';
 
 void main() {
   late Directory tempDir;

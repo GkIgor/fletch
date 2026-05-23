@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
-import 'package:gk_http_client/services/navigation_service.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:fletch/providers/workspace_provider.dart';
+import 'package:fletch/services/navigation_service.dart';
+import 'package:fletch/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 
 class SelectWorkspaceForEnvironmentsDialog extends StatelessWidget {

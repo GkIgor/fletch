@@ -1,5 +1,5 @@
-import 'package:gk_http_client/repository/collection_repository.dart';
-import 'package:gk_http_client/repository/workspace_repository.dart';
+import 'package:fletch/repository/collection_repository.dart';
+import 'package:fletch/repository/workspace_repository.dart';
 
 class WorkspaceService {
   final WorkspaceRepository _wsRepository = WorkspaceRepository();

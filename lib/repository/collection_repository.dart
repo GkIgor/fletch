@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:gk_http_client/core/app_config.dart';
-import 'package:gk_http_client/models/collection_model.dart';
-import 'package:gk_http_client/utils/utils.dart';
+import 'package:fletch/core/app_config.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/utils/utils.dart';
 
 class CollectionRepository {
   final String _path = AppConfig.collectionsDir;

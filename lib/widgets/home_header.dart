@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
+import 'package:fletch/theme/app_colors.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, required this.isDark});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/models/workspace_models.dart';
-import 'package:gk_http_client/repository/workspace_repository.dart';
-import 'package:gk_http_client/services/workspace_service.dart';
+import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/repository/workspace_repository.dart';
+import 'package:fletch/services/workspace_service.dart';
 
 class WorkspaceProvider extends ChangeNotifier {
   final WorkspaceRepository _repository = WorkspaceRepository();

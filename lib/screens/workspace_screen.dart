@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/providers/user_provider.dart';
-import 'package:gk_http_client/providers/workspace_provider.dart';
-import 'package:gk_http_client/widgets/environments_selector.dart';
-import 'package:gk_http_client/widgets/theme_toggle.dart';
-import 'package:gk_http_client/widgets/user_avatar.dart';
-import 'package:gk_http_client/widgets/workspace_topbar_logo.dart';
+import 'package:fletch/providers/user_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
+import 'package:fletch/widgets/environments_selector.dart';
+import 'package:fletch/widgets/theme_toggle.dart';
+import 'package:fletch/widgets/user_avatar.dart';
+import 'package:fletch/widgets/workspace_topbar_logo.dart';
 import 'package:provider/provider.dart';
-import 'package:gk_http_client/providers/request_provider.dart';
-import 'package:gk_http_client/providers/theme_provider.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/views/request_sidebar.dart';
-import 'package:gk_http_client/widgets/request_editor.dart';
-import 'package:gk_http_client/widgets/empty_request_editor.dart';
-import 'package:gk_http_client/widgets/environments_management_view.dart';
-import 'package:gk_http_client/widgets/runner_view.dart';
+import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/theme_provider.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/views/request_sidebar.dart';
+import 'package:fletch/widgets/request_editor.dart';
+import 'package:fletch/widgets/empty_request_editor.dart';
+import 'package:fletch/widgets/environments_management_view.dart';
+import 'package:fletch/widgets/runner_view.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key});

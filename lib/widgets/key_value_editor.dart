@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gk_http_client/theme/app_colors.dart';
-import 'package:gk_http_client/widgets/interpolated_text_controller.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/widgets/interpolated_text_controller.dart';
 
 class KeyValueEditor extends StatefulWidget {
   final Map<String, String> initialValues;
