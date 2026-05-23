@@ -23,13 +23,14 @@ Checklist de status do projeto e roteiro de implementação.
 - [x] **Importação/Exportação Oficial na UI:** Botões e diálogos para exportar coleções e importar recalculando assinatura.
 - [x] **Feedback de Segurança e Validação de Hash:** Exibir aviso (diálogo/banner) se assinatura falhar, com opção de re-assinar.
 - [x] **Formatador de JSON:** Botão "Beautify" no Body Editor para alinhar/formatar o JSON de forma legível.
+- [x] **Redimensionamento da Sidebar (Resizable Sidebar):** Arrastar para ajustar a largura da sidebar, com clamp responsivo e sem overflows no editor ou rodapé.
 - [ ] **Empty Methods:** Diversos placeholders espalhados pelo código (ex: `// TODO: Request options`).
 
 ## 🚀 O que falta implementar (Essencial)
 - [x] **Request Editor:** Interface para editar Método HTTP, URL, Query Params, Headers e Body.
 - [x] **Execução de Requisições:** Integração com o pacote `dio` para disparar as chamadas reais.
 - [x] **Response Viewer:** Painel para exibir o resultado da requisição.
-- [ ] **Importação/Exportação Oficial:** Único método permitido para mover coleções entre diferentes máquinas, garantindo a re-validação do hash.
+- [x] **Importação/Exportação Oficial:** Único método permitido para mover coleções entre diferentes máquinas, garantindo a re-validação do hash.
 - [x] **Gerenciamento de Workspaces:** Tela funcional para criar, editar e deletar workspaces.
 - [x] **Seletor de Ambientes:** Implementar a lógica real de variáveis de ambiente (Selector funcional).
 
@@ -38,7 +39,7 @@ Checklist de status do projeto e roteiro de implementação.
 - [ ] **Autenticação:** Suporte a Basic Auth, Bearer Token, API Keys e OAuth2.
 - [ ] **Histórico:** Lista de requisições enviadas recentemente.
 - [ ] **Scripts:** Pre-request e Post-request scripts para automação.
-- [ ] **Importação/Exportação:** Suporte a formatos Postman, Insomnia e cURL.
-- [ ] **Formatadores de Body:** Suporte a JSON (com lint), Form Data, URL Encoded e GraphQL.
+- [x] **Importação/Exportação:** Suporte nativo a formatos Postman, Insomnia (JSON e YAML v5) e cURL (parcial).
+- [x] **Formatadores de Body:** Suporte a JSON (com beautify e lint).
 - [ ] **Geração de Código:** Transformar a requisição em trechos de código (cURL, Python, JavaScript, etc).
 - [ ] **Gerenciador de Cookies:** Persistência automática de cookies entre requisições.
