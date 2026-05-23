@@ -1,0 +1,10 @@
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/fletch.png"
+  macos:
+    generate: true
+  windows:
+    generate: true
+  web:
+    generate: true

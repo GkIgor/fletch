@@ -5,6 +5,11 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include <string>
+#include <unistd.h>
+#include <limits.h>
+#include <libgen.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 struct _MyApplication {
@@ -53,6 +58,22 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+
+  // Set window icon
+  char result[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+  if (count != -1) {
+    std::string exe_path(result, count);
+    char* exe_dir = dirname(&exe_path[0]);
+    std::string icon_path = std::string(exe_dir) + "/data/flutter_assets/assets/icon/fletch.png";
+    g_autoptr(GError) error = nullptr;
+    g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_file(icon_path.c_str(), &error);
+    if (icon != nullptr) {
+      gtk_window_set_icon(window, icon);
+    } else {
+      g_warning("Failed to load window icon: %s", error->message);
+    }
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
