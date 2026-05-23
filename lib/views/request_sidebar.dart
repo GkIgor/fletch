@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:file_picker/file_picker.dart' as picker;
+import 'package:file_selector/file_selector.dart' as selector;
 import 'package:flutter/material.dart';
 import 'package:gk_http_client/providers/workspace_provider.dart';
 import 'package:gk_http_client/widgets/dialogs/manage_collection.dart';
@@ -11,6 +11,11 @@ import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/widgets/collection_folder.dart';
 import 'package:gk_http_client/widgets/custom_scrollbar.dart';
 import 'package:gk_http_client/widgets/request_list_item.dart';
+import 'package:gk_http_client/widgets/dialogs/export_format_dialog.dart';
+import 'package:gk_http_client/utils/converters/format_detector.dart';
+import 'package:gk_http_client/utils/converters/postman_converter.dart';
+import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
+import 'package:gk_http_client/utils/converters/yaml_helper.dart';
 
 class RequestSidebar extends StatefulWidget {
   const RequestSidebar({super.key});
@@ -342,7 +347,7 @@ class _SidebarFooterActions extends StatelessWidget {
           _ActionButton(
             icon: Icons.file_download_rounded,
             tooltip: 'Export Collections',
-            onTap: () => _exportCollections(context, provider),
+            onTap: () => _exportCollections(context, provider, wsProvider),
             isDark: isDark,
           ),
         ],
@@ -380,25 +385,65 @@ class _SidebarFooterActions extends StatelessWidget {
       final currentWorkspace = wsProvider.currentWorkspace;
       if (currentWorkspace == null) return;
 
-      final result = await picker.FilePicker.platform.pickFiles(
-        type: picker.FileType.custom,
-        allowedExtensions: ['json'],
+      final typeGroup = selector.XTypeGroup(
+        label: 'HTTP Collections',
+        extensions: ['json', 'yaml', 'yml'],
+      );
+      final pickedFile = await selector.openFile(
+        acceptedTypeGroups: [typeGroup],
       );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final content = await file.readAsString();
-        final List<dynamic> jsonList = jsonDecode(content);
-        final List<Map<String, dynamic>> collectionsData = jsonList
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
+      if (pickedFile != null) {
+        final content = await pickedFile.readAsString();
+        
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(content);
+        } catch (_) {
+          decoded = YamlHelper.parse(content);
+        }
 
-        await provider.importCollections(collectionsData, currentWorkspace.id);
+        final format = FormatDetector.detect(decoded);
+        List<RequestCollection> collectionsToImport;
+        String formatName = '';
+
+        switch (format) {
+          case CollectionFormat.native:
+            final List<dynamic> jsonList = decoded as List;
+            final List<Map<String, dynamic>> collectionsData = jsonList
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+            collectionsToImport = collectionsData.map((json) {
+              json['workspaceId'] = currentWorkspace.id;
+              json.remove('signature');
+              return RequestCollection.fromJson(json);
+            }).toList();
+            formatName = 'Native';
+            break;
+          case CollectionFormat.postman:
+            collectionsToImport = PostmanConverter.importCollection(
+              Map<String, dynamic>.from(decoded as Map),
+              currentWorkspace.id,
+            );
+            formatName = 'Postman';
+            break;
+          case CollectionFormat.insomnia:
+            collectionsToImport = InsomniaConverter.importCollection(
+              Map<String, dynamic>.from(decoded as Map),
+              currentWorkspace.id,
+            );
+            formatName = 'Insomnia';
+            break;
+          case CollectionFormat.unknown:
+            throw Exception('Unknown or unsupported collection format.');
+        }
+
+        await provider.importLoadedCollections(collectionsToImport, currentWorkspace.id);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Collections imported successfully!'),
+            SnackBar(
+              content: Text('$formatName collections imported successfully!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -419,21 +464,59 @@ class _SidebarFooterActions extends StatelessWidget {
   Future<void> _exportCollections(
     BuildContext context,
     RequestProvider provider,
+    WorkspaceProvider wsProvider,
   ) async {
     try {
-      final collectionsJson = provider.exportCollections();
-      final jsonString = const JsonEncoder.withIndent('  ').convert(collectionsJson);
+      final currentWorkspace = wsProvider.currentWorkspace;
+      if (currentWorkspace == null) return;
 
-      final String? outputPath = await picker.FilePicker.platform.saveFile(
-        dialogTitle: 'Export Collections',
-        fileName: 'collections_export.json',
-        type: picker.FileType.custom,
-        allowedExtensions: ['json'],
+      final format = await showDialog<ExportFormat>(
+        context: context,
+        builder: (context) => const ExportFormatDialog(),
       );
 
-      if (outputPath != null) {
-        final file = File(outputPath);
-        await file.writeAsString(jsonString);
+      if (format == null) return;
+
+      dynamic exportData;
+      String defaultFileName = 'collections_export.json';
+      bool isYaml = false;
+
+      switch (format) {
+        case ExportFormat.native:
+          exportData = provider.exportCollections();
+          defaultFileName = 'collections_native_export.json';
+          break;
+        case ExportFormat.postman:
+          exportData = provider.exportPostman(currentWorkspace.name);
+          defaultFileName = '${currentWorkspace.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}_postman_collection.json';
+          break;
+        case ExportFormat.insomniaJson:
+          exportData = provider.exportInsomnia(currentWorkspace.id, currentWorkspace.name, exportFormat: 4);
+          defaultFileName = '${currentWorkspace.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}_insomnia_export.json';
+          break;
+        case ExportFormat.insomniaYaml:
+          exportData = provider.exportInsomnia(currentWorkspace.id, currentWorkspace.name, exportFormat: 5);
+          defaultFileName = '${currentWorkspace.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}_insomnia_export.yaml';
+          isYaml = true;
+          break;
+      }
+
+      final String fileContent = isYaml
+          ? YamlHelper.toYaml(exportData)
+          : const JsonEncoder.withIndent('  ').convert(exportData);
+
+      final typeGroup = selector.XTypeGroup(
+        label: isYaml ? 'YAML Collection' : 'JSON Collection',
+        extensions: isYaml ? ['yaml', 'yml'] : ['json'],
+      );
+      final selector.FileSaveLocation? result = await selector.getSaveLocation(
+        suggestedName: defaultFileName,
+        acceptedTypeGroups: [typeGroup],
+      );
+
+      if (result != null) {
+        final file = File(result.path);
+        await file.writeAsString(fileContent);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

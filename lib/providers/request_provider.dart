@@ -7,6 +7,8 @@ import 'package:gk_http_client/repository/collection_repository.dart';
 import 'package:gk_http_client/repository/workspace_repository.dart';
 import 'package:gk_http_client/theme/app_colors.dart';
 import 'package:gk_http_client/services/http_service.dart';
+import 'package:gk_http_client/utils/converters/postman_converter.dart';
+import 'package:gk_http_client/utils/converters/insomnia_converter.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
@@ -237,6 +239,14 @@ class RequestProvider with ChangeNotifier {
     return _collections.map((c) => c.toJson()).toList();
   }
 
+  Map<String, dynamic> exportPostman(String workspaceName) {
+    return PostmanConverter.exportCollection(_collections, workspaceName);
+  }
+
+  Map<String, dynamic> exportInsomnia(String workspaceId, String workspaceName, {int exportFormat = 4}) {
+    return InsomniaConverter.exportCollection(_collections, workspaceId, workspaceName, exportFormat: exportFormat);
+  }
+
   Future<void> importCollections(List<Map<String, dynamic>> data, String workspaceId) async {
     try {
       final List<RequestCollection> imported = data.map((json) {
@@ -255,6 +265,25 @@ class RequestProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao importar coleções: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> importLoadedCollections(List<RequestCollection> imported, String workspaceId) async {
+    try {
+      for (var col in imported) {
+        col.workspaceId = workspaceId;
+      }
+      _collections.addAll(imported);
+
+      for (int i = 0; i < _collections.length; i++) {
+        _collections[i] = _collections[i].copyWith(sortOrder: i);
+      }
+
+      await _saveCollections();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erro ao importar coleções carregadas: $e');
       rethrow;
     }
   }
