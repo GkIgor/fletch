@@ -65,7 +65,17 @@ static void my_application_activate(GApplication* application) {
   if (count != -1) {
     std::string exe_path(result, count);
     char* exe_dir = dirname(&exe_path[0]);
-    std::string icon_path = std::string(exe_dir) + "/data/flutter_assets/assets/icon/fletch.png";
+    
+    // Determine icon based on flavor
+    std::string flavor_str = FLAVOR;
+    std::string icon_name = "fletch.png";
+    if (flavor_str == "dev") {
+      icon_name = "fletch_dev.png";
+    } else if (flavor_str == "staging") {
+      icon_name = "fletch_staging.png";
+    }
+    
+    std::string icon_path = std::string(exe_dir) + "/data/flutter_assets/assets/icon/" + icon_name;
     g_autoptr(GError) error = nullptr;
     g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_file(icon_path.c_str(), &error);
     if (icon != nullptr) {

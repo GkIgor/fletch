@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/providers/theme_provider.dart';
 import 'package:fletch/providers/workspace_provider.dart';
+import 'package:fletch/core/app_config.dart';
 import 'package:fletch/services/navigation_service.dart';
 import 'package:fletch/widgets/dialogs/create_workspace_dialog.dart';
 import 'package:fletch/widgets/dialogs/edit_workspace_dialog.dart';
@@ -83,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildWindowDot(const Color(0xFF10B981)),
                     const SizedBox(width: 20),
                     Text(
-                      'Fletch',
+                      AppConfig.appDisplayName,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -91,6 +92,34 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: labelColor,
                       ),
                     ),
+                    if (AppConfig.flavor != 'prod') ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppConfig.flavor == 'staging'
+                              ? Colors.orange.withValues(alpha: 0.2)
+                              : Colors.green.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: AppConfig.flavor == 'staging'
+                                ? Colors.orange.withValues(alpha: 0.4)
+                                : Colors.green.withValues(alpha: 0.4),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          AppConfig.flavor.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800,
+                            color: AppConfig.flavor == 'staging'
+                                ? Colors.orange
+                                : Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 Row(

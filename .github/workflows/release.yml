@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
+      - staging
 
 permissions:
   contents: write
+
+env:
+  FLAVOR: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
 
 jobs:
   build_windows:
@@ -26,18 +30,23 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows App
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define=FLAVOR=${{ env.FLAVOR }}
+        env:
+          FLAVOR: ${{ env.FLAVOR }}
 
       - name: Package Windows App
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath fletch-windows.zip
+          if ("${{ env.FLAVOR }}" -ne "prod") {
+            Rename-Item -Path build\windows\x64\runner\Release\fletch.exe -NewName fletch_${{ env.FLAVOR }}.exe
+          }
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath fletch-windows-${{ env.FLAVOR }}.zip
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: fletch-windows.zip
+          path: fletch-windows-${{ env.FLAVOR }}.zip
 
   build_linux:
     name: Build for Linux
@@ -61,17 +70,23 @@ jobs:
         run: flutter pub get
 
       - name: Build Linux App
-        run: flutter build linux --release
+        run: flutter build linux --release --dart-define=FLAVOR=${{ env.FLAVOR }}
+        env:
+          FLAVOR: ${{ env.FLAVOR }}
 
       - name: Package Linux App
         run: |
-          tar -czf fletch-linux.tar.gz -C build/linux/x64/release/bundle .
+          if [ "${{ env.FLAVOR }}" != "prod" ]; then
+            rm -f build/linux/x64/release/bundle/fletch_${{ env.FLAVOR }}
+            mv build/linux/x64/release/bundle/fletch build/linux/x64/release/bundle/fletch_${{ env.FLAVOR }}
+          fi
+          tar -czf fletch-linux-${{ env.FLAVOR }}.tar.gz -C build/linux/x64/release/bundle .
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: fletch-linux.tar.gz
+          path: fletch-linux-${{ env.FLAVOR }}.tar.gz
 
   create_release:
     name: Create Release
@@ -97,9 +112,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_NAME="v1.0.${{ github.run_number }}"
+          if [ "${{ env.FLAVOR }}" = "prod" ]; then
+            TAG_NAME="v1.0.${{ github.run_number }}"
+            RELEASE_TITLE="Release $TAG_NAME"
+          else
+            TAG_NAME="v1.0.${{ github.run_number }}-${{ env.FLAVOR }}"
+            RELEASE_TITLE="${{ env.FLAVOR }} Release $TAG_NAME".toUpperCase()
+            # Simple shell to capitalize flavor name
+            FLAVOR_UPPER=$(echo "${{ env.FLAVOR }}" | tr '[:lower:]' '[:upper:]')
+            RELEASE_TITLE="$FLAVOR_UPPER Release $TAG_NAME"
+          fi
+          
           gh release create "$TAG_NAME" \
-            --title "Release $TAG_NAME" \
-            --notes "Automated release of Fletch for Windows and Linux. Built from commit ${{ github.sha }}." \
-            fletch-windows.zip \
-            fletch-linux.tar.gz
+            --title "$RELEASE_TITLE" \
+            --notes "Automated release of Fletch (${{ env.FLAVOR }} flavor) for Windows and Linux. Built from commit ${{ github.sha }}." \
+            fletch-windows-${{ env.FLAVOR }}.zip \
+            fletch-linux-${{ env.FLAVOR }}.tar.gz

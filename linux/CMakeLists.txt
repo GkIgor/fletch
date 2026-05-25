@@ -2,12 +2,20 @@
 cmake_minimum_required(VERSION 3.13)
 project(runner LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
-# the on-disk name of your application.
+if(DEFINED ENV{FLAVOR})
+  set(FLAVOR $ENV{FLAVOR})
+else()
+  set(FLAVOR "dev")
+endif()
+
 set(BINARY_NAME "fletch")
-# The unique GTK application identifier for this application. See:
-# https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.fletch")
+if(FLAVOR STREQUAL "prod")
+  set(APPLICATION_ID "com.example.fletch")
+elseif(FLAVOR STREQUAL "staging")
+  set(APPLICATION_ID "com.example.fletch_staging")
+else()
+  set(APPLICATION_ID "com.example.fletch_dev")
+endif()
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -93,6 +101,12 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
+
+if(NOT FLAVOR STREQUAL "prod")
+  install(CODE "
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink ${BINARY_NAME} \"\${CMAKE_INSTALL_PREFIX}/${BINARY_NAME}_${FLAVOR}\")
+  " COMPONENT Runtime)
+endif()
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)

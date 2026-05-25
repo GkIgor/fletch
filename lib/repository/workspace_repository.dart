@@ -11,6 +11,10 @@ class WorkspaceRepository {
   Future<List<WorkspaceModel>> getAll() async {
     final dir = Directory(_path);
 
+    if (!dir.existsSync()) {
+      return [];
+    }
+
     final files = dir.listSync().where((f) => f.path.endsWith('.json'));
 
     final List<WorkspaceModel> workspaces = [];

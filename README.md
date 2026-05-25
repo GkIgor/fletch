@@ -63,11 +63,69 @@ flutter pub get
 flutter run -d linux       # or -d windows
 ```
 
-Production build:
+## Environments (Flavors)
+
+Fletch supports three separate build/runtime environments: **Prod**, **Staging**, and **Dev**. Each environment uses isolated local databases and storage paths, preventing experimental testing data from contaminating your production collections.
+
+| Environment | App Name | Local Path | Launch Icon Tint | Purpose |
+|---|---|---|---|---|
+| **Prod** | `Fletch` | `~/.fletch/` | Purple (Default) | General production use |
+| **Staging** | `Fletch Staging` | `~/.fletch_staging/` | Orange | Canary / pre-prod verification |
+| **Dev** | `Fletch Dev` | `~/.fletch_dev/` | Green | Local development and nightly testing |
+
+### Running Locally
+
+By default, running `flutter run` starts the **Dev** environment. To run in a specific environment:
 
 ```sh
-flutter build linux --release
-# output: build/linux/x64/release/bundle/
+# Run Dev (default)
+flutter run
+
+# Run Staging
+flutter run --dart-define=FLAVOR=staging
+
+# Run Prod
+flutter run --dart-define=FLAVOR=prod
+```
+
+### Building
+
+To compile a release build for a specific environment:
+
+```sh
+# Build Prod (generates binary: fletch)
+FLAVOR=prod flutter build linux --release
+
+# Build Staging (generates binary: fletch_staging)
+FLAVOR=staging flutter build linux --release
+
+# Build Dev (generates binary: fletch_dev)
+FLAVOR=dev flutter build linux --release
+```
+
+### Easy Commands (Makefile)
+
+A `Makefile` is provided in the root directory for convenient shortcut commands across different environments:
+
+```sh
+# Running (flutter run)
+make run-dev         # Run in Dev environment (default)
+make run-staging     # Run in Staging environment
+make run-prod        # Run in Prod environment
+
+# Compiling (flutter build linux --release)
+make build-dev       # Compile release build for Dev
+make build-staging   # Compile release build for Staging
+make build-prod      # Compile release build for Prod
+
+# Testing (flutter test)
+make test            # Run all unit tests (defaults to Dev)
+make test-dev        # Run all unit tests in Dev configuration
+make test-staging    # Run all unit tests in Staging configuration
+make test-prod       # Run all unit tests in Prod configuration
+
+# Cleaning
+make clean           # Clean build files
 ```
 
 ## Features

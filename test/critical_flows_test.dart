@@ -271,4 +271,31 @@ void main() {
       expect(provider.isRunningWorkspace, isFalse);
     });
   });
+
+  group('AppConfig Environment configurations', () {
+    test('AppConfig resolves environment configurations correctly', () {
+      // Temporarily clear the overridden paths to test default path resolution
+      AppConfig.workspaceDir = null;
+      AppConfig.collectionsDir = null;
+
+      final expectedFlavor = AppConfig.flavor;
+      final String expectedDisplayName;
+      final String expectedFolder;
+
+      if (expectedFlavor == 'prod') {
+        expectedDisplayName = 'Fletch';
+        expectedFolder = '.fletch';
+      } else if (expectedFlavor == 'staging') {
+        expectedDisplayName = 'Fletch Staging';
+        expectedFolder = '.fletch_staging';
+      } else {
+        expectedDisplayName = 'Fletch Dev';
+        expectedFolder = '.fletch_dev';
+      }
+
+      expect(AppConfig.appDisplayName, equals(expectedDisplayName));
+      expect(AppConfig.workspaceDir, contains('$expectedFolder/workspaces'));
+      expect(AppConfig.collectionsDir, contains('$expectedFolder/collections'));
+    });
+  });
 }

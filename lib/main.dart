@@ -10,11 +10,11 @@ import 'package:fletch/providers/theme_provider.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   AppConfig appConfig = AppConfig();
-  appConfig.initializeInfrastructure();
+  await appConfig.initializeInfrastructure();
 
   runApp(
     MultiProvider(
@@ -48,7 +48,7 @@ class Application extends StatelessWidget {
     };
 
     return MaterialApp(
-      title: 'Fletch',
+      title: AppConfig.appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

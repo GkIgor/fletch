@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=false
+Name=Fletch Dev
+Exec=/home/gk_igor_dev/development/opensource/gk_http_client/build/linux/x64/release/bundle/fletch_dev
+Icon=/home/gk_igor_dev/development/opensource/gk_http_client/assets/icon/fletch_dev.png
+Comment=Fletch Dev — open source HTTP client (Dev environment)
+Categories=Development;
+StartupWMClass=com.example.fletch_dev
