@@ -112,19 +112,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ env.FLAVOR }}" = "prod" ]; then
-            TAG_NAME="v1.0.${{ github.run_number }}"
-            RELEASE_TITLE="Release $TAG_NAME"
-          else
-            TAG_NAME="v1.0.${{ github.run_number }}-${{ env.FLAVOR }}"
-            RELEASE_TITLE="${{ env.FLAVOR }} Release $TAG_NAME".toUpperCase()
-            # Simple shell to capitalize flavor name
-            FLAVOR_UPPER=$(echo "${{ env.FLAVOR }}" | tr '[:lower:]' '[:upper:]')
-            RELEASE_TITLE="$FLAVOR_UPPER Release $TAG_NAME"
-          fi
+          # Extract version from pubspec.yaml
+          VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
           
-          gh release create "$TAG_NAME" \
-            --title "$RELEASE_TITLE" \
-            --notes "Automated release of Fletch (${{ env.FLAVOR }} flavor) for Windows and Linux. Built from commit ${{ github.sha }}." \
-            fletch-windows-${{ env.FLAVOR }}.zip \
-            fletch-linux-${{ env.FLAVOR }}.tar.gz
+          if [ "${{ env.FLAVOR }}" = "prod" ]; then
+            TAG_NAME="v$VERSION"
+            RELEASE_TITLE="Release $TAG_NAME"
+            
+            # Create production release
+            gh release create "$TAG_NAME" \
+              --title "$RELEASE_TITLE" \
+              --notes "Official release of Fletch ($TAG_NAME) for Windows and Linux. Built from commit ${{ github.sha }}." \
+              fletch-windows-prod.zip \
+              fletch-linux-prod.tar.gz
+          else
+            TAG_NAME="v$VERSION-staging"
+            RELEASE_TITLE="STAGING Release $TAG_NAME"
+            
+            # Delete any previous staging releases/tags to maintain only the latest one
+            gh release list --limit 100 | grep -E '\-staging' | awk '{print $1}' | while read -r tag; do
+              echo "Deleting previous staging release: $tag"
+              gh release delete "$tag" --yes --cleanup-tag || true
+            done
+            
+            # Create new staging release (marked as prerelease)
+            gh release create "$TAG_NAME" \
+              --prerelease \
+              --title "$RELEASE_TITLE" \
+              --notes "Automated staging build of Fletch ($TAG_NAME) for Windows and Linux. Built from commit ${{ github.sha }}." \
+              fletch-windows-staging.zip \
+              fletch-linux-staging.tar.gz
+          fi
