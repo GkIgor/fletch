@@ -34,12 +34,43 @@ Checklist de status do projeto e roteiro de implementação.
 - [x] **Gerenciamento de Workspaces:** Tela funcional para criar, editar e deletar workspaces.
 - [x] **Seletor de Ambientes:** Implementar a lógica real de variáveis de ambiente (Selector funcional).
 
-## 🛠️ Recursos de um Cliente HTTP Profissional (Roadmap)
-- [x] **Ambientes (Environments):** Variáveis dinâmicas (ex: `{{base_url}}`).
-- [ ] **Autenticação:** Suporte a Basic Auth, Bearer Token, API Keys e OAuth2.
-- [ ] **Histórico:** Lista de requisições enviadas recentemente.
-- [ ] **Scripts:** Pre-request e Post-request scripts para automação.
-- [x] **Importação/Exportação:** Suporte nativo a formatos Postman, Insomnia (JSON e YAML v5) e cURL (parcial).
-- [x] **Formatadores de Body:** Suporte a JSON (com beautify e lint).
-- [ ] **Geração de Código:** Transformar a requisição em trechos de código (cURL, Python, JavaScript, etc).
-- [ ] **Gerenciador de Cookies:** Persistência automática de cookies entre requisições.
+## 🚀 Path to Beta (Roadmap)
+
+### 1. Advanced Authentication Panel
+- [ ] **Native Auth Mechanisms:** Implement a dedicated UI tab to support OAuth (1.0/2.0), Basic Auth, API Keys, and Bearer Tokens out of the box (migrating from manually writing headers).
+
+### 2. Sandbox Automation Scripts (Pre/Post-Request)
+- [ ] **Basic (Low-Code):** Visual node-based workflow editor (similar to a simplified N8N) to chain dynamic variables, assertions, and conditions.
+- [ ] **Advanced (Code Editor):** Sandbox script execution using Dart or a secure pseudo-language to run complex custom scripts safely without security risks (escaping privilege escalations).
+
+### 3. JSON-to-Types Generator
+- [ ] **Response Converter:** Generate type/interface/class/struct models from JSON responses:
+  - Supported Languages: Dart `[x]`, TypeScript `[x]`, Go `[ ]`, Kotlin `[ ]`
+  - Configurations: Class Name setting, Options (Null safety, snake_case → camelCase conversion, final fields).
+
+### 4. Payload Bulk Importer
+- [ ] **Payload Import Menu:** Import one or multiple JSON payloads. Allow generating a new request for each payload or importing them directly into an existing request via context menu.
+
+### 5. Auto Collections Generator
+- [ ] **Scaffolding Tool:** Wizard screen to configure the active workspace and bulk-generate nested directories, subfolders, and pre-configured requests automatically (preventing tedious manual creation per domain/feature).
+
+### 6. Local Git Integration
+- [ ] **VCS Versioning:** Integrate local Git to version and track changes of Fletch artifacts (workspaces, collections, requests, history, etc.).
+
+### 7. Sync to GitHub (Cloud Sync)
+- [ ] **GitHub Storage:** Provide users the option to synchronize and store their Fletch data securely using GitHub as their cloud backend.
+
+### 8. Profiles (Workspace Isolation)
+- [ ] **Workspace Profiles:** Feature to create offline profiles (e.g. Work, College, Personal) to keep workspaces and collections fully separated under different user profiles.
+
+### 9. Cookie Manager & Redirects
+- [ ] **Cookie Store:** Automate cookie jar storage/replay between requests and add controls to follow or block HTTP redirect chains.
+
+### 10. Request History
+- [ ] **Execution History:** A sidebar panel listing recently executed requests to inspect past responses without re-triggering.
+
+### 11. Code Snippet Generator
+- [ ] **Code Exporter:** Generate request configuration snippets in multiple languages (cURL, Python, Go, JS Fetch, etc.).
+
+### 12. Enterprise Sync to Server (Post-Beta)
+- [ ] **Self-Hosted Backend:** Connect and synchronize data with a private custom server for collaborative enterprise teams.
