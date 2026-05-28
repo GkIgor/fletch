@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/services/http_service.dart';
 import 'package:fletch/widgets/body_editor.dart';
 
@@ -222,6 +223,182 @@ void main() {
 
         final response = await httpService.send(request, variables: variables);
         expect(response.statusCode, equals(200));
+      });
+    });
+
+    group('Authentication Tests', () {
+      final variables = {
+        'apiKey': 'my-secret-key',
+        'apiVal': 'my-val',
+        'bearerVal': 'my-bearer-token',
+        'user': 'john_doe',
+        'pass': 'secure_password',
+      };
+
+      test('API Key auth injection in header', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.headers['my-secret-key'], equals('my-val'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test API Key Auth',
+          method: HttpMethod.get,
+          url: 'https://example.com',
+          auth: HttpAuth(
+            type: AuthType.apiKey,
+            apiKeyKey: '{{apiKey}}',
+            apiKeyValue: '{{apiVal}}',
+            apiKeyAddTo: 'header',
+          ),
+        );
+
+        final response = await httpService.send(request, variables: variables);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('API Key auth injection in query param', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.queryParameters['my-secret-key'], equals('my-val'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test API Key Query Auth',
+          method: HttpMethod.get,
+          url: 'https://example.com',
+          auth: HttpAuth(
+            type: AuthType.apiKey,
+            apiKeyKey: '{{apiKey}}',
+            apiKeyValue: '{{apiVal}}',
+            apiKeyAddTo: 'query',
+          ),
+        );
+
+        final response = await httpService.send(request, variables: variables);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('Bearer Token injection', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.headers['Authorization'], equals('Bearer my-bearer-token'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test Bearer Token',
+          method: HttpMethod.get,
+          url: 'https://example.com',
+          auth: HttpAuth(
+            type: AuthType.bearer,
+            bearerToken: '{{bearerVal}}',
+          ),
+        );
+
+        final response = await httpService.send(request, variables: variables);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('Basic Auth injection (Base64 encoding)', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            final expectedBytes = utf8.encode('john_doe:secure_password');
+            final expectedBase64 = base64Encode(expectedBytes);
+            expect(options.headers['Authorization'], equals('Basic $expectedBase64'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test Basic Auth',
+          method: HttpMethod.get,
+          url: 'https://example.com',
+          auth: HttpAuth(
+            type: AuthType.basic,
+            basicUsername: '{{user}}',
+            basicPassword: '{{pass}}',
+          ),
+        );
+
+        final response = await httpService.send(request, variables: variables);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('OAuth 1.0 injection', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            final authHeader = options.headers['Authorization'] as String;
+            expect(authHeader, startsWith('OAuth '));
+            expect(authHeader, contains('oauth_consumer_key="client-id"'));
+            expect(authHeader, contains('oauth_token="my-token"'));
+            expect(authHeader, contains('oauth_signature="'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test OAuth 1.0',
+          method: HttpMethod.get,
+          url: 'https://example.com/api',
+          auth: HttpAuth(
+            type: AuthType.oauth1,
+            oauth1ConsumerKey: 'client-id',
+            oauth1ConsumerSecret: 'client-secret',
+            oauth1Token: 'my-token',
+            oauth1TokenSecret: 'my-token-secret',
+            oauth1SignatureMethod: 'HMAC-SHA1',
+          ),
+        );
+
+        final response = await httpService.send(request);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('OAuth 2.0 injection', () async {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.headers['Authorization'], equals('Bearer my-bearer-token'));
+            handler.resolve(Response(requestOptions: options, statusCode: 200));
+          },
+        ));
+
+        final request = HttpRequest(
+          name: 'Test OAuth 2.0',
+          method: HttpMethod.get,
+          url: 'https://example.com',
+          auth: HttpAuth(
+            type: AuthType.oauth2,
+            oauth2AccessToken: '{{bearerVal}}',
+          ),
+        );
+
+        final response = await httpService.send(request, variables: variables);
+        expect(response.statusCode, equals(200));
+      });
+
+      test('HttpRequest.fromJson defaults to AuthType.none when auth field is missing', () {
+        final json = {
+          'id': 'test-id-123',
+          'name': 'Test Request',
+          'method': 'GET',
+          'url': 'https://example.com',
+          'queryParams': {},
+          'headers': {},
+          'body': null,
+          'bodyType': 'none',
+          'formData': [],
+          'binaryPath': null,
+        };
+
+        final request = HttpRequest.fromJson(json);
+        expect(request.auth.type, equals(AuthType.none));
+        expect(request.auth.apiKeyKey, equals('apikey'));
       });
     });
   });

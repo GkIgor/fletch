@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_response.dart';
 import 'package:fletch/models/collection_model.dart';
@@ -636,5 +638,92 @@ class RequestProvider with ChangeNotifier {
 
     _isCurrentlyRunning = false;
     notifyListeners();
+  }
+
+  String _interpolate(String value, Map<String, String>? variables) {
+    if (variables == null || variables.isEmpty) return value;
+    final regex = RegExp(r'\{\{([^}]+)\}\}');
+    return value.replaceAllMapped(regex, (match) {
+      final varName = match.group(1)?.trim() ?? '';
+      return variables[varName] ?? '';
+    });
+  }
+
+  Future<String?> fetchOAuth2Token({
+    required String tokenUrl,
+    required String grantType,
+    required String clientId,
+    required String clientSecret,
+    required String scope,
+    required String username,
+    required String password,
+    Map<String, String>? variables,
+  }) async {
+    final dio = Dio();
+    try {
+      final interpolatedUrl = _interpolate(tokenUrl, variables).trim();
+      final interpolatedGrantType = _interpolate(grantType, variables).trim();
+      final interpolatedClientId = _interpolate(clientId, variables).trim();
+      final interpolatedClientSecret = _interpolate(clientSecret, variables).trim();
+      final interpolatedScope = _interpolate(scope, variables).trim();
+      final interpolatedUsername = _interpolate(username, variables).trim();
+      final interpolatedPassword = _interpolate(password, variables).trim();
+
+      if (interpolatedUrl.isEmpty) {
+        throw Exception('Token URL is empty');
+      }
+
+      final data = <String, String>{
+        'grant_type': interpolatedGrantType,
+      };
+
+      if (interpolatedClientId.isNotEmpty) {
+        data['client_id'] = interpolatedClientId;
+      }
+      if (interpolatedClientSecret.isNotEmpty) {
+        data['client_secret'] = interpolatedClientSecret;
+      }
+      if (interpolatedScope.isNotEmpty) {
+        data['scope'] = interpolatedScope;
+      }
+
+      if (interpolatedGrantType == 'password') {
+        if (interpolatedUsername.isNotEmpty) data['username'] = interpolatedUsername;
+        if (interpolatedPassword.isNotEmpty) data['password'] = interpolatedPassword;
+      }
+
+      final Map<String, dynamic> headers = {
+        Headers.contentTypeHeader: Headers.formUrlEncodedContentType,
+      };
+
+      final response = await dio.post(
+        interpolatedUrl,
+        data: data,
+        options: Options(
+          headers: headers,
+          validateStatus: (status) => true,
+        ),
+      );
+
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        dynamic responseData = response.data;
+        if (responseData is String) {
+          try {
+            responseData = jsonDecode(responseData);
+          } catch (_) {}
+        }
+        if (responseData is Map) {
+          return responseData['access_token']?.toString();
+        }
+        throw Exception('Unexpected token response: $responseData');
+      } else {
+        throw Exception('Token request failed: ${response.statusCode} ${response.statusMessage}\n${response.data}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching OAuth2 token: $e');
+      rethrow;
+    }
   }
 }

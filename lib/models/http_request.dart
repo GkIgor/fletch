@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'http_method.dart';
 import 'package:fletch/widgets/body_editor.dart';
+import 'http_auth.dart';
 
 /// Modelo de entrada para Form Data
 class FormDataEntry {
@@ -62,6 +63,7 @@ class HttpRequest {
   BodyType bodyType;
   List<FormDataEntry> formData;
   String? binaryPath;
+  final HttpAuth auth;
 
   HttpRequest({
     String? id,
@@ -74,10 +76,12 @@ class HttpRequest {
     this.bodyType = BodyType.none,
     List<FormDataEntry>? formData,
     this.binaryPath,
+    HttpAuth? auth,
   }) : id = id ?? const Uuid().v4(),
        queryParams = queryParams ?? {},
        headers = headers ?? {},
-       formData = formData ?? [];
+       formData = formData ?? [],
+       auth = auth ?? HttpAuth();
 
   /// Cria uma cópia da requisição com campos modificados
   HttpRequest copyWith({
@@ -90,6 +94,7 @@ class HttpRequest {
     BodyType? bodyType,
     List<FormDataEntry>? formData,
     String? binaryPath,
+    HttpAuth? auth,
   }) {
     return HttpRequest(
       id: id,
@@ -102,6 +107,7 @@ class HttpRequest {
       bodyType: bodyType ?? this.bodyType,
       formData: formData ?? this.formData,
       binaryPath: binaryPath ?? this.binaryPath,
+      auth: auth ?? this.auth,
     );
   }
 
@@ -118,6 +124,7 @@ class HttpRequest {
       'bodyType': bodyType.name,
       'formData': formData.map((e) => e.toJson()).toList(),
       'binaryPath': binaryPath,
+      'auth': auth.toJson(),
     };
   }
 
@@ -142,6 +149,9 @@ class HttpRequest {
           ?.map((e) => FormDataEntry.fromJson(Map<String, dynamic>.from(e)))
           .toList() ?? [],
       binaryPath: json['binaryPath'] as String?,
+      auth: json['auth'] != null
+          ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
+          : HttpAuth(),
     );
   }
 }

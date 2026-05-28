@@ -5,6 +5,8 @@ import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_response.dart';
 import 'package:path/path.dart' as p;
 import 'package:fletch/widgets/body_editor.dart';
+import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/utils/oauth1_helper.dart';
 
 class HttpService {
   final Dio _dio;
@@ -54,6 +56,61 @@ class HttpService {
         queryParams[interpolatedKey] = interpolatedVal;
       }
     });
+
+    // Apply Authentication Configs
+    final auth = request.auth;
+    switch (auth.type) {
+      case AuthType.apiKey:
+        final key = _interpolate(auth.apiKeyKey, variables).trim();
+        final value = _interpolate(auth.apiKeyValue, variables);
+        if (key.isNotEmpty) {
+          if (auth.apiKeyAddTo == 'query') {
+            queryParams[key] = value;
+          } else {
+            headers[key] = value;
+          }
+        }
+        break;
+      case AuthType.bearer:
+        final token = _interpolate(auth.bearerToken, variables);
+        headers['Authorization'] = 'Bearer $token';
+        break;
+      case AuthType.basic:
+        final username = _interpolate(auth.basicUsername, variables);
+        final password = _interpolate(auth.basicPassword, variables);
+        final credentials = base64Encode(utf8.encode('$username:$password'));
+        headers['Authorization'] = 'Basic $credentials';
+        break;
+      case AuthType.oauth1:
+        final consumerKey = _interpolate(auth.oauth1ConsumerKey, variables);
+        final consumerSecret = _interpolate(auth.oauth1ConsumerSecret, variables);
+        final token = _interpolate(auth.oauth1Token, variables);
+        final tokenSecret = _interpolate(auth.oauth1TokenSecret, variables);
+
+        final Map<String, String> stringQueryParams = {};
+        queryParams.forEach((k, v) {
+          stringQueryParams[k] = v.toString();
+        });
+
+        final oauthHeader = OAuth1Helper.generateHeader(
+          method: request.method.value,
+          url: url,
+          queryParams: stringQueryParams,
+          consumerKey: consumerKey,
+          consumerSecret: consumerSecret,
+          token: token,
+          tokenSecret: tokenSecret,
+          signatureMethod: auth.oauth1SignatureMethod,
+        );
+        headers['Authorization'] = oauthHeader;
+        break;
+      case AuthType.oauth2:
+        final token = _interpolate(auth.oauth2AccessToken, variables);
+        headers['Authorization'] = 'Bearer $token';
+        break;
+      case AuthType.none:
+        break;
+    }
 
     // 3. Configurar Body baseado no BodyType com Interpolação
     dynamic data;
