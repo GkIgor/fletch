@@ -28,22 +28,22 @@ class _RequestEditorState extends State<RequestEditor>
   bool _isFavorite = false;
 
   // Auth text controllers
-  late TextEditingController _apiKeyKeyController;
-  late TextEditingController _apiKeyValueController;
-  late TextEditingController _bearerTokenController;
-  late TextEditingController _basicUsernameController;
-  late TextEditingController _basicPasswordController;
-  late TextEditingController _oauth1ConsumerKeyController;
-  late TextEditingController _oauth1ConsumerSecretController;
-  late TextEditingController _oauth1TokenController;
-  late TextEditingController _oauth1TokenSecretController;
-  late TextEditingController _oauth2AccessTokenController;
-  late TextEditingController _oauth2TokenUrlController;
-  late TextEditingController _oauth2ClientIdController;
-  late TextEditingController _oauth2ClientSecretController;
-  late TextEditingController _oauth2ScopeController;
-  late TextEditingController _oauth2UsernameController;
-  late TextEditingController _oauth2PasswordController;
+  late InterpolatedTextController _apiKeyKeyController;
+  late InterpolatedTextController _apiKeyValueController;
+  late InterpolatedTextController _bearerTokenController;
+  late InterpolatedTextController _basicUsernameController;
+  late InterpolatedTextController _basicPasswordController;
+  late InterpolatedTextController _oauth1ConsumerKeyController;
+  late InterpolatedTextController _oauth1ConsumerSecretController;
+  late InterpolatedTextController _oauth1TokenController;
+  late InterpolatedTextController _oauth1TokenSecretController;
+  late InterpolatedTextController _oauth2AccessTokenController;
+  late InterpolatedTextController _oauth2TokenUrlController;
+  late InterpolatedTextController _oauth2ClientIdController;
+  late InterpolatedTextController _oauth2ClientSecretController;
+  late InterpolatedTextController _oauth2ScopeController;
+  late InterpolatedTextController _oauth2UsernameController;
+  late InterpolatedTextController _oauth2PasswordController;
 
   // Visual options
   String _apiKeyAddTo = 'header';
@@ -60,22 +60,22 @@ class _RequestEditorState extends State<RequestEditor>
     _tabController = TabController(length: 4, vsync: this);
 
     final auth = widget.request.auth;
-    _apiKeyKeyController = TextEditingController(text: auth.apiKeyKey);
-    _apiKeyValueController = TextEditingController(text: auth.apiKeyValue);
-    _bearerTokenController = TextEditingController(text: auth.bearerToken);
-    _basicUsernameController = TextEditingController(text: auth.basicUsername);
-    _basicPasswordController = TextEditingController(text: auth.basicPassword);
-    _oauth1ConsumerKeyController = TextEditingController(text: auth.oauth1ConsumerKey);
-    _oauth1ConsumerSecretController = TextEditingController(text: auth.oauth1ConsumerSecret);
-    _oauth1TokenController = TextEditingController(text: auth.oauth1Token);
-    _oauth1TokenSecretController = TextEditingController(text: auth.oauth1TokenSecret);
-    _oauth2AccessTokenController = TextEditingController(text: auth.oauth2AccessToken);
-    _oauth2TokenUrlController = TextEditingController(text: auth.oauth2TokenUrl);
-    _oauth2ClientIdController = TextEditingController(text: auth.oauth2ClientId);
-    _oauth2ClientSecretController = TextEditingController(text: auth.oauth2ClientSecret);
-    _oauth2ScopeController = TextEditingController(text: auth.oauth2Scope);
-    _oauth2UsernameController = TextEditingController(text: auth.oauth2Username);
-    _oauth2PasswordController = TextEditingController(text: auth.oauth2Password);
+    _apiKeyKeyController = InterpolatedTextController(text: auth.apiKeyKey);
+    _apiKeyValueController = InterpolatedTextController(text: auth.apiKeyValue);
+    _bearerTokenController = InterpolatedTextController(text: auth.bearerToken);
+    _basicUsernameController = InterpolatedTextController(text: auth.basicUsername);
+    _basicPasswordController = InterpolatedTextController(text: auth.basicPassword);
+    _oauth1ConsumerKeyController = InterpolatedTextController(text: auth.oauth1ConsumerKey);
+    _oauth1ConsumerSecretController = InterpolatedTextController(text: auth.oauth1ConsumerSecret);
+    _oauth1TokenController = InterpolatedTextController(text: auth.oauth1Token);
+    _oauth1TokenSecretController = InterpolatedTextController(text: auth.oauth1TokenSecret);
+    _oauth2AccessTokenController = InterpolatedTextController(text: auth.oauth2AccessToken);
+    _oauth2TokenUrlController = InterpolatedTextController(text: auth.oauth2TokenUrl);
+    _oauth2ClientIdController = InterpolatedTextController(text: auth.oauth2ClientId);
+    _oauth2ClientSecretController = InterpolatedTextController(text: auth.oauth2ClientSecret);
+    _oauth2ScopeController = InterpolatedTextController(text: auth.oauth2Scope);
+    _oauth2UsernameController = InterpolatedTextController(text: auth.oauth2Username);
+    _oauth2PasswordController = InterpolatedTextController(text: auth.oauth2Password);
 
     _apiKeyAddTo = auth.apiKeyAddTo;
     _oauth1SignatureMethod = auth.oauth1SignatureMethod;
@@ -242,7 +242,7 @@ class _RequestEditorState extends State<RequestEditor>
 
   Widget _buildTextField({
     required String label,
-    required TextEditingController controller,
+    required InterpolatedTextController controller,
     required String hint,
     required void Function(String) onChanged,
     required bool isDark,
@@ -258,37 +258,51 @@ class _RequestEditorState extends State<RequestEditor>
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-            ),
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          maxLines: maxLines,
+          onChanged: onChanged,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? AppColors.textDark : AppColors.textLight,
           ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscureText,
-            maxLines: maxLines,
-            onChanged: onChanged,
-            style: TextStyle(
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
               fontSize: 13,
-              color: isDark ? AppColors.textDark : AppColors.textLight,
+              color: AppColors.slate400.withValues(alpha: 0.4),
             ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                fontSize: 13,
-                color: AppColors.slate400.withValues(alpha: 0.5),
+            filled: true,
+            fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            isDense: true,
+            suffixIcon: suffixIcon,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                width: 1,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: InputBorder.none,
-              isDense: true,
-              suffixIcon: suffixIcon,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.2,
+              ),
             ),
           ),
         ),
@@ -311,28 +325,46 @@ class _RequestEditorState extends State<RequestEditor>
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-            ),
+        DropdownButtonFormField<T>(
+          initialValue: value,
+          items: items,
+          onChanged: onChanged,
+          dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? AppColors.textDark : AppColors.textLight,
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down, size: 20),
-              dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-              items: items,
-              onChanged: onChanged,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            isDense: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.2,
+              ),
             ),
           ),
         ),
@@ -360,38 +392,57 @@ class _RequestEditorState extends State<RequestEditor>
                 ),
               ),
               const SizedBox(width: 12),
-              Container(
+              SizedBox(
                 width: 180,
-                height: 36,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                child: DropdownButtonFormField<AuthType>(
+                  initialValue: auth.type,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+                  dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
                   ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<AuthType>(
-                    value: auth.type,
-                    isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down, size: 20),
-                    dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                    items: const [
-                      DropdownMenuItem(value: AuthType.none, child: Text('No Auth', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: AuthType.apiKey, child: Text('API Key', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: AuthType.bearer, child: Text('Bearer Token', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: AuthType.basic, child: Text('Basic Auth', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: AuthType.oauth1, child: Text('OAuth 1.0', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: AuthType.oauth2, child: Text('OAuth 2.0', style: TextStyle(fontSize: 13))),
-                    ],
-                    onChanged: (AuthType? value) {
-                      if (value != null) {
-                        final updatedAuth = widget.request.auth.copyWith(type: value);
-                        _onSave(auth: updatedAuth);
-                      }
-                    },
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        width: 1,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.2,
+                      ),
+                    ),
                   ),
+                  items: const [
+                    DropdownMenuItem(value: AuthType.none, child: Text('No Auth', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: AuthType.apiKey, child: Text('API Key', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: AuthType.bearer, child: Text('Bearer Token', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: AuthType.basic, child: Text('Basic Auth', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: AuthType.oauth1, child: Text('OAuth 1.0', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: AuthType.oauth2, child: Text('OAuth 2.0', style: TextStyle(fontSize: 13))),
+                  ],
+                  onChanged: (AuthType? value) {
+                    if (value != null) {
+                      final updatedAuth = widget.request.auth.copyWith(type: value);
+                      _onSave(auth: updatedAuth);
+                    }
+                  },
                 ),
               ),
             ],
