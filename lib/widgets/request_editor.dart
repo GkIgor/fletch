@@ -1063,10 +1063,7 @@ class _RequestEditorState extends State<RequestEditor>
                         ),
                       ),
 
-                      const Divider(
-                        height: 1,
-                        thickness: 1,
-                      ),
+                      const SizedBox(height: 8),
 
                       // Tab Content
                       Expanded(

@@ -377,6 +377,10 @@ class RequestProvider with ChangeNotifier {
       sortOrder: _collections.length,
     );
 
+    if (!parent.isExpanded) {
+      _collections[parentIdx] = parent.copyWith(isExpanded: true);
+    }
+
     _collections.add(subCollection);
     await _saveCollections();
     notifyListeners();
@@ -647,6 +651,39 @@ class RequestProvider with ChangeNotifier {
       final varName = match.group(1)?.trim() ?? '';
       return variables[varName] ?? '';
     });
+  }
+
+  Future<void> bulkImportPayloads({
+    required List<MapEntry<String, HttpRequest>> newRequestsWithCollectionId,
+    required List<HttpRequest> updatedRequests,
+  }) async {
+    // 1. Substituir os corpos nas requisições existentes
+    for (var updated in updatedRequests) {
+      for (var col in _collections) {
+        final idx = col.requests.indexWhere((r) => r.id == updated.id);
+        if (idx != -1) {
+          col.requests[idx] = updated;
+          if (_selectedRequest?.id == updated.id) {
+            _selectedRequest = updated;
+          }
+          break;
+        }
+      }
+    }
+
+    // 2. Adicionar novas requisições às coleções de destino
+    for (var entry in newRequestsWithCollectionId) {
+      final collectionId = entry.key;
+      final request = entry.value;
+      final colIdx = _collections.indexWhere((c) => c.id == collectionId);
+      if (colIdx != -1) {
+        _collections[colIdx].requests.add(request);
+      }
+    }
+
+    // 3. Salvar tudo uma única vez e notificar a UI
+    await _saveCollections();
+    notifyListeners();
   }
 
   Future<String?> fetchOAuth2Token({

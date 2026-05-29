@@ -16,6 +16,9 @@ import 'package:fletch/utils/converters/format_detector.dart';
 import 'package:fletch/utils/converters/postman_converter.dart';
 import 'package:fletch/utils/converters/insomnia_converter.dart';
 import 'package:fletch/utils/converters/yaml_helper.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator_dialog.dart';
+import 'package:fletch/widgets/dialogs/payload_bulk_importer_dialog.dart';
 
 class RequestSidebar extends StatefulWidget {
   final double width;
@@ -304,68 +307,127 @@ class _SidebarFooterActions extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-              child: InkWell(
-                onTap: () {
-                  _openNewCollectionDialog(context, isDark);
-                },
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                    ),
+          Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    onTap: () {
+                      _openNewCollectionDialog(context, isDark);
+                    },
                     borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_rounded, size: 16, color: AppColors.slate500),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          'New Collection',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.slate500,
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
                         ),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_rounded, size: 18, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'New Collection',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textDark : AppColors.textLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          _ActionButton(
-            icon: Icons.file_upload_rounded,
-            tooltip: 'Import Collections',
-            onTap: () => _importCollections(context, provider, wsProvider),
-            isDark: isDark,
-          ),
-          const SizedBox(width: 8),
-          _ActionButton(
-            icon: Icons.file_download_rounded,
-            tooltip: 'Export Collections',
-            onTap: () => _exportCollections(context, provider, wsProvider),
-            isDark: isDark,
-          ),
-          const SizedBox(width: 8),
-          _ActionButton(
-            icon: Icons.play_circle_outline_rounded,
-            tooltip: 'Run Workspace',
-            onTap: () => provider.startWorkspaceRun(),
-            isDark: isDark,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ActionButton(
+                icon: Icons.file_upload_rounded,
+                tooltip: 'Import Collections',
+                onTap: () => _importCollections(context, provider, wsProvider),
+                isDark: isDark,
+              ),
+              _ActionButton(
+                icon: Icons.file_download_rounded,
+                tooltip: 'Export Collections',
+                onTap: () => _exportCollections(context, provider, wsProvider),
+                isDark: isDark,
+              ),
+              _ActionButton(
+                icon: Icons.play_circle_outline_rounded,
+                tooltip: 'Run Workspace',
+                onTap: () => provider.startWorkspaceRun(),
+                isDark: isDark,
+              ),
+              Container(
+                height: 36,
+                width: 36,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Tooltip(
+                  message: 'Tools',
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      cardColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.construction_rounded, size: 16, color: AppColors.slate500),
+                      splashRadius: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onSelected: (value) {
+                        if (value == 'generator') {
+                          _openAutoGeneratorDialog(context, isDark);
+                        } else if (value == 'importer') {
+                          _pickAndOpenBulkImporter(context, provider, isDark);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'generator',
+                          child: Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              const Text('Auto Collections Generator', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'importer',
+                          child: Row(
+                            children: [
+                              Icon(Icons.system_update_alt_rounded, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              const Text('Payload Bulk Importer', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -555,6 +617,56 @@ class _SidebarFooterActions extends StatelessWidget {
       }
     }
   }
+
+  void _openAutoGeneratorDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: AutoCollectionsGeneratorDialog(isDark: isDark),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndOpenBulkImporter(BuildContext context, RequestProvider provider, bool isDark) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final List<MapEntry<String, String>> filesData = [];
+        for (var file in result.files) {
+          if (file.path != null) {
+            final content = await File(file.path!).readAsString();
+            filesData.add(MapEntry(file.name, content));
+          }
+        }
+
+        if (context.mounted && filesData.isNotEmpty) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return Dialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: PayloadBulkImporterDialog(filesData: filesData, isDark: isDark),
+              );
+            },
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error selecting files: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
 }
 
 class _ActionButton extends StatelessWidget {
@@ -573,6 +685,8 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 36,
+      width: 36,
       decoration: BoxDecoration(
         border: Border.all(
           color: isDark ? AppColors.borderDark : AppColors.borderLight,

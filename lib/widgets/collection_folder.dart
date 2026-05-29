@@ -52,8 +52,8 @@ class _CollectionFolderState extends State<CollectionFolder> {
           borderRadius: BorderRadius.circular(6),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 8.0,
-              vertical: 4.0,
+              horizontal: 10.0,
+              vertical: 6.0,
             ),
             child: Row(
               children: [
@@ -273,20 +273,22 @@ class _CollectionFolderState extends State<CollectionFolder> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         dragTargetHeader,
-        if (widget.isExpanded)
+        if (widget.isExpanded) ...[
+          const SizedBox(height: 4),
           Container(
-            margin: const EdgeInsets.only(left: 16),
-            padding: const EdgeInsets.only(left: 4),
+            margin: const EdgeInsets.only(left: 18),
+            padding: const EdgeInsets.only(left: 8),
             decoration: BoxDecoration(
               border: Border(
                 left: BorderSide(
-                  color: folderColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                  color: folderColor.withValues(alpha: isDark ? 0.35 : 0.25),
                   width: 1.5,
                 ),
               ),
             ),
             child: widget.child,
           ),
+        ],
       ],
     );
   }
@@ -320,7 +322,16 @@ class _CollectionFolderState extends State<CollectionFolder> {
         ),
       ),
       PopupMenuItem(
-        onTap: () => _createNewSubFolder(context, provider),
+        onTap: () {
+          Future.delayed(
+            Duration.zero,
+            () {
+              if (context.mounted) {
+                _createNewSubFolder(context, provider);
+              }
+            },
+          );
+        },
         child: Row(
           children: [
             Icon(Icons.create_new_folder_rounded, size: 16, color: color),
@@ -330,7 +341,16 @@ class _CollectionFolderState extends State<CollectionFolder> {
         ),
       ),
       PopupMenuItem(
-        onTap: () => _openEditCollectionDialog(context, isDark),
+        onTap: () {
+          Future.delayed(
+            Duration.zero,
+            () {
+              if (context.mounted) {
+                _openEditCollectionDialog(context, isDark);
+              }
+            },
+          );
+        },
         child: Row(
           children: [
             Icon(Icons.edit_rounded, size: 16, color: color),
@@ -341,28 +361,31 @@ class _CollectionFolderState extends State<CollectionFolder> {
       ),
       const PopupMenuDivider(),
       PopupMenuItem(
-        onTap: () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Folder'),
-              content: Text('Are you sure you want to delete "${widget.collection.name}"? This will delete all requests and nested folders inside it.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
-          if (confirm == true) {
-            await provider.removeCollection(widget.collection.id);
-          }
+        onTap: () {
+          Future.delayed(Duration.zero, () async {
+            if (!context.mounted) return;
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Delete Folder'),
+                content: Text('Are you sure you want to delete "${widget.collection.name}"? This will delete all requests and nested folders inside it.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true && context.mounted) {
+              await provider.removeCollection(widget.collection.id);
+            }
+          });
         },
         child: const Row(
           children: [
