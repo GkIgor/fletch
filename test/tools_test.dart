@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:fletch/core/app_config.dart';
 import 'package:fletch/models/collection_model.dart';
@@ -17,6 +18,7 @@ void main() {
   late String originalCollectionsDir;
 
   setUp(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
     originalWorkspaceDir = AppConfig.workspaceDir;
     originalCollectionsDir = AppConfig.collectionsDir;
     tempDir = await Directory.systemTemp.createTemp('tools_test_');
@@ -165,6 +167,65 @@ void main() {
     expect(usersColl.requests.length, equals(1));
     expect(usersColl.requests[0].name, equals('/profile'));
     expect(usersColl.requests[0].method, equals(HttpMethod.get));
+  });
+
+  testWidgets('AutoCollectionsGeneratorDialog - Direct Generation from Tab 0 Test', (WidgetTester tester) async {
+    final provider = RequestProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<RequestProvider>.value(
+        value: provider,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const Dialog(
+                        child: AutoCollectionsGeneratorDialog(isDark: false),
+                      ),
+                    );
+                  },
+                  child: const Text('Open'),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Tap Open to show dialog
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    // Find the TextField for outline input (we are on Tab 0)
+    final outlineInputFinder = find.byType(TextField);
+    expect(outlineInputFinder, findsOneWidget);
+
+    // Enter outline text
+    await tester.enterText(
+      outlineInputFinder,
+      '+ Direct Tab0 API\n  - PUT /update',
+    );
+    await tester.pump();
+
+    // Tap "Generate Collections & Requests" button directly
+    final generateBtnFinder = find.text('Generate Collections & Requests');
+    expect(generateBtnFinder, findsOneWidget);
+    
+    // The button should be enabled and clickable
+    await tester.tap(generateBtnFinder);
+    await tester.pumpAndSettle();
+
+    // Verify that the collections and requests were added to the provider directly
+    expect(provider.collections.length, equals(1));
+    final directColl = provider.collections.firstWhere((c) => c.name == 'Direct Tab0 API');
+    expect(directColl.requests.length, equals(1));
+    expect(directColl.requests[0].name, equals('/update'));
+    expect(directColl.requests[0].method, equals(HttpMethod.put));
   });
 
   testWidgets('AutoCollectionsGeneratorDialog - Visual Builder Quick Add and Keyboard Focus Test', (WidgetTester tester) async {
@@ -336,5 +397,105 @@ void main() {
     final updatedReq = provider.collections[0].requests.firstWhere((r) => r.id == 'req-1');
     expect(updatedReq.body, equals('{"auth": "success"}'));
     expect(updatedReq.bodyType, equals(BodyType.json));
+  });
+
+  testWidgets('AutoCollectionsGeneratorDialog - Draft Saving and Loading Test', (WidgetTester tester) async {
+    final provider = RequestProvider();
+    
+    // 1. Initial State: No draft file exists. Verify dialog shows empty initial state.
+    final draftFile = File('${AppConfig.collectionsDir}/../generator_draft.json');
+    if (draftFile.existsSync()) {
+      draftFile.deleteSync();
+    }
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<RequestProvider>.value(
+        value: provider,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const Dialog(
+                        child: AutoCollectionsGeneratorDialog(isDark: false),
+                      ),
+                    );
+                  },
+                  child: const Text('Open'),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Tap Open to show dialog
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    // Verify initial layout
+    expect(find.text('PASTE OUTLINE TEXT'), findsOneWidget);
+    
+    // Type outline text to trigger draft saving
+    await tester.enterText(find.byType(TextField).first, '+ Users API\n  - GET /profile');
+    await tester.pumpAndSettle();
+
+    // Verify draft file got saved and exists (using synchronous check)
+    expect(draftFile.existsSync(), isTrue);
+    final draftContent = draftFile.readAsStringSync();
+    expect(draftContent.contains('+ Users API'), isTrue);
+
+    // Close the dialog using Cancel button
+    final cancelBtn = find.text('Cancel');
+    expect(cancelBtn, findsOneWidget);
+    await tester.tap(cancelBtn);
+    await tester.pumpAndSettle();
+
+    // 2. Load draft State: Reopen. Verify state is restored.
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    // Verify draft restored outline text
+    final newTextField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(newTextField.controller?.text, equals('+ Users API\n  - GET /profile'));
+
+    // Populate visual builder
+    final populateBtnFinder = find.widgetWithText(ElevatedButton, 'Populate Visual Builder');
+    expect(populateBtnFinder, findsOneWidget);
+    await tester.tap(populateBtnFinder);
+    await tester.pumpAndSettle();
+
+    // Check we transitioned to visual builder tab
+    expect(find.text('Visual Tree Outline Builder'), findsOneWidget);
+
+    // Check visual builder contains "Users API" and "/profile"
+    expect(find.text('Users API'), findsOneWidget);
+    expect(find.text('/profile'), findsOneWidget);
+
+    // Change collection name to trigger draft save
+    final formFields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
+    expect(formFields.length, equals(2));
+    await tester.enterText(find.byType(TextFormField).first, 'Users API Modified');
+    await tester.pumpAndSettle();
+
+    // Verify draft content updated (using synchronous check)
+    final draftContent2 = draftFile.readAsStringSync();
+    expect(draftContent2.contains('Users API Modified'), isTrue);
+
+    // Tap "Generate Collections & Requests" to clear the draft
+    final generateBtn = find.text('Generate Collections & Requests');
+    await tester.runAsync(() async {
+      await tester.tap(generateBtn);
+      // Allow real asynchronous I/O tasks to finish
+      await Future.delayed(const Duration(milliseconds: 200));
+    });
+    await tester.pumpAndSettle();
+
+    // Verify draft file was deleted (using synchronous check)
+    expect(draftFile.existsSync(), isFalse);
   });
 }

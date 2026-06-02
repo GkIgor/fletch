@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fletch/core/app_config.dart';
 import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
@@ -35,10 +37,14 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
   // Live parsed outline for Tab 1 preview
   List<_PreviewNode> _previewTree = [];
 
+  bool _isInitializing = true;
+
   @override
   void initState() {
     super.initState();
+    _isInitializing = true;
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _outlineController = _OutlineTextEditingController(isDark: true);
     _outlineController.addListener(_onOutlineChanged);
     _editorScrollController.addListener(_onScroll);
@@ -102,10 +108,16 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
 
     // Start with a default empty collection in the visual builder
     _addCollection(name: 'Auth API');
+
+    // Load draft if exists, else start with default
+    _loadDraft();
+
+    _isInitializing = false;
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _outlineController.removeListener(_onOutlineChanged);
     _editorScrollController.removeListener(_onScroll);
@@ -142,6 +154,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
     } else {
       setState(() {});
     }
+    _saveDraft();
   }
 
   // --- State Actions ---
@@ -160,6 +173,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
         col.nameFocusNode.requestFocus();
       });
     });
+    _saveDraft();
   }
 
   void _removeCollection(int index) {
@@ -167,6 +181,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
       _collections[index].dispose();
       _collections.removeAt(index);
     });
+    _saveDraft();
   }
 
   void _addRequest(int colIndex, HttpMethod method, {String name = ''}) {
@@ -183,6 +198,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
         req.focusNode.requestFocus();
       });
     });
+    _saveDraft();
   }
 
   void _removeRequest(int colIndex, int reqIndex) {
@@ -190,6 +206,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
       _collections[colIndex].requests[reqIndex].focusNode.dispose();
       _collections[colIndex].requests.removeAt(reqIndex);
     });
+    _saveDraft();
   }
 
   String _getNextColor() {
@@ -313,6 +330,11 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
   }
 
   void _populateVisualBuilderFromOutline() {
+    _doPopulateVisualBuilderFromOutline();
+    _tabController.animateTo(1);
+  }
+
+  void _doPopulateVisualBuilderFromOutline() {
     if (_previewTree.isEmpty) return;
 
     setState(() {
@@ -353,10 +375,23 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
       }
     });
 
-    _tabController.animateTo(1);
+    _saveDraft();
+  }
+
+  bool _isGenerateEnabled() {
+    if (_tabController.index == 0) {
+      return _outlineController.text.trim().isNotEmpty;
+    } else {
+      return _collections.any((c) => c.name.trim().isNotEmpty);
+    }
   }
 
   Future<void> _handleGenerate() async {
+    if (_tabController.index == 0) {
+      _parseOutlineForPreview();
+      _doPopulateVisualBuilderFromOutline();
+    }
+
     final provider = Provider.of<RequestProvider>(context, listen: false);
     final List<RequestCollection> newCollections = [];
 
@@ -401,7 +436,12 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
 
     if (newCollections.isNotEmpty) {
       final wsId = provider.collections.isEmpty ? '' : provider.collections.first.workspaceId;
-      await provider.importLoadedCollections(newCollections, wsId);
+      try {
+        await provider.importLoadedCollections(newCollections, wsId);
+        _clearDraft();
+      } catch (e) {
+        // Silently ignore or handle import error
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -412,6 +452,108 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
         );
         Navigator.of(context).pop();
       }
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    setState(() {});
+    _saveDraft();
+  }
+
+  void _saveDraft() {
+    if (_isInitializing) return;
+    try {
+      final file = File('${AppConfig.collectionsDir}/../generator_draft.json');
+      final data = {
+        'outline': _outlineController.text,
+        'activeTab': _tabController.index,
+        'collections': _collections.map((col) {
+          return {
+            'id': col.id,
+            'name': col.name,
+            'icon': col.icon,
+            'color': col.color,
+            'parentId': col.parentId,
+            'requests': col.requests.map((req) {
+              return {
+                'method': req.method.value,
+                'name': req.name,
+              };
+            }).toList(),
+          };
+        }).toList(),
+      };
+      file.writeAsStringSync(jsonEncode(data));
+    } catch (e) {
+      // Silently ignore saving errors
+    }
+  }
+
+  void _loadDraft() {
+    try {
+      final file = File('${AppConfig.collectionsDir}/../generator_draft.json');
+      if (file.existsSync()) {
+        final content = file.readAsStringSync();
+        final data = jsonDecode(content);
+
+        final outlineText = data['outline'] as String? ?? '';
+        final collectionsJson = data['collections'] as List? ?? [];
+        final activeTab = data['activeTab'] as int? ?? 0;
+
+        final List<_CollectionConfig> loadedCollections = [];
+        for (var colJson in collectionsJson) {
+          final reqListJson = colJson['requests'] as List? ?? [];
+          final requests = reqListJson.map((rJson) {
+            return _RequestConfig(
+              method: HttpMethod.values.firstWhere(
+                (m) => m.value == rJson['method'],
+                orElse: () => HttpMethod.get,
+              ),
+              name: rJson['name'] as String? ?? '',
+            );
+          }).toList();
+
+          loadedCollections.add(
+            _CollectionConfig(
+              id: colJson['id'] as String?,
+              name: colJson['name'] as String? ?? '',
+              icon: colJson['icon'] as String? ?? 'folder',
+              color: colJson['color'] as String? ?? '#8b5cf6',
+              parentId: colJson['parentId'] as String?,
+              requests: requests,
+            ),
+          );
+        }
+
+        _outlineController.text = outlineText;
+        _collections.clear();
+        if (loadedCollections.isNotEmpty) {
+          _collections.addAll(loadedCollections);
+        } else {
+          _addCollection(name: 'Auth API');
+        }
+
+        // Re-parse outline for preview tree
+        _parseOutlineForPreview();
+
+        // Set tab controller index
+        _tabController.index = activeTab;
+        return;
+      }
+    } catch (e) {
+      // If error occurs, do nothing since default is already set
+    }
+  }
+
+  void _clearDraft() {
+    try {
+      final file = File('${AppConfig.collectionsDir}/../generator_draft.json');
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (e) {
+      // Ignore
     }
   }
 
@@ -514,7 +656,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: _collections.any((c) => c.name.trim().isNotEmpty) ? _handleGenerate : null,
+                  onPressed: _isGenerateEnabled() ? _handleGenerate : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -870,7 +1012,10 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
                                 isDense: true,
                                 contentPadding: EdgeInsets.symmetric(vertical: 6),
                               ),
-                              onChanged: (val) => col.name = val,
+                              onChanged: (val) {
+                                col.name = val;
+                                _saveDraft();
+                              },
                             ),
                           ),
                           const Spacer(),
@@ -941,7 +1086,10 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
                                             ),
                                             contentPadding: const EdgeInsets.symmetric(vertical: 6),
                                           ),
-                                          onChanged: (val) => req.name = val,
+                                          onChanged: (val) {
+                                            req.name = val;
+                                            _saveDraft();
+                                          },
                                           onFieldSubmitted: (_) {
                                             // Press Enter to spawn next request of same method
                                             _addRequest(index, req.method);
@@ -1034,6 +1182,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
         setState(() {
           col.color = colorHex;
         });
+        _saveDraft();
       },
       itemBuilder: (context) {
         return colors.entries.map((entry) {
@@ -1077,6 +1226,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
         setState(() {
           col.icon = iconName;
         });
+        _saveDraft();
       },
       itemBuilder: (context) {
         return icons.entries.map((entry) {
@@ -1148,7 +1298,7 @@ class _AutoCollectionsGeneratorDialogState extends State<AutoCollectionsGenerato
 class _CollectionConfig {
   final String id;
   String name;
-  String icon = 'folder';
+  String icon;
   String color;
   bool isExpanded = true;
   final List<_RequestConfig> requests;
@@ -1158,6 +1308,7 @@ class _CollectionConfig {
   _CollectionConfig({
     String? id,
     required this.name,
+    this.icon = 'folder',
     this.color = '#8b5cf6',
     required this.requests,
     FocusNode? nameFocusNode,
