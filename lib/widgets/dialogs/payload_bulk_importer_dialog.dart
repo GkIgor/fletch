@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/widgets/body_editor.dart';
@@ -198,6 +199,7 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
               itemCount: _configs.length,
               itemBuilder: (context, index) {
                 final config = _configs[index];
+                final bool isCompact = dialogWidth < 950;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(10),
@@ -208,187 +210,9 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
                       color: widget.isDark ? AppColors.borderDark : AppColors.borderLight,
                     ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Active Checkbox
-                      Checkbox(
-                        value: config.selected,
-                        activeColor: AppColors.primary,
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              config.selected = val;
-                              _selectAll = _configs.every((c) => c.selected);
-                            });
-                          }
-                        },
-                      ),
-                      
-                      // File Details
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              config.fileName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Size: ${(config.content.length / 1024).toStringAsFixed(2)} KB',
-                              style: TextStyle(fontSize: 11, color: AppColors.slate500),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      
-                      // Action selector
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<ImportAction>(
-                          key: ValueKey('action_dropdown_$index'),
-                          isExpanded: true,
-                          initialValue: config.action,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: ImportAction.createRequest, child: Text('Create Request', style: TextStyle(fontSize: 12))),
-                            DropdownMenuItem(value: ImportAction.replaceBody, child: Text('Replace Body', style: TextStyle(fontSize: 12))),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => config.action = val);
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Contextual inputs
-                      Expanded(
-                        flex: 8,
-                        child: config.action == ImportAction.createRequest
-                            ? Row(
-                                children: [
-                                  // Collection Dropdown
-                                  Expanded(
-                                    flex: 3,
-                                    child: DropdownButtonFormField<String>(
-                                      key: ValueKey('collection_dropdown_$index'),
-                                      isExpanded: true,
-                                      initialValue: config.collectionId,
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                      ),
-                                      items: collections.isEmpty
-                                          ? const [
-                                              DropdownMenuItem(
-                                                value: null,
-                                                child: Text('No collections', style: TextStyle(fontSize: 12)),
-                                              )
-                                            ]
-                                          : collections.map((col) {
-                                              return DropdownMenuItem(
-                                                value: col.id,
-                                                child: Text(col.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                                              );
-                                            }).toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          config.collectionId = val;
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  // Method Dropdown
-                                  Expanded(
-                                    flex: 2,
-                                    child: DropdownButtonFormField<HttpMethod>(
-                                      key: ValueKey('method_dropdown_$index'),
-                                      isExpanded: true,
-                                      initialValue: config.method,
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                      ),
-                                      items: HttpMethod.values.map((method) {
-                                        return DropdownMenuItem(
-                                          value: method,
-                                          child: Text(
-                                            method.value,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: _getMethodColor(method),
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          config.method = val;
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  // Request Name
-                                  Expanded(
-                                    flex: 3,
-                                    child: TextFormField(
-                                      key: ValueKey('request_name_field_$index'),
-                                      initialValue: config.requestName,
-                                      style: const TextStyle(fontSize: 12),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                        hintText: 'Request Name',
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                      ),
-                                      onChanged: (val) => config.requestName = val,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : DropdownButtonFormField<String>(
-                                key: ValueKey('target_request_dropdown_$index'),
-                                isExpanded: true,
-                                initialValue: config.targetRequestId,
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                ),
-                                items: allRequests.isEmpty
-                                    ? const [DropdownMenuItem(value: null, child: Text('No requests found', style: TextStyle(fontSize: 12)))]
-                                    : allRequests.map((req) {
-                                        final collName = requestCollectionNames[req.id] ?? '';
-                                        return DropdownMenuItem(
-                                          value: req.id,
-                                          child: Text('$collName > ${req.name}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                                        );
-                                      }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    config.targetRequestId = val;
-                                  }
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
+                  child: isCompact
+                      ? _buildCompactRow(context, index, config, collections, allRequests, requestCollectionNames)
+                      : _buildStandardRow(context, index, config, collections, allRequests, requestCollectionNames),
                 );
               },
             ),
@@ -430,6 +254,404 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCompactRow(
+    BuildContext context,
+    int index,
+    _ImportRowConfig config,
+    List<RequestCollection> collections,
+    List<HttpRequest> allRequests,
+    Map<String, String> requestCollectionNames,
+  ) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Active Checkbox wrapped in SizedBox to guarantee 40px width
+            SizedBox(
+              width: 40,
+              child: Checkbox(
+                value: config.selected,
+                activeColor: AppColors.primary,
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      config.selected = val;
+                      _selectAll = _configs.every((c) => c.selected);
+                    });
+                  }
+                },
+              ),
+            ),
+            
+            // File Details
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    config.fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Size: ${(config.content.length / 1024).toStringAsFixed(2)} KB',
+                    style: TextStyle(fontSize: 11, color: AppColors.slate500),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            // Action selector dropdown (dropdown 1)
+            Expanded(
+              flex: 3,
+              child: DropdownButtonFormField<ImportAction>(
+                key: ValueKey('action_dropdown_$index'),
+                isExpanded: true,
+                initialValue: config.action,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                items: const [
+                  DropdownMenuItem(value: ImportAction.createRequest, child: Text('Create Request', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(value: ImportAction.replaceBody, child: Text('Replace Body', style: TextStyle(fontSize: 12))),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => config.action = val);
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Dropdown 2 (Collection or Target Request)
+            Expanded(
+              flex: 4,
+              child: config.action == ImportAction.createRequest
+                  ? DropdownButtonFormField<String>(
+                      key: ValueKey('collection_dropdown_$index'),
+                      isExpanded: true,
+                      initialValue: config.collectionId,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      items: collections.isEmpty
+                          ? const [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text('No collections', style: TextStyle(fontSize: 12)),
+                              )
+                            ]
+                          : collections.map((col) {
+                              return DropdownMenuItem(
+                                value: col.id,
+                                child: Text(col.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                              );
+                            }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          config.collectionId = val;
+                        }
+                      },
+                    )
+                  : DropdownButtonFormField<String>(
+                      key: ValueKey('target_request_dropdown_$index'),
+                      isExpanded: true,
+                      initialValue: config.targetRequestId,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      items: allRequests.isEmpty
+                          ? const [DropdownMenuItem(value: null, child: Text('No requests found', style: TextStyle(fontSize: 12)))]
+                          : allRequests.map((req) {
+                              final collName = requestCollectionNames[req.id] ?? '';
+                              return DropdownMenuItem(
+                                value: req.id,
+                                child: Text('$collName > ${req.name}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                              );
+                            }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          config.targetRequestId = val;
+                        }
+                      },
+                    ),
+            ),
+          ],
+        ),
+        
+        // Line 2 (Only for createRequest action): [método nome]
+        if (config.action == ImportAction.createRequest) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 40), // Matches checkbox width
+              const Spacer(flex: 3),     // Matches File Details spacer
+              const SizedBox(width: 12),  // Matches spacing gap
+              
+              // Method Dropdown (underneath Action dropdown)
+              Expanded(
+                flex: 3,
+                child: DropdownButtonFormField<HttpMethod>(
+                  key: ValueKey('method_dropdown_$index'),
+                  isExpanded: true,
+                  initialValue: config.method,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  items: HttpMethod.values.map((method) {
+                    return DropdownMenuItem(
+                      value: method,
+                      child: Text(
+                        method.value,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _getMethodColor(method),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      config.method = val;
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12), // Matches spacing gap
+              
+              // Request Name (underneath Collection dropdown)
+              Expanded(
+                flex: 4,
+                child: TextFormField(
+                  key: ValueKey('request_name_field_$index'),
+                  initialValue: config.requestName,
+                  style: const TextStyle(fontSize: 12),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    hintText: 'Request Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  onChanged: (val) => config.requestName = val,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStandardRow(
+    BuildContext context,
+    int index,
+    _ImportRowConfig config,
+    List<RequestCollection> collections,
+    List<HttpRequest> allRequests,
+    Map<String, String> requestCollectionNames,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Active Checkbox wrapped in SizedBox to guarantee 40px width
+        SizedBox(
+          width: 40,
+          child: Checkbox(
+            value: config.selected,
+            activeColor: AppColors.primary,
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  config.selected = val;
+                  _selectAll = _configs.every((c) => c.selected);
+                });
+              }
+            },
+          ),
+        ),
+        
+        // File Details
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                config.fileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Size: ${(config.content.length / 1024).toStringAsFixed(2)} KB',
+                style: TextStyle(fontSize: 11, color: AppColors.slate500),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        
+        // Action selector
+        Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<ImportAction>(
+            key: ValueKey('action_dropdown_$index'),
+            isExpanded: true,
+            initialValue: config.action,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            items: const [
+              DropdownMenuItem(value: ImportAction.createRequest, child: Text('Create Request', style: TextStyle(fontSize: 12))),
+              DropdownMenuItem(value: ImportAction.replaceBody, child: Text('Replace Body', style: TextStyle(fontSize: 12))),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => config.action = val);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Contextual inputs
+        Expanded(
+          flex: 8,
+          child: config.action == ImportAction.createRequest
+              ? Row(
+                  children: [
+                    // Collection Dropdown
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        key: ValueKey('collection_dropdown_$index'),
+                        isExpanded: true,
+                        initialValue: config.collectionId,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        items: collections.isEmpty
+                            ? const [
+                                DropdownMenuItem(
+                                  value: null,
+                                  child: Text('No collections', style: TextStyle(fontSize: 12)),
+                                )
+                              ]
+                            : collections.map((col) {
+                                return DropdownMenuItem(
+                                  value: col.id,
+                                  child: Text(col.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                );
+                              }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            config.collectionId = val;
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Method Dropdown
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<HttpMethod>(
+                        key: ValueKey('method_dropdown_$index'),
+                        isExpanded: true,
+                        initialValue: config.method,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        items: HttpMethod.values.map((method) {
+                          return DropdownMenuItem(
+                            value: method,
+                            child: Text(
+                              method.value,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _getMethodColor(method),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            config.method = val;
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Request Name
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        key: ValueKey('request_name_field_$index'),
+                        initialValue: config.requestName,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          hintText: 'Request Name',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        onChanged: (val) => config.requestName = val,
+                      ),
+                    ),
+                  ],
+                )
+              : DropdownButtonFormField<String>(
+                  key: ValueKey('target_request_dropdown_$index'),
+                  isExpanded: true,
+                  initialValue: config.targetRequestId,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  items: allRequests.isEmpty
+                      ? const [DropdownMenuItem(value: null, child: Text('No requests found', style: TextStyle(fontSize: 12)))]
+                      : allRequests.map((req) {
+                          final collName = requestCollectionNames[req.id] ?? '';
+                          return DropdownMenuItem(
+                            value: req.id,
+                            child: Text('$collName > ${req.name}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                          );
+                        }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      config.targetRequestId = val;
+                    }
+                  },
+                ),
+        ),
+      ],
     );
   }
 
