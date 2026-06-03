@@ -3,6 +3,8 @@ releases:
   - name: production
     jobs:
       - name: release-deb
+        variables:
+          FLAVOR: prod
         package:
           platform: linux
           target: deb

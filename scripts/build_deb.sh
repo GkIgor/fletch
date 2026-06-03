@@ -96,6 +96,7 @@ Exec=fletch$BINARY_SUFFIX
 Icon=$ICON_NAME
 Terminal=false
 Categories=Development;Utility;
+StartupWMClass=com.example.fletch$BINARY_SUFFIX
 EOF
 
   # 6. Copy icon

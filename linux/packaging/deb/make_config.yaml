@@ -1,6 +1,7 @@
 # linux/packaging/deb/make_config.yaml
 display_name: Fletch
 package_name: fletch
+startup_wm_class: com.example.fletch
 maintainer:
   name: Igor
   email: gk_igor_dev@example.com
