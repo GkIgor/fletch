@@ -6,5 +6,6 @@ releases:
         package:
           platform: linux
           target: deb
-        build_args:
-          dart-define: FLAVOR=prod
+          build_args:
+            dart-define:
+              FLAVOR: prod
