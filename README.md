@@ -103,6 +103,35 @@ FLAVOR=staging flutter build linux --release
 FLAVOR=dev flutter build linux --release
 ```
 
+### Packaging (.deb)
+
+Fletch supports packaging installers as Debian (`.deb`) files through two parallel approaches:
+
+#### 1. Official Production Releases (via `flutter_distributor`)
+For official, clean production packages, we use `flutter_distributor` (configured via `distribute_options.yaml` and `linux/packaging/deb/make_config.yaml`).
+
+To package the production release:
+```sh
+flutter_distributor release --name production
+```
+This compiles the application and generates the `.deb` installer under the `dist/` directory (e.g. `dist/0.1.0+1/fletch-0.1.0+1-linux.deb`).
+
+#### 2. Multi-Environment Packages (via Custom Script)
+To build and install different environments (`dev`, `staging`, `prod`) side-by-side on the same machine, use the custom shell script. It configures unique application IDs, launcher wrappers, and installation folders so all three environments can co-exist without overwriting configurations or workspaces.
+
+To package all environments at once:
+```sh
+./scripts/build_deb.sh all
+```
+
+To package a specific environment:
+```sh
+./scripts/build_deb.sh dev      # Packages Dev: fletch-dev
+./scripts/build_deb.sh staging  # Packages Staging: fletch-staging
+./scripts/build_deb.sh prod     # Packages Prod: fletch
+```
+The resulting package files will be saved in the `build/` directory (e.g., `build/fletch-dev_0.1.0_amd64.deb`).
+
 ### Easy Commands (Makefile)
 
 A `Makefile` is provided in the root directory for convenient shortcut commands across different environments:

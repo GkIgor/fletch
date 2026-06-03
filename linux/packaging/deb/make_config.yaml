@@ -1,0 +1,19 @@
+# linux/packaging/deb/make_config.yaml
+display_name: Fletch
+package_name: fletch
+maintainer:
+  name: Igor
+  email: gk_igor_dev@example.com
+icon: assets/icon/fletch.png
+summary: Fletch HTTP Client
+description: |
+  Fletch is a fast, native, open-source HTTP client built with Flutter.
+  No Electron. No Node. No browser.
+category: Development;Utility;
+section: devel
+priority: optional
+installed_size: 20000
+depends:
+  - libc6
+  - libgtk-3-0
+  - libglib2.0-0
