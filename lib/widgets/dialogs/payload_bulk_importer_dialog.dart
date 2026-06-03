@@ -29,6 +29,15 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
   @override
   void initState() {
     super.initState();
+    final provider = Provider.of<RequestProvider>(context, listen: false);
+    final collections = provider.collections;
+    final List<HttpRequest> allRequests = [];
+    for (var col in collections) {
+      allRequests.addAll(col.requests);
+    }
+    final defaultCollectionId = collections.isNotEmpty ? collections.first.id : null;
+    final defaultTargetRequestId = allRequests.isNotEmpty ? allRequests.first.id : null;
+
     _configs = widget.filesData.map((fileData) {
       // Remove extension for default name
       final defaultName = fileData.key.replaceAll(RegExp(r'\.json$', caseSensitive: false), '');
@@ -39,6 +48,8 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
         selected: true,
         action: ImportAction.createRequest,
         method: HttpMethod.post,
+        collectionId: defaultCollectionId,
+        targetRequestId: defaultTargetRequestId,
       );
     }).toList();
   }
@@ -58,12 +69,19 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
     final List<MapEntry<String, HttpRequest>> newRequests = [];
     final List<HttpRequest> updatedRequests = [];
 
+    // Gather allRequests for fallback matching
+    final List<HttpRequest> allRequests = [];
+    for (var col in provider.collections) {
+      allRequests.addAll(col.requests);
+    }
+
     int count = 0;
     for (var config in _configs) {
       if (!config.selected) continue;
 
       if (config.action == ImportAction.createRequest) {
-        if (config.collectionId == null) continue;
+        final collectionId = config.collectionId ?? (provider.collections.isNotEmpty ? provider.collections.first.id : null);
+        if (collectionId == null) continue;
         
         final req = HttpRequest(
           name: config.requestName.trim().isEmpty ? config.fileName : config.requestName.trim(),
@@ -72,15 +90,16 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
           bodyType: BodyType.json,
           body: config.content,
         );
-        newRequests.add(MapEntry(config.collectionId!, req));
+        newRequests.add(MapEntry(collectionId, req));
         count++;
       } else {
-        if (config.targetRequestId == null) continue;
+        final targetRequestId = config.targetRequestId ?? (allRequests.isNotEmpty ? allRequests.first.id : null);
+        if (targetRequestId == null) continue;
 
         // Find existing request to clone it with updated body
         HttpRequest? existing;
         for (var col in provider.collections) {
-          final found = col.requests.where((r) => r.id == config.targetRequestId);
+          final found = col.requests.where((r) => r.id == targetRequestId);
           if (found.isNotEmpty) {
             existing = found.first;
             break;
@@ -131,23 +150,14 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
       }
     }
 
-    // Set default collection id for newly initialized configs if empty
-    if (collections.isNotEmpty) {
-      for (var config in _configs) {
-        config.collectionId ??= collections.first.id;
-      }
-    }
-
-    // Set default target request id if empty
-    if (allRequests.isNotEmpty) {
-      for (var config in _configs) {
-        config.targetRequestId ??= allRequests.first.id;
-      }
-    }
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = (screenWidth * 0.85).clamp(800.0, 1100.0);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final dialogHeight = (screenHeight * 0.8).clamp(520.0, 750.0);
 
     return Container(
-      width: 750,
-      height: 520,
+      width: dialogWidth,
+      height: dialogHeight,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +227,7 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
                       
                       // File Details
                       Expanded(
-                        flex: 3,
+                        flex: 2,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -239,7 +249,7 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
                       
                       // Action selector
                       Expanded(
-                        flex: 3,
+                        flex: 2,
                         child: DropdownButtonFormField<ImportAction>(
                           key: ValueKey('action_dropdown_$index'),
                           isExpanded: true,
@@ -264,7 +274,7 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
 
                       // Contextual inputs
                       Expanded(
-                        flex: 6,
+                        flex: 8,
                         child: config.action == ImportAction.createRequest
                             ? Row(
                                 children: [
@@ -280,12 +290,19 @@ class _PayloadBulkImporterDialogState extends State<PayloadBulkImporterDialog> {
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                                       ),
-                                      items: collections.map((col) {
-                                        return DropdownMenuItem(
-                                          value: col.id,
-                                          child: Text(col.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                                        );
-                                      }).toList(),
+                                      items: collections.isEmpty
+                                          ? const [
+                                              DropdownMenuItem(
+                                                value: null,
+                                                child: Text('No collections', style: TextStyle(fontSize: 12)),
+                                              )
+                                            ]
+                                          : collections.map((col) {
+                                              return DropdownMenuItem(
+                                                value: col.id,
+                                                child: Text(col.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                              );
+                                            }).toList(),
                                       onChanged: (val) {
                                         if (val != null) {
                                           config.collectionId = val;
@@ -454,5 +471,7 @@ class _ImportRowConfig {
     required this.action,
     required this.method,
     required this.requestName,
+    this.collectionId,
+    this.targetRequestId,
   });
 }
