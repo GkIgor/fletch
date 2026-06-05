@@ -32,6 +32,19 @@ class _RunnerViewState extends State<RunnerView> {
     super.dispose();
   }
 
+  String _getInterpolatedUrl(String url) {
+    final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
+    final activeEnv = wsProvider.activeEnvironment;
+    final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
+    
+    if (variables.isEmpty) return url;
+    final regex = RegExp(r'\{\{([^}]+)\}\}');
+    return url.replaceAllMapped(regex, (match) {
+      final varName = match.group(1)?.trim() ?? '';
+      return variables[varName] ?? match.group(0) ?? '';
+    });
+  }
+
   Color _getMethodColor(HttpMethod method) {
     switch (method) {
       case HttpMethod.get:
@@ -373,7 +386,7 @@ class _RunnerViewState extends State<RunnerView> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              item.request.url.isNotEmpty ? item.request.url : 'No URL',
+                                              item.request.url.isNotEmpty ? _getInterpolatedUrl(item.request.url) : 'No URL',
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -626,7 +639,7 @@ class _RunnerViewState extends State<RunnerView> {
               ),
               const SizedBox(height: 8),
               SelectableText(
-                item.request.url.isNotEmpty ? item.request.url : 'No URL',
+                item.request.url.isNotEmpty ? _getInterpolatedUrl(item.request.url) : 'No URL',
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: AppTheme.codeStyle().fontFamily,

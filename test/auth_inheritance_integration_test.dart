@@ -1,17 +1,47 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:fletch/core/app_config.dart';
 import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
+import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/services/http_service.dart';
 import 'package:fletch/utils/auth_resolver.dart';
 import 'package:fletch/widgets/interpolated_text_controller.dart';
+import 'package:fletch/widgets/runner_view.dart';
 
 void main() {
+  late Directory tempDir;
+  late String originalWorkspaceDir;
+  late String originalCollectionsDir;
+
+  setUpAll(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    originalWorkspaceDir = AppConfig.workspaceDir;
+    originalCollectionsDir = AppConfig.collectionsDir;
+    tempDir = await Directory.systemTemp.createTemp('auth_integration_test_');
+    AppConfig.workspaceDir = '${tempDir.path}/workspaces';
+    AppConfig.collectionsDir = '${tempDir.path}/collections';
+    await Directory(AppConfig.workspaceDir).create(recursive: true);
+    await Directory(AppConfig.collectionsDir).create(recursive: true);
+  });
+
+  tearDownAll(() async {
+    AppConfig.workspaceDir = originalWorkspaceDir;
+    AppConfig.collectionsDir = originalCollectionsDir;
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
+  });
+
   group('Interpolation Highlighting Tests', () {
     testWidgets('InterpolatedTextController highlights variables correctly', (WidgetTester tester) async {
       final controller = InterpolatedTextController(
@@ -452,6 +482,93 @@ void main() {
       expect(reqCOptions.headers.containsKey('Authorization'), isFalse);
       expect(reqCOptions.headers.containsKey('X-WS-Auth'), isFalse);
     });
+  });
+
+  group('RunnerView URL Display Interpolation Tests', () {
+    testWidgets('RunnerView displays interpolated URL in request list and detail pane', (WidgetTester tester) async {
+      final workspaceProvider = WorkspaceProvider();
+      final requestProvider = RequestProvider();
+
+      // 1. Create a workspace with an active environment containing a variable
+      final ws = WorkspaceModel(
+        id: 'ws-test-runner-ui',
+        name: 'Test WS',
+      );
+      final env = EnvironmentModel(
+        id: 'env-test-runner-ui',
+        name: 'Test Env',
+        variables: {
+          'baseUrl': WorkspaceSecretKey(value: 'api.example.com'),
+        },
+      );
+      ws.environments.add(env);
+      ws.selectedEnvironmentId = env.id;
+
+      // 2. Set up request list in RequestProvider
+      final req = HttpRequest(
+        id: 'req-runner-ui-test',
+        name: 'Test Request URL',
+        method: HttpMethod.get,
+        url: 'http://{{baseUrl}}/api/users',
+      );
+      final col = RequestCollection(
+        id: 'col-runner-ui-test',
+        name: 'Test Col',
+        workspaceId: ws.id,
+        requests: [req],
+      );
+
+      // Set viewport size to avoid layout overflows
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.runAsync(() async {
+        await workspaceProvider.addWorkspace(ws);
+        await requestProvider.addCollection(col);
+        await workspaceProvider.loadWorkspaces();
+        workspaceProvider.openWorkspace(ws.id);
+        await workspaceProvider.selectEnvironment(env.id);
+        await requestProvider.loadCollections(ws.id);
+      });
+
+      requestProvider.startCollectionRun(col);
+
+      // 3. Pump the RunnerView inside the provider scope
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<WorkspaceProvider>.value(value: workspaceProvider),
+            ChangeNotifierProvider<RequestProvider>.value(value: requestProvider),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: RunnerView(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 4. Verify that the list view shows the interpolated URL: "http://api.example.com/api/users"
+      // And NOT the raw URL "http://{{baseUrl}}/api/users"
+      expect(find.text('http://api.example.com/api/users'), findsOneWidget);
+      expect(find.text('http://{{baseUrl}}/api/users'), findsNothing);
+
+      // 5. Select the item to show it in the detail pane
+      await tester.tap(find.text('Test Request URL'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 6. Verify that the detail pane shows the interpolated URL: "http://api.example.com/api/users"
+      expect(find.text('http://api.example.com/api/users'), findsAtLeastNWidgets(1));
+      expect(find.text('http://{{baseUrl}}/api/users'), findsNothing);
+    }, timeout: const Timeout(Duration(seconds: 5)));
   });
 }
 
