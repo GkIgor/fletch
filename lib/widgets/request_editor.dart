@@ -10,6 +10,8 @@ import 'package:fletch/widgets/interpolated_text_controller.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/widgets/http_auth_editor.dart';
+import 'package:fletch/utils/auth_resolver.dart';
 
 class RequestEditor extends StatefulWidget {
   final HttpRequest request;
@@ -27,30 +29,7 @@ class _RequestEditorState extends State<RequestEditor>
   late HttpMethod _method;
   bool _isFavorite = false;
 
-  // Auth text controllers
-  late InterpolatedTextController _apiKeyKeyController;
-  late InterpolatedTextController _apiKeyValueController;
-  late InterpolatedTextController _bearerTokenController;
-  late InterpolatedTextController _basicUsernameController;
-  late InterpolatedTextController _basicPasswordController;
-  late InterpolatedTextController _oauth1ConsumerKeyController;
-  late InterpolatedTextController _oauth1ConsumerSecretController;
-  late InterpolatedTextController _oauth1TokenController;
-  late InterpolatedTextController _oauth1TokenSecretController;
-  late InterpolatedTextController _oauth2AccessTokenController;
-  late InterpolatedTextController _oauth2TokenUrlController;
-  late InterpolatedTextController _oauth2ClientIdController;
-  late InterpolatedTextController _oauth2ClientSecretController;
-  late InterpolatedTextController _oauth2ScopeController;
-  late InterpolatedTextController _oauth2UsernameController;
-  late InterpolatedTextController _oauth2PasswordController;
 
-  // Visual options
-  String _apiKeyAddTo = 'header';
-  String _oauth1SignatureMethod = 'HMAC-SHA1';
-  String _oauth2GrantType = 'client_credentials';
-  bool _isPasswordVisible = false;
-  bool _isOauthFetching = false;
 
   @override
   void initState() {
@@ -59,27 +38,7 @@ class _RequestEditorState extends State<RequestEditor>
     _method = widget.request.method;
     _tabController = TabController(length: 4, vsync: this);
 
-    final auth = widget.request.auth;
-    _apiKeyKeyController = InterpolatedTextController(text: auth.apiKeyKey);
-    _apiKeyValueController = InterpolatedTextController(text: auth.apiKeyValue);
-    _bearerTokenController = InterpolatedTextController(text: auth.bearerToken);
-    _basicUsernameController = InterpolatedTextController(text: auth.basicUsername);
-    _basicPasswordController = InterpolatedTextController(text: auth.basicPassword);
-    _oauth1ConsumerKeyController = InterpolatedTextController(text: auth.oauth1ConsumerKey);
-    _oauth1ConsumerSecretController = InterpolatedTextController(text: auth.oauth1ConsumerSecret);
-    _oauth1TokenController = InterpolatedTextController(text: auth.oauth1Token);
-    _oauth1TokenSecretController = InterpolatedTextController(text: auth.oauth1TokenSecret);
-    _oauth2AccessTokenController = InterpolatedTextController(text: auth.oauth2AccessToken);
-    _oauth2TokenUrlController = InterpolatedTextController(text: auth.oauth2TokenUrl);
-    _oauth2ClientIdController = InterpolatedTextController(text: auth.oauth2ClientId);
-    _oauth2ClientSecretController = InterpolatedTextController(text: auth.oauth2ClientSecret);
-    _oauth2ScopeController = InterpolatedTextController(text: auth.oauth2Scope);
-    _oauth2UsernameController = InterpolatedTextController(text: auth.oauth2Username);
-    _oauth2PasswordController = InterpolatedTextController(text: auth.oauth2Password);
 
-    _apiKeyAddTo = auth.apiKeyAddTo;
-    _oauth1SignatureMethod = auth.oauth1SignatureMethod;
-    _oauth2GrantType = auth.oauth2GrantType;
   }
 
   @override
@@ -89,11 +48,7 @@ class _RequestEditorState extends State<RequestEditor>
       _urlController.text = widget.request.url;
       _method = widget.request.method;
 
-      final auth = widget.request.auth;
-      _updateAuthControllers(auth);
-      _apiKeyAddTo = auth.apiKeyAddTo;
-      _oauth1SignatureMethod = auth.oauth1SignatureMethod;
-      _oauth2GrantType = auth.oauth2GrantType;
+
     }
   }
 
@@ -102,43 +57,8 @@ class _RequestEditorState extends State<RequestEditor>
     _urlController.dispose();
     _tabController.dispose();
 
-    _apiKeyKeyController.dispose();
-    _apiKeyValueController.dispose();
-    _bearerTokenController.dispose();
-    _basicUsernameController.dispose();
-    _basicPasswordController.dispose();
-    _oauth1ConsumerKeyController.dispose();
-    _oauth1ConsumerSecretController.dispose();
-    _oauth1TokenController.dispose();
-    _oauth1TokenSecretController.dispose();
-    _oauth2AccessTokenController.dispose();
-    _oauth2TokenUrlController.dispose();
-    _oauth2ClientIdController.dispose();
-    _oauth2ClientSecretController.dispose();
-    _oauth2ScopeController.dispose();
-    _oauth2UsernameController.dispose();
-    _oauth2PasswordController.dispose();
 
     super.dispose();
-  }
-
-  void _updateAuthControllers(HttpAuth auth) {
-    _apiKeyKeyController.text = auth.apiKeyKey;
-    _apiKeyValueController.text = auth.apiKeyValue;
-    _bearerTokenController.text = auth.bearerToken;
-    _basicUsernameController.text = auth.basicUsername;
-    _basicPasswordController.text = auth.basicPassword;
-    _oauth1ConsumerKeyController.text = auth.oauth1ConsumerKey;
-    _oauth1ConsumerSecretController.text = auth.oauth1ConsumerSecret;
-    _oauth1TokenController.text = auth.oauth1Token;
-    _oauth1TokenSecretController.text = auth.oauth1TokenSecret;
-    _oauth2AccessTokenController.text = auth.oauth2AccessToken;
-    _oauth2TokenUrlController.text = auth.oauth2TokenUrl;
-    _oauth2ClientIdController.text = auth.oauth2ClientId;
-    _oauth2ClientSecretController.text = auth.oauth2ClientSecret;
-    _oauth2ScopeController.text = auth.oauth2Scope;
-    _oauth2UsernameController.text = auth.oauth2Username;
-    _oauth2PasswordController.text = auth.oauth2Password;
   }
 
   void _onSave({
@@ -163,601 +83,36 @@ class _RequestEditorState extends State<RequestEditor>
     ).updateSelectedRequest(updatedRequest);
   }
 
-  void _saveAuth() {
-    final auth = widget.request.auth.copyWith(
-      apiKeyKey: _apiKeyKeyController.text,
-      apiKeyValue: _apiKeyValueController.text,
-      apiKeyAddTo: _apiKeyAddTo,
-      bearerToken: _bearerTokenController.text,
-      basicUsername: _basicUsernameController.text,
-      basicPassword: _basicPasswordController.text,
-      oauth1ConsumerKey: _oauth1ConsumerKeyController.text,
-      oauth1ConsumerSecret: _oauth1ConsumerSecretController.text,
-      oauth1Token: _oauth1TokenController.text,
-      oauth1TokenSecret: _oauth1TokenSecretController.text,
-      oauth1SignatureMethod: _oauth1SignatureMethod,
-      oauth2AccessToken: _oauth2AccessTokenController.text,
-      oauth2TokenUrl: _oauth2TokenUrlController.text,
-      oauth2ClientId: _oauth2ClientIdController.text,
-      oauth2ClientSecret: _oauth2ClientSecretController.text,
-      oauth2Scope: _oauth2ScopeController.text,
-      oauth2GrantType: _oauth2GrantType,
-      oauth2Username: _oauth2UsernameController.text,
-      oauth2Password: _oauth2PasswordController.text,
-    );
-    _onSave(auth: auth);
-  }
-
-  Future<void> _fetchOAuth2Token(RequestProvider requestProvider) async {
-    setState(() => _isOauthFetching = true);
-
-    // Get active variables for interpolation in fetch call
-    final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
-    final activeEnv = wsProvider.activeEnvironment;
-    final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
-
-    try {
-      final token = await requestProvider.fetchOAuth2Token(
-        tokenUrl: _oauth2TokenUrlController.text,
-        grantType: _oauth2GrantType,
-        clientId: _oauth2ClientIdController.text,
-        clientSecret: _oauth2ClientSecretController.text,
-        scope: _oauth2ScopeController.text,
-        username: _oauth2UsernameController.text,
-        password: _oauth2PasswordController.text,
-        variables: variables,
-      );
-
-      if (token != null) {
-        setState(() {
-          _oauth2AccessTokenController.text = token;
-        });
-        _saveAuth();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Access Token retrieved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception('Token response was empty or did not contain access_token');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to retrieve token: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isOauthFetching = false);
-      }
-    }
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required InterpolatedTextController controller,
-    required String hint,
-    required void Function(String) onChanged,
-    required bool isDark,
-    int maxLines = 1,
-    bool obscureText = false,
-    Widget? suffixIcon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.3,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          maxLines: maxLines,
-          onChanged: onChanged,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.textDark : AppColors.textLight,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              fontSize: 13,
-              color: AppColors.slate400.withValues(alpha: 0.4),
-            ),
-            filled: true,
-            fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            isDense: true,
-            suffixIcon: suffixIcon,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 1,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 1,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.2,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdownField<T>({
-    required String label,
-    required T value,
-    required List<DropdownMenuItem<T>> items,
-    required void Function(T?) onChanged,
-    required bool isDark,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.3,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-          ),
-        ),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<T>(
-          initialValue: value,
-          items: items,
-          onChanged: onChanged,
-          dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.textDark : AppColors.textLight,
-          ),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            isDense: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 1,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 1,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.2,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildAuthTab(bool isDark) {
-    final auth = widget.request.auth;
-    final requestProvider = Provider.of<RequestProvider>(context, listen: false);
+    final requestProvider = Provider.of<RequestProvider>(context);
+    final wsProvider = Provider.of<WorkspaceProvider>(context);
+    final workspaceAuth = wsProvider.currentWorkspace?.auth ?? HttpAuth(type: AuthType.none);
+
+    final inheritedFromName = AuthResolver.getInheritedSourceName(
+      request: widget.request,
+      collections: requestProvider.collections,
+    );
+
+    final resolvedInheritedAuth = AuthResolver.resolveAuth(
+      request: widget.request,
+      collections: requestProvider.collections,
+      workspaceAuth: workspaceAuth,
+    );
+
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Type: ',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 180,
-                child: DropdownButtonFormField<AuthType>(
-                  initialValue: auth.type,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                  dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.textDark : AppColors.textLight,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: isDark ? AppColors.slate900.withValues(alpha: 0.4) : AppColors.slate100.withValues(alpha: 0.4),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 1,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 1,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.2,
-                      ),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: AuthType.none, child: Text('No Auth', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: AuthType.apiKey, child: Text('API Key', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: AuthType.bearer, child: Text('Bearer Token', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: AuthType.basic, child: Text('Basic Auth', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: AuthType.oauth1, child: Text('OAuth 1.0', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: AuthType.oauth2, child: Text('OAuth 2.0', style: TextStyle(fontSize: 13))),
-                  ],
-                  onChanged: (AuthType? value) {
-                    if (value != null) {
-                      final updatedAuth = widget.request.auth.copyWith(type: value);
-                      _onSave(auth: updatedAuth);
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          _buildAuthForm(auth, requestProvider, isDark),
-        ],
+      child: HttpAuthEditor(
+        initialAuth: widget.request.auth,
+        showInheritOption: true,
+        inheritedFromName: inheritedFromName,
+        resolvedInheritedAuth: resolvedInheritedAuth,
+        onChanged: (updatedAuth) {
+          _onSave(auth: updatedAuth);
+        },
       ),
     );
-  }
-
-  Widget _buildAuthForm(HttpAuth auth, RequestProvider requestProvider, bool isDark) {
-    switch (auth.type) {
-      case AuthType.apiKey:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(
-              label: 'Key',
-              controller: _apiKeyKeyController,
-              hint: 'e.g. X-API-Key',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Value',
-              controller: _apiKeyValueController,
-              hint: 'Value',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildDropdownField<String>(
-              label: 'Add to',
-              value: _apiKeyAddTo,
-              items: const [
-                DropdownMenuItem(value: 'header', child: Text('Headers', style: TextStyle(fontSize: 13))),
-                DropdownMenuItem(value: 'query', child: Text('Query Params', style: TextStyle(fontSize: 13))),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() => _apiKeyAddTo = val);
-                  _saveAuth();
-                }
-              },
-              isDark: isDark,
-            ),
-          ],
-        );
-      case AuthType.bearer:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(
-              label: 'Token',
-              controller: _bearerTokenController,
-              hint: 'Bearer token value',
-              maxLines: 3,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-          ],
-        );
-      case AuthType.basic:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(
-              label: 'Username',
-              controller: _basicUsernameController,
-              hint: 'Username',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Password',
-              controller: _basicPasswordController,
-              hint: 'Password',
-              obscureText: !_isPasswordVisible,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                  size: 20,
-                  color: AppColors.slate400,
-                ),
-                onPressed: () {
-                  setState(() => _isPasswordVisible = !_isPasswordVisible);
-                },
-              ),
-            ),
-          ],
-        );
-      case AuthType.oauth1:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(
-              label: 'Consumer Key',
-              controller: _oauth1ConsumerKeyController,
-              hint: 'Consumer Key',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Consumer Secret',
-              controller: _oauth1ConsumerSecretController,
-              hint: 'Consumer Secret',
-              obscureText: true,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Access Token',
-              controller: _oauth1TokenController,
-              hint: 'Access Token',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Token Secret',
-              controller: _oauth1TokenSecretController,
-              hint: 'Token Secret',
-              obscureText: true,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildDropdownField<String>(
-              label: 'Signature Method',
-              value: _oauth1SignatureMethod,
-              items: const [
-                DropdownMenuItem(value: 'HMAC-SHA1', child: Text('HMAC-SHA1', style: TextStyle(fontSize: 13))),
-                DropdownMenuItem(value: 'HMAC-SHA256', child: Text('HMAC-SHA256', style: TextStyle(fontSize: 13))),
-                DropdownMenuItem(value: 'PLAINTEXT', child: Text('PLAINTEXT', style: TextStyle(fontSize: 13))),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() => _oauth1SignatureMethod = val);
-                  _saveAuth();
-                }
-              },
-              isDark: isDark,
-            ),
-          ],
-        );
-      case AuthType.oauth2:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(
-              label: 'Access Token',
-              controller: _oauth2AccessTokenController,
-              hint: 'Access Token value (or fetch using credentials below)',
-              maxLines: 3,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Configure Token Fetching',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Fill the parameters below to request a new token from your authorization server.',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildDropdownField<String>(
-              label: 'Grant Type',
-              value: _oauth2GrantType,
-              items: const [
-                DropdownMenuItem(value: 'client_credentials', child: Text('Client Credentials', style: TextStyle(fontSize: 13))),
-                DropdownMenuItem(value: 'password', child: Text('Password Credentials', style: TextStyle(fontSize: 13))),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() => _oauth2GrantType = val);
-                  _saveAuth();
-                }
-              },
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Access Token URL',
-              controller: _oauth2TokenUrlController,
-              hint: 'e.g. https://auth.example.com/oauth/token',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Client ID',
-              controller: _oauth2ClientIdController,
-              hint: 'Client ID',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Client Secret',
-              controller: _oauth2ClientSecretController,
-              hint: 'Client Secret',
-              obscureText: true,
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Scope',
-              controller: _oauth2ScopeController,
-              hint: 'Scope (optional)',
-              onChanged: (_) => _saveAuth(),
-              isDark: isDark,
-            ),
-            if (_oauth2GrantType == 'password') ...[
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: 'Username',
-                controller: _oauth2UsernameController,
-                hint: 'Username',
-                onChanged: (_) => _saveAuth(),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: 'Password',
-                controller: _oauth2PasswordController,
-                hint: 'Password',
-                obscureText: true,
-                onChanged: (_) => _saveAuth(),
-                isDark: isDark,
-              ),
-            ],
-            const SizedBox(height: 24),
-            Center(
-              child: ElevatedButton(
-                onPressed: _isOauthFetching ? null : () => _fetchOAuth2Token(requestProvider),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(180, 42),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                child: _isOauthFetching
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Get New Access Token',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        );
-      case AuthType.none:
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.lock_person_rounded,
-                size: 48,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Authentication',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'No Authentication required for this request.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                ),
-              ),
-            ],
-          ),
-        );
-    }
   }
 
   Widget _buildResponsePanel(RequestProvider requestProvider, bool isDark) {

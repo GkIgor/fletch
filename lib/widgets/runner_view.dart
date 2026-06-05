@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fletch/models/runner_item_state.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/theme/app_theme.dart';
 import 'package:fletch/widgets/response_viewer.dart';
@@ -260,7 +261,13 @@ class _RunnerViewState extends State<RunnerView> {
                                         if (provider.isCurrentlyRunning) {
                                           provider.stopRunnerExecution();
                                         } else {
-                                          provider.executeRunnerSession();
+                                          final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
+                                          final activeEnv = wsProvider.activeEnvironment;
+                                          final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
+                                          provider.executeRunnerSession(
+                                            variables: variables,
+                                            workspaceAuth: wsProvider.currentWorkspace?.auth,
+                                          );
                                         }
                                       },
                                 icon: Icon(

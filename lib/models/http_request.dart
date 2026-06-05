@@ -81,7 +81,7 @@ class HttpRequest {
        queryParams = queryParams ?? {},
        headers = headers ?? {},
        formData = formData ?? [],
-       auth = auth ?? HttpAuth();
+       auth = auth ?? HttpAuth(type: AuthType.inherit);
 
   /// Cria uma cópia da requisição com campos modificados
   HttpRequest copyWith({
@@ -151,7 +151,7 @@ class HttpRequest {
       binaryPath: json['binaryPath'] as String?,
       auth: json['auth'] != null
           ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
-          : HttpAuth(),
+          : HttpAuth(type: AuthType.none),
     );
   }
 }

@@ -154,6 +154,20 @@ class WorkspaceProvider extends ChangeNotifier {
 
   set isManagingEnvironments(bool value) {
     _isManagingEnvironments = value;
+    if (value) {
+      _isManagingAuth = false;
+    }
+    notifyListeners();
+  }
+
+  bool _isManagingAuth = false;
+  bool get isManagingAuth => _isManagingAuth;
+
+  set isManagingAuth(bool value) {
+    _isManagingAuth = value;
+    if (value) {
+      _isManagingEnvironments = false;
+    }
     notifyListeners();
   }
 
@@ -161,6 +175,7 @@ class WorkspaceProvider extends ChangeNotifier {
     final workspace = _workspaces[ws];
     _currentWorkspace = workspace;
     _isManagingEnvironments = false;
+    _isManagingAuth = false;
     notifyListeners();
   }
 

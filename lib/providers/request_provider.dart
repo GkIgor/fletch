@@ -12,6 +12,8 @@ import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/services/http_service.dart';
 import 'package:fletch/utils/converters/postman_converter.dart';
 import 'package:fletch/utils/converters/insomnia_converter.dart';
+import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/utils/auth_resolver.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
@@ -163,13 +165,18 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables}) async {
+  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables, HttpAuth? workspaceAuth}) async {
     _isLoading = true;
     _currentResponse = null;
     notifyListeners();
 
     try {
-      final response = await _httpService.send(request, variables: variables);
+      final resolvedAuth = AuthResolver.resolveAuth(
+        request: request,
+        collections: _collections,
+        workspaceAuth: workspaceAuth ?? HttpAuth(type: AuthType.none),
+      );
+      final response = await _httpService.send(request, variables: variables, resolvedAuth: resolvedAuth);
       _currentResponse = response;
     } catch (e) {
       debugPrint('Erro inesperado ao enviar requisição: $e');
@@ -594,7 +601,7 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRunnerSession({Map<String, String>? variables}) async {
+  Future<void> executeRunnerSession({Map<String, String>? variables, HttpAuth? workspaceAuth}) async {
     if (_isCurrentlyRunning) return;
     _isCurrentlyRunning = true;
     _stopExecution = false;
@@ -624,7 +631,12 @@ class RequestProvider with ChangeNotifier {
       notifyListeners();
 
       try {
-        final response = await _httpService.send(item.request, variables: variables);
+        final resolvedAuth = AuthResolver.resolveAuth(
+          request: item.request,
+          collections: _collections,
+          workspaceAuth: workspaceAuth ?? HttpAuth(type: AuthType.none),
+        );
+        final response = await _httpService.send(item.request, variables: variables, resolvedAuth: resolvedAuth);
         item.response = response;
         if (response.statusCode >= 200 && response.statusCode < 300) {
           item.status = 'success';

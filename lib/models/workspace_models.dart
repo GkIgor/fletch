@@ -1,3 +1,5 @@
+import 'http_auth.dart';
+
 enum WorkspaceItemType { folder, request }
 
 class WorkspaceModel {
@@ -9,6 +11,7 @@ class WorkspaceModel {
   String? selectedEnvironmentId;
   final DateTime createdAt;
   int requestCount;
+  HttpAuth auth;
 
   WorkspaceModel({
     required this.name,
@@ -19,9 +22,11 @@ class WorkspaceModel {
     this.icon = 'folder',
     DateTime? createdAt,
     this.requestCount = 0,
+    HttpAuth? auth,
   }) : id = id ?? "ws_${DateTime.now().microsecondsSinceEpoch}",
        createdAt = createdAt ?? DateTime.now(),
-       environments = environments ?? [EnvironmentModel(name: 'Default')];
+       environments = environments ?? [EnvironmentModel(name: 'Default')],
+       auth = auth ?? HttpAuth(type: AuthType.none);
 
   Map<String, dynamic> toMap() {
     return {
@@ -33,6 +38,7 @@ class WorkspaceModel {
       'selectedEnvironmentId': selectedEnvironmentId,
       'createdAt': createdAt.toIso8601String(),
       'requestCount': requestCount,
+      'auth': auth.toJson(),
     };
   }
 
@@ -58,6 +64,9 @@ class WorkspaceModel {
       selectedEnvironmentId: map['selectedEnvironmentId'],
       createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
       requestCount: map['requestCount'] ?? 0,
+      auth: map['auth'] != null
+          ? HttpAuth.fromJson(Map<String, dynamic>.from(map['auth']))
+          : HttpAuth(type: AuthType.none),
     );
   }
 }

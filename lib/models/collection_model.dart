@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'http_request.dart';
+import 'http_auth.dart';
 
 class RequestCollection {
   final String id;
@@ -12,6 +13,7 @@ class RequestCollection {
   String workspaceId;
   int sortOrder;
   String? parentId;
+  final HttpAuth auth;
 
   RequestCollection({
     String? id,
@@ -24,8 +26,10 @@ class RequestCollection {
     this.description,
     this.sortOrder = 0,
     this.parentId,
+    HttpAuth? auth,
   }) : id = id ?? const Uuid().v4(),
-       requests = requests ?? [];
+       requests = requests ?? [],
+       auth = auth ?? HttpAuth(type: AuthType.inherit);
 
   void addRequest(HttpRequest request) {
     requests.add(request);
@@ -50,6 +54,7 @@ class RequestCollection {
     int? sortOrder,
     String? parentId,
     bool clearParentId = false,
+    HttpAuth? auth,
   }) {
     return RequestCollection(
       id: id,
@@ -62,6 +67,7 @@ class RequestCollection {
       description: description,
       sortOrder: sortOrder ?? this.sortOrder,
       parentId: clearParentId ? null : (parentId ?? this.parentId),
+      auth: auth ?? this.auth,
     );
   }
 
@@ -77,6 +83,7 @@ class RequestCollection {
       'description': description,
       'sortOrder': sortOrder,
       'parentId': parentId,
+      'auth': auth.toJson(),
     };
   }
 
@@ -94,6 +101,9 @@ class RequestCollection {
       description: json['description'] as String?,
       sortOrder: json['sortOrder'] as int? ?? 0,
       parentId: json['parentId'] as String?,
+      auth: json['auth'] != null
+          ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
+          : HttpAuth(type: AuthType.inherit),
     );
   }
 }

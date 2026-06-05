@@ -1,4 +1,5 @@
 enum AuthType {
+  inherit,
   none,
   apiKey,
   bearer,

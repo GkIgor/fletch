@@ -14,6 +14,7 @@ import 'package:fletch/widgets/request_editor.dart';
 import 'package:fletch/widgets/empty_request_editor.dart';
 import 'package:fletch/widgets/environments_management_view.dart';
 import 'package:fletch/widgets/runner_view.dart';
+import 'package:fletch/widgets/workspace_auth_management_view.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key});
@@ -65,6 +66,54 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
                 // Environment Selector (Placeholder)
                 EnvironmentsSelector(isDark: isDark),
+                const SizedBox(width: 8),
+
+                // Workspace Authentication Settings Button
+                GestureDetector(
+                  onTap: () {
+                    wsProvider.isManagingAuth = !wsProvider.isManagingAuth;
+                  },
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: wsProvider.isManagingAuth
+                            ? AppColors.primary.withValues(alpha: 0.15)
+                            : (isDark ? AppColors.slate800 : AppColors.slate100),
+                        borderRadius: BorderRadius.circular(6),
+                        border: wsProvider.isManagingAuth
+                            ? Border.all(color: AppColors.primary, width: 1)
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.security_rounded,
+                            size: 14,
+                            color: wsProvider.isManagingAuth
+                                ? AppColors.primary
+                                : AppColors.slate500,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Authentication',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: wsProvider.isManagingAuth
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: wsProvider.isManagingAuth
+                                  ? AppColors.primary
+                                  : (isDark ? AppColors.textDark : AppColors.textLight),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 const Spacer(),
 
                 // Theme Toggle
@@ -107,18 +156,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   ),
                 ),
 
-                // Request Editor Area or Environment Manager Area
                 Expanded(
                   child: wsProvider.isManagingEnvironments
                       ? const EnvironmentsManagementView()
-                      : requestProvider.isRunnerActive
-                          ? const RunnerView()
-                          : requestProvider.selectedRequest != null
-                              ? RequestEditor(
-                                  key: ValueKey(requestProvider.selectedRequest!.id),
-                                  request: requestProvider.selectedRequest!,
-                                )
-                              : const EmptyRequestEditor(),
+                      : wsProvider.isManagingAuth
+                          ? const WorkspaceAuthManagementView()
+                          : requestProvider.isRunnerActive
+                              ? const RunnerView()
+                              : requestProvider.selectedRequest != null
+                                  ? RequestEditor(
+                                      key: ValueKey(requestProvider.selectedRequest!.id),
+                                      request: requestProvider.selectedRequest!,
+                                    )
+                                  : const EmptyRequestEditor(),
                 ),
               ],
             ),

@@ -29,7 +29,7 @@ class HttpService {
     });
   }
 
-  Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables}) async {
+  Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables, HttpAuth? resolvedAuth}) async {
     final stopwatch = Stopwatch()..start();
 
     // 1. Validar e preparar URL
@@ -58,7 +58,7 @@ class HttpService {
     });
 
     // Apply Authentication Configs
-    final auth = request.auth;
+    final auth = resolvedAuth ?? request.auth;
     switch (auth.type) {
       case AuthType.apiKey:
         final key = _interpolate(auth.apiKeyKey, variables).trim();
@@ -108,6 +108,7 @@ class HttpService {
         final token = _interpolate(auth.oauth2AccessToken, variables);
         headers['Authorization'] = 'Bearer $token';
         break;
+      case AuthType.inherit:
       case AuthType.none:
         break;
     }

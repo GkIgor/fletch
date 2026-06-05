@@ -5,12 +5,13 @@ import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_response.dart';
+import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/services/http_service.dart';
 
 class MockHttpService extends HttpService {
   @override
-  Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables}) async {
+  Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables, HttpAuth? resolvedAuth}) async {
     if (request.url.contains('fail')) {
       return HttpResponse(
         statusCode: 500,

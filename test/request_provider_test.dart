@@ -158,6 +158,9 @@ void main() {
     provider.nestCollection('another-folder', 'root-folder');
     expect(provider.collections.firstWhere((c) => c.id == 'another-folder').parentId, equals('root-folder'));
 
+    // Await background saves from nestCollection to avoid concurrent file writes on the same file paths
+    await Future.delayed(const Duration(milliseconds: 100));
+
     // 3. Import collections
     final exported = provider.exportCollections();
     final newProvider = RequestProvider();
