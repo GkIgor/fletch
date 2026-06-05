@@ -37,7 +37,9 @@ Checklist de status do projeto e roteiro de implementação.
 ## 🚀 Path to Beta (Roadmap)
 
 ### 1. Advanced Authentication Panel
-- [ ] **Native Auth Mechanisms:** Implement a dedicated UI tab to support OAuth (1.0/2.0), Basic Auth, API Keys, and Bearer Tokens out of the box (migrating from manually writing headers).
+- [x] **Native Auth Mechanisms:** Implement a dedicated UI tab to support OAuth (1.0/2.0), Basic Auth, API Keys, and Bearer Tokens out of the box (migrating from manually writing headers).
+  - *Nota:* Sistema de herança recursiva em 3 níveis (Request, Collection/Folder, Workspace) implementado e testado via testes de integração automatizados.
+  - *Nota:* Sintaxe de interpolação e realce dinâmico de variáveis implementada.
 
 ### 2. Sandbox Automation Scripts (Pre/Post-Request)
 - [ ] **Basic (Low-Code):** Visual node-based workflow editor (similar to a simplified N8N) to chain dynamic variables, assertions, and conditions.
