@@ -17,45 +17,53 @@ class AssertValueStepForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        ValueSourceForm(
-          label: 'Left Operand',
-          source: step.leftSource,
-          onChanged: (source) {
-            step.leftSource = source;
-            onChanged(step);
-          },
+        Expanded(
+          child: ValueSourceInlineEditor(
+            source: step.leftSource,
+            onChanged: (source) {
+              step.leftSource = source;
+              onChanged(step);
+            },
+          ),
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const Text('Operator: ', style: TextStyle(fontSize: 12)),
-            const SizedBox(width: 12),
-            DropdownButton<String>(
-              value: step.operator,
-              dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
-              items: ['==', '!=', 'contains', '>', '<'].map((op) {
-                return DropdownMenuItem(value: op, child: Text(op, style: const TextStyle(fontSize: 13)));
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  step.operator = val;
-                  onChanged(step);
-                }
-              },
-            ),
-          ],
+        const SizedBox(width: 8),
+        DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: step.operator,
+            isDense: true,
+            dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
+            items: ['==', '!=', 'contains', '>', '<'].map((op) {
+              return DropdownMenuItem(
+                value: op,
+                child: Text(
+                  op,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                step.operator = val;
+                onChanged(step);
+              }
+            },
+          ),
         ),
-        const SizedBox(height: 12),
-        ValueSourceForm(
-          label: 'Right Operand',
-          source: step.rightSource,
-          onChanged: (source) {
-            step.rightSource = source;
-            onChanged(step);
-          },
+        const SizedBox(width: 8),
+        Expanded(
+          child: ValueSourceInlineEditor(
+            source: step.rightSource,
+            onChanged: (source) {
+              step.rightSource = source;
+              onChanged(step);
+            },
+          ),
         ),
       ],
     );

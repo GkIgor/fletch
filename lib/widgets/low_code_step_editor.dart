@@ -74,12 +74,7 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
     _updateScript(currentSteps);
   }
 
-  void _toggleStepEnabled(int index, bool enabled) {
-    final List<VisualStep> currentSteps = List.from(widget.script.steps);
-    final step = currentSteps[index];
-    step.enabled = enabled;
-    _updateScript(currentSteps);
-  }
+
 
   void _moveStepUp(int index) {
     if (index <= 0) return;
@@ -106,87 +101,130 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.script.steps.isEmpty)
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.schema_outlined,
-                    size: 48,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+        // Steps list (Timeline)
+        Expanded(
+          child: widget.script.steps.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.schema_outlined,
+                        size: 48,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No steps configured in this workflow.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Click a block in the side panel to add steps.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.borderDark
+                              : AppColors.textSecondaryLight.withValues(
+                                  alpha: 0.7,
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No steps configured in this workflow.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add a visual block below to begin.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? AppColors.borderDark : AppColors.textSecondaryLight.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(top: 16, bottom: 80),
-              itemCount: widget.script.steps.length,
-              itemBuilder: (context, index) {
-                final step = widget.script.steps[index];
-                final isLast = index == widget.script.steps.length - 1;
-                final isExpanded = _expandedSteps[step.id] ?? false;
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(top: 16, bottom: 16),
+                  itemCount: widget.script.steps.length,
+                  itemBuilder: (context, index) {
+                    final step = widget.script.steps[index];
+                    final isLast = index == widget.script.steps.length - 1;
+                    final isExpanded = _expandedSteps[step.id] ?? false;
 
-                return StepTimelineNode(
-                  step: step,
-                  index: index,
-                  isLast: isLast,
-                  isExpanded: isExpanded,
-                  onTap: () {
-                    setState(() {
-                      _expandedSteps[step.id] = !isExpanded;
-                    });
+                    return StepTimelineNode(
+                      step: step,
+                      index: index,
+                      isLast: isLast,
+                      isExpanded: isExpanded,
+                      onTap: () {
+                        setState(() {
+                          _expandedSteps[step.id] = !isExpanded;
+                        });
+                      },
+                      onMoveUp: () => _moveStepUp(index),
+                      onMoveDown: () => _moveStepDown(index),
+                      onDelete: () => _removeStep(index),
+                      content: _buildStepForm(step, index),
+                    );
                   },
-                  onToggleEnabled: (val) => _toggleStepEnabled(index, val),
-                  onMoveUp: () => _moveStepUp(index),
-                  onMoveDown: () => _moveStepDown(index),
-                  onDelete: () => _removeStep(index),
-                  content: _buildStepForm(step, index),
-                );
-              },
-            ),
-          ),
+                ),
+        ),
+
+        // Vertical divider
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: borderColor,
+        ),
+
+        // Add blocks sidebar palette (Right side)
         Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : Colors.white,
-            border: Border(
-              top: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          width: 180,
+          color: isDark ? const Color(0xFF0F172A) : AppColors.slate50,
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildAddButton('Set Variable', VisualStepType.setVariable, isDark),
-              _buildAddButton('Assert Value', VisualStepType.assertValue, isDark),
-              _buildAddButton('HTTP Request', VisualStepType.sendRequest, isDark),
-              _buildAddButton('Delay', VisualStepType.delay, isDark),
+              Text(
+                'ADD WORKFLOW STEPS',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildPaletteButton(
+                      'Set Variable',
+                      VisualStepType.setVariable,
+                      isDark,
+                    ),
+                    _buildPaletteButton(
+                      'Assert Value',
+                      VisualStepType.assertValue,
+                      isDark,
+                    ),
+                    _buildPaletteButton(
+                      'HTTP Request',
+                      VisualStepType.sendRequest,
+                      isDark,
+                    ),
+                    _buildPaletteButton(
+                      'Delay',
+                      VisualStepType.delay,
+                      isDark,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -219,19 +257,27 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildAddButton(String text, VisualStepType type, bool isDark) {
-    return ElevatedButton.icon(
-      onPressed: () => _addStep(type),
-      icon: Icon(_getStepIcon(type), size: 14),
-      label: Text(text, style: const TextStyle(fontSize: 12)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.slate50,
-        foregroundColor: _getStepColor(type),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-          side: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+  Widget _buildPaletteButton(String text, VisualStepType type, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8.0),
+      child: ElevatedButton.icon(
+        onPressed: () => _addStep(type),
+        icon: Icon(_getStepIcon(type), size: 14),
+        label: Text(
+          text,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          foregroundColor: _getStepColor(type),
+          alignment: Alignment.centerLeft,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+            side: BorderSide(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
           ),
         ),
       ),
@@ -240,19 +286,27 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
 
   IconData _getStepIcon(VisualStepType type) {
     switch (type) {
-      case VisualStepType.setVariable: return Icons.account_tree_outlined;
-      case VisualStepType.assertValue: return Icons.fact_check_outlined;
-      case VisualStepType.sendRequest: return Icons.http_outlined;
-      case VisualStepType.delay: return Icons.hourglass_top_outlined;
+      case VisualStepType.setVariable:
+        return Icons.account_tree_outlined;
+      case VisualStepType.assertValue:
+        return Icons.fact_check_outlined;
+      case VisualStepType.sendRequest:
+        return Icons.http_outlined;
+      case VisualStepType.delay:
+        return Icons.hourglass_top_outlined;
     }
   }
 
   Color _getStepColor(VisualStepType type) {
     switch (type) {
-      case VisualStepType.setVariable: return AppColors.primary;
-      case VisualStepType.assertValue: return Colors.orange;
-      case VisualStepType.sendRequest: return Colors.blue;
-      case VisualStepType.delay: return Colors.teal;
+      case VisualStepType.setVariable:
+        return AppColors.primary;
+      case VisualStepType.assertValue:
+        return Colors.orange;
+      case VisualStepType.sendRequest:
+        return Colors.blue;
+      case VisualStepType.delay:
+        return Colors.teal;
     }
   }
 }

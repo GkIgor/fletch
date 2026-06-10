@@ -103,7 +103,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
-        width: 1000,
+        width: 1150,
         height: 700,
         child: Column(
           children: [
