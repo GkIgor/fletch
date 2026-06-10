@@ -28,7 +28,8 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
       mode: ScriptMode.lowCode,
     );
 
-    final updatedScripts = List<VisualScript>.from(widget.workspace.scripts)..add(newScript);
+    final updatedScripts = List<VisualScript>.from(widget.workspace.scripts)
+      ..add(newScript);
     final updatedWorkspace = widget.workspace..scripts = updatedScripts;
 
     widget.onWorkspaceUpdated(updatedWorkspace);
@@ -70,7 +71,8 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
       advancedCode: script.advancedCode,
     );
 
-    final updatedScripts = List<VisualScript>.from(widget.workspace.scripts)..add(duplicated);
+    final updatedScripts = List<VisualScript>.from(widget.workspace.scripts)
+      ..add(duplicated);
     final updatedWorkspace = widget.workspace..scripts = updatedScripts;
 
     widget.onWorkspaceUpdated(updatedWorkspace);
@@ -107,7 +109,10 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
           children: [
             // Title Header with close button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -143,116 +148,161 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Left sidebar: list of scripts
-                  Container(
-                    width: 225,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
-                      border: Border(right: BorderSide(color: borderColor)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // New Script Action Button
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: ElevatedButton.icon(
-                            onPressed: _createNewScript,
-                            icon: const Icon(Icons.add_rounded, size: 14),
-                            label: const Text('New Script', style: TextStyle(fontSize: 12)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                  Material(
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF9FAFB),
+                    child: Container(
+                      width: 225,
+                      decoration: BoxDecoration(
+                        border: Border(right: BorderSide(color: borderColor)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // New Script Action Button
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: ElevatedButton.icon(
+                              onPressed: _createNewScript,
+                              icon: const Icon(Icons.add_rounded, size: 14),
+                              label: const Text(
+                                'New Script',
+                                style: TextStyle(fontSize: 12),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const Divider(height: 1),
-                        Expanded(
-                          child: widget.workspace.scripts.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    'No scripts yet.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          const Divider(height: 1),
+                          Expanded(
+                            child: widget.workspace.scripts.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      'No scripts yet.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                      ),
                                     ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  itemCount: widget.workspace.scripts.length,
-                                  itemBuilder: (context, index) {
-                                    final script = widget.workspace.scripts[index];
-                                    final isSelected = _selectedScript?.id == script.id;
+                                  )
+                                : ListView.builder(
+                                    itemCount: widget.workspace.scripts.length,
+                                    itemBuilder: (context, index) {
+                                      final script =
+                                          widget.workspace.scripts[index];
+                                      final isSelected =
+                                          _selectedScript?.id == script.id;
 
-                                    return ListTile(
-                                      selected: isSelected,
-                                      selectedTileColor: isDark ? AppColors.surfaceDark : AppColors.slate100,
-                                      leading: Icon(
-                                        script.isPreRequest
-                                            ? Icons.arrow_circle_up_rounded
-                                            : Icons.arrow_circle_down_rounded,
-                                        color: script.isPreRequest ? Colors.blue : Colors.orange,
-                                        size: 18,
-                                      ),
-                                      title: Text(
-                                        script.name,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : (isDark ? AppColors.textDark : AppColors.textLight),
+                                      return ListTile(
+                                        selected: isSelected,
+                                        selectedTileColor: isDark
+                                            ? AppColors.surfaceDark
+                                            : AppColors.slate100,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10.0,
+                                              vertical: 2.0,
+                                            ),
+                                        horizontalTitleGap: 8.0,
+                                        dense: true,
+                                        leading: Icon(
+                                          script.isPreRequest
+                                              ? Icons.arrow_circle_up_rounded
+                                              : Icons.arrow_circle_down_rounded,
+                                          color: script.isPreRequest
+                                              ? Colors.blue
+                                              : Colors.orange,
+                                          size: 18,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      subtitle: Text(
-                                        '${script.isPreRequest ? "Pre" : "Post"} • ${script.steps.length} steps',
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                      trailing: isSelected
-                                          ? PopupMenuButton<String>(
-                                              icon: const Icon(Icons.more_vert_rounded, size: 16),
-                                              onSelected: (action) {
-                                                if (action == 'duplicate') {
-                                                  _duplicateScript(script);
-                                                } else if (action == 'delete') {
-                                                  _deleteScript(script);
-                                                }
-                                              },
-                                              itemBuilder: (context) => [
-                                                const PopupMenuItem(
-                                                  value: 'duplicate',
-                                                  child: Text('Duplicate', style: TextStyle(fontSize: 12)),
+                                        title: Text(
+                                          script.name,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : (isDark
+                                                      ? AppColors.textDark
+                                                      : AppColors.textLight),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        subtitle: Text(
+                                          '${script.isPreRequest ? "Pre" : "Post"} • ${script.steps.length} steps',
+                                          style: const TextStyle(fontSize: 10),
+                                        ),
+                                        trailing: isSelected
+                                            ? PopupMenuButton<String>(
+                                                icon: const Icon(
+                                                  Icons.more_vert_rounded,
+                                                  size: 16,
                                                 ),
-                                                const PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red)),
-                                                ),
-                                              ],
-                                            )
-                                          : null,
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedScript = script;
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
+                                                onSelected: (action) {
+                                                  if (action == 'duplicate') {
+                                                    _duplicateScript(script);
+                                                  } else if (action ==
+                                                      'delete') {
+                                                    _deleteScript(script);
+                                                  }
+                                                },
+                                                itemBuilder: (context) => [
+                                                  const PopupMenuItem(
+                                                    value: 'duplicate',
+                                                    child: Text(
+                                                      'Duplicate',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Text(
+                                                      'Delete',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.red,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : null,
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedScript = script;
+                                          });
+                                        },
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
                   // Right side: Active Script builder/timeline
                   Expanded(
                     child: Container(
-                      color: isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
+                      color: isDark
+                          ? const Color(0xFF111827)
+                          : const Color(0xFFF3F4F6),
                       child: _selectedScript == null
                           ? Center(
                               child: Column(
@@ -261,14 +311,18 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                   Icon(
                                     Icons.dashboard_customize_outlined,
                                     size: 64,
-                                    color: isDark ? AppColors.borderDark : AppColors.slate300,
+                                    color: isDark
+                                        ? AppColors.borderDark
+                                        : AppColors.slate300,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'Select or create a script to edit settings.',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
                                     ),
                                   ),
                                 ],
@@ -284,44 +338,95 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                     children: [
                                       Expanded(
                                         child: TextField(
-                                          controller: TextEditingController(text: _selectedScript!.name)
-                                            ..selection = TextSelection.collapsed(offset: _selectedScript!.name.length),
+                                          controller:
+                                              TextEditingController(
+                                                  text: _selectedScript!.name,
+                                                )
+                                                ..selection =
+                                                    TextSelection.collapsed(
+                                                      offset: _selectedScript!
+                                                          .name
+                                                          .length,
+                                                    ),
                                           decoration: const InputDecoration(
                                             labelText: 'Script Name',
                                             border: InputBorder.none,
                                             focusedBorder: InputBorder.none,
                                           ),
-                                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                           onChanged: (val) {
-                                            _updateSelectedScript(_selectedScript!.copyWith(name: val));
+                                            _updateSelectedScript(
+                                              _selectedScript!.copyWith(
+                                                name: val,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
                                       const SizedBox(width: 24),
                                       DropdownButton<bool>(
                                         value: _selectedScript!.isPreRequest,
-                                        dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
+                                        dropdownColor: isDark
+                                            ? AppColors.surfaceDark
+                                            : Colors.white,
                                         items: const [
-                                          DropdownMenuItem(value: true, child: Text('Pre-Request', style: TextStyle(fontSize: 12))),
-                                          DropdownMenuItem(value: false, child: Text('Post-Response', style: TextStyle(fontSize: 12))),
+                                          DropdownMenuItem(
+                                            value: true,
+                                            child: Text(
+                                              'Pre-Request',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: false,
+                                            child: Text(
+                                              'Post-Response',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
                                         ],
                                         onChanged: (val) {
                                           if (val != null) {
-                                            _updateSelectedScript(_selectedScript!.copyWith(isPreRequest: val));
+                                            _updateSelectedScript(
+                                              _selectedScript!.copyWith(
+                                                isPreRequest: val,
+                                              ),
+                                            );
                                           }
                                         },
                                       ),
                                       const SizedBox(width: 16),
                                       DropdownButton<ScriptMode>(
                                         value: _selectedScript!.mode,
-                                        dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
+                                        dropdownColor: isDark
+                                            ? AppColors.surfaceDark
+                                            : Colors.white,
                                         items: const [
-                                          DropdownMenuItem(value: ScriptMode.lowCode, child: Text('Basic (Low-Code)', style: TextStyle(fontSize: 12))),
-                                          DropdownMenuItem(value: ScriptMode.advanced, child: Text('Advanced (Code)', style: TextStyle(fontSize: 12))),
+                                          DropdownMenuItem(
+                                            value: ScriptMode.lowCode,
+                                            child: Text(
+                                              'Basic (Low-Code)',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: ScriptMode.advanced,
+                                            child: Text(
+                                              'Advanced (Code)',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
                                         ],
                                         onChanged: (val) {
                                           if (val != null) {
-                                            _updateSelectedScript(_selectedScript!.copyWith(mode: val));
+                                            _updateSelectedScript(
+                                              _selectedScript!.copyWith(
+                                                mode: val,
+                                              ),
+                                            );
                                           }
                                         },
                                       ),
@@ -332,7 +437,9 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
 
                                 // Form body based on Basic/Advanced select
                                 Expanded(
-                                  child: _selectedScript!.mode == ScriptMode.advanced
+                                  child:
+                                      _selectedScript!.mode ==
+                                          ScriptMode.advanced
                                       ? _buildAdvancedModePlaceholder(isDark)
                                       : LowCodeStepEditor(
                                           script: _selectedScript!,
@@ -373,7 +480,9 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
