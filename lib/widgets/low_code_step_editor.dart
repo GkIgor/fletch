@@ -173,7 +173,7 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
         Container(
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.sidebarDark : AppColors.slate100,
+            color: isDark ? AppColors.surfaceDark : Colors.white,
             border: Border(
               top: BorderSide(
                 color: isDark ? AppColors.borderDark : AppColors.borderLight,
@@ -225,7 +225,7 @@ class _LowCodeStepEditorState extends State<LowCodeStepEditor> {
       icon: Icon(_getStepIcon(type), size: 14),
       label: Text(text, style: const TextStyle(fontSize: 12)),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.slate50,
         foregroundColor: _getStepColor(type),
         elevation: 0,
         shape: RoundedRectangleBorder(
