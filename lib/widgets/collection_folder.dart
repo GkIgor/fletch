@@ -359,6 +359,25 @@ class _CollectionFolderState extends State<CollectionFolder> {
           ],
         ),
       ),
+      PopupMenuItem(
+        onTap: () {
+          Future.delayed(
+            Duration.zero,
+            () {
+              if (context.mounted) {
+                _openEditCollectionDialog(context, isDark, initialTab: 2);
+              }
+            },
+          );
+        },
+        child: Row(
+          children: [
+            Icon(Icons.code_rounded, size: 16, color: color),
+            const SizedBox(width: 8),
+            const Text('Scripts'),
+          ],
+        ),
+      ),
       const PopupMenuDivider(),
       PopupMenuItem(
         onTap: () {
@@ -412,7 +431,7 @@ class _CollectionFolderState extends State<CollectionFolder> {
     );
   }
 
-  void _openEditCollectionDialog(BuildContext context, bool isDark) {
+  void _openEditCollectionDialog(BuildContext context, bool isDark, {int initialTab = 0}) {
     final Map<String, IconData> icons = RequestProvider.icons;
     final Map<String, Color> colors = RequestProvider.colors;
 
@@ -428,6 +447,7 @@ class _CollectionFolderState extends State<CollectionFolder> {
             colors: colors,
             isDark: isDark,
             collection: widget.collection,
+            initialTab: initialTab,
           ),
         );
       },

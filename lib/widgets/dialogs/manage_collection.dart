@@ -7,6 +7,10 @@ import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/widgets/http_auth_editor.dart';
 import 'package:fletch/utils/auth_resolver.dart';
 import 'package:provider/provider.dart';
+import 'package:fletch/widgets/script_selector_widget.dart';
+import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
+import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/models/workspace_models.dart';
 
 class NewCollectionDialogBody extends StatefulWidget {
   const NewCollectionDialogBody({
@@ -15,12 +19,14 @@ class NewCollectionDialogBody extends StatefulWidget {
     required this.colors,
     required this.isDark,
     this.collection,
+    this.initialTab = 0,
   });
 
   final Map<String, IconData> icons;
   final Map<String, Color> colors;
   final bool isDark;
   final RequestCollection? collection;
+  final int initialTab;
 
   @override
   State<NewCollectionDialogBody> createState() =>
@@ -33,8 +39,10 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
   late TextEditingController _collectionDescriptionController;
   late TextEditingController _collectionNameController;
   late HttpAuth _collectionAuth;
+  late List<String> _collectionActiveScriptIds;
+  late bool _collectionInheritScripts;
   bool _editing = false;
-  int _activeTab = 0;
+  late int _activeTab;
 
   @override
   void initState() {
@@ -42,6 +50,9 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
     _collectionDescriptionController = TextEditingController();
     _collectionNameController = TextEditingController();
     _collectionAuth = HttpAuth(type: AuthType.inherit);
+    _collectionActiveScriptIds = widget.collection?.activeScriptIds ?? [];
+    _collectionInheritScripts = widget.collection?.inheritScripts ?? true;
+    _activeTab = widget.initialTab;
 
     if (widget.collection != null) {
       _editing = true;
@@ -59,6 +70,45 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
     _collectionDescriptionController.dispose();
     _collectionNameController.dispose();
     super.dispose();
+  }
+
+  List<VisualScript> _resolveCollectionInheritedScripts(
+    String? parentId,
+    List<RequestCollection> collections,
+    WorkspaceModel workspace,
+    bool inheritScripts,
+  ) {
+    if (!inheritScripts) {
+      return [];
+    }
+    final List<String> inheritedIds = [];
+
+    if (parentId != null) {
+      RequestCollection? parent;
+      try {
+        parent = collections.firstWhere((c) => c.id == parentId);
+      } catch (_) {}
+
+      if (parent != null) {
+        inheritedIds.addAll(parent.activeScriptIds);
+        // Recursively add parent's inherited scripts
+        inheritedIds.addAll(
+          _resolveCollectionInheritedScripts(
+            parent.parentId,
+            collections,
+            workspace,
+            parent.inheritScripts,
+          ).map((s) => s.id),
+        );
+      }
+    } else {
+      // Directly under workspace, inherits workspace level active scripts
+      inheritedIds.addAll(workspace.activeScriptIds);
+    }
+
+    final allScriptModels = {for (var s in workspace.scripts) s.id: s};
+    final Set<String> uniqueIds = inheritedIds.toSet();
+    return uniqueIds.map((id) => allScriptModels[id]).whereType<VisualScript>().toList();
   }
 
   Widget _buildTabButton(int index, String label, Color activeColor, Color inactiveColor) {
@@ -151,6 +201,8 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
               _buildTabButton(0, 'General', textColor, labelColor),
               const SizedBox(width: 12),
               _buildTabButton(1, 'Authentication', textColor, labelColor),
+              const SizedBox(width: 12),
+              _buildTabButton(2, 'Scripts', textColor, labelColor),
             ],
           ),
           const SizedBox(height: 20),
@@ -239,7 +291,7 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
                         ),
                       ],
                     ),
-                  ] else ...[
+                  ] else if (_activeTab == 1) ...[
                     HttpAuthEditor(
                       initialAuth: _collectionAuth,
                       showInheritOption: true,
@@ -250,6 +302,46 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
                           _collectionAuth = updatedAuth;
                         });
                       },
+                    ),
+                  ] else ...[
+                    SizedBox(
+                      height: 350,
+                      child: ScriptSelectorWidget(
+                        allScripts: wsProvider.currentWorkspace?.scripts ?? [],
+                        activeScriptIds: _collectionActiveScriptIds,
+                        inheritScripts: _collectionInheritScripts,
+                        inheritedFromName: inheritedFromName,
+                        inheritedScripts: _resolveCollectionInheritedScripts(
+                          widget.collection?.parentId,
+                          requestProvider.collections,
+                          wsProvider.currentWorkspace!,
+                          _collectionInheritScripts,
+                        ),
+                        onActiveScriptsChanged: (activeIds) {
+                          setState(() {
+                            _collectionActiveScriptIds = activeIds;
+                          });
+                        },
+                        onInheritChanged: (inherit) {
+                          setState(() {
+                            _collectionInheritScripts = inherit;
+                          });
+                        },
+                        onOpenManager: () {
+                          final workspace = wsProvider.currentWorkspace;
+                          if (workspace != null) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => ScriptManagerDialog(
+                                workspace: workspace,
+                                onWorkspaceUpdated: (updatedWorkspace) {
+                                  wsProvider.addWorkspace(updatedWorkspace);
+                                },
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ],
@@ -391,6 +483,8 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
       parentId: _editing ? widget.collection!.parentId : null,
       sortOrder: _editing ? widget.collection!.sortOrder : 0,
       auth: _collectionAuth,
+      activeScriptIds: _collectionActiveScriptIds,
+      inheritScripts: _collectionInheritScripts,
     );
 
     if (!_editing) {

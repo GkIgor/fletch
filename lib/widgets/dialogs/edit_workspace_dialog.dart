@@ -3,6 +3,8 @@ import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/widgets/http_auth_editor.dart';
+import 'package:fletch/widgets/script_selector_widget.dart';
+import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
 
 class EditWorkspaceDialog extends StatefulWidget {
   final WorkspaceProvider workspaceProvider;
@@ -24,6 +26,7 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
   late final TextEditingController _descController;
   late String _selectedIcon;
   late HttpAuth _workspaceAuth;
+  late List<String> _workspaceActiveScriptIds;
   int _activeTab = 0;
 
   @override
@@ -33,6 +36,7 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
     _descController = TextEditingController(text: widget.workspace.description);
     _selectedIcon = widget.workspace.icon;
     _workspaceAuth = widget.workspace.auth;
+    _workspaceActiveScriptIds = widget.workspace.activeScriptIds;
   }
 
   @override
@@ -127,6 +131,8 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
                   _buildTabButton(0, 'General', textColor, labelColor),
                   const SizedBox(width: 12),
                   _buildTabButton(1, 'Authentication', textColor, labelColor),
+                  const SizedBox(width: 12),
+                  _buildTabButton(2, 'Scripts', textColor, labelColor),
                 ],
               ),
               const SizedBox(height: 24),
@@ -260,7 +266,7 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
                               ),
                           ],
                         ),
-                      ] else ...[
+                      ] else if (_activeTab == 1) ...[
                         HttpAuthEditor(
                           initialAuth: _workspaceAuth,
                           showInheritOption: false,
@@ -269,6 +275,36 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
                               _workspaceAuth = updatedAuth;
                             });
                           },
+                        ),
+                      ] else ...[
+                        SizedBox(
+                          height: 320,
+                          child: ScriptSelectorWidget(
+                            allScripts: widget.workspace.scripts,
+                            activeScriptIds: _workspaceActiveScriptIds,
+                            inheritScripts: false,
+                            inheritedScripts: const [],
+                            onActiveScriptsChanged: (activeIds) {
+                              setState(() {
+                                _workspaceActiveScriptIds = activeIds;
+                              });
+                            },
+                            onInheritChanged: (_) {},
+                            onOpenManager: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => ScriptManagerDialog(
+                                  workspace: widget.workspace,
+                                  onWorkspaceUpdated: (updatedWorkspace) {
+                                    widget.workspaceProvider.addWorkspace(updatedWorkspace);
+                                    setState(() {
+                                      _workspaceActiveScriptIds = updatedWorkspace.activeScriptIds;
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ],
@@ -319,6 +355,7 @@ class _EditWorkspaceDialogState extends State<EditWorkspaceDialog> {
                         widget.workspace.description = _descController.text.trim();
                         widget.workspace.auth = _workspaceAuth;
 
+                        widget.workspace.activeScriptIds = _workspaceActiveScriptIds;
                         await widget.workspaceProvider.addWorkspace(widget.workspace);
 
                         if (context.mounted) {

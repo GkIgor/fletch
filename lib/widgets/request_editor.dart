@@ -12,6 +12,10 @@ import 'package:provider/provider.dart';
 import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/widgets/http_auth_editor.dart';
 import 'package:fletch/utils/auth_resolver.dart';
+import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/utils/script_executor.dart';
+import 'package:fletch/widgets/script_selector_widget.dart';
+import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
 
 class RequestEditor extends StatefulWidget {
   final HttpRequest request;
@@ -36,7 +40,7 @@ class _RequestEditorState extends State<RequestEditor>
     super.initState();
     _urlController = InterpolatedTextController(text: widget.request.url);
     _method = widget.request.method;
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
 
 
   }
@@ -83,6 +87,57 @@ class _RequestEditorState extends State<RequestEditor>
     ).updateSelectedRequest(updatedRequest);
   }
 
+
+  Widget _buildScriptsTab(bool isDark) {
+    final requestProvider = Provider.of<RequestProvider>(context);
+    final wsProvider = Provider.of<WorkspaceProvider>(context);
+    final workspace = wsProvider.currentWorkspace;
+    if (workspace == null) return const SizedBox.shrink();
+
+    // Resolve inherited details
+    final inheritedCollection = requestProvider.collections.firstWhere(
+      (c) => c.requests.any((r) => r.id == widget.request.id),
+      orElse: () => RequestCollection(name: 'Workspace', workspaceId: workspace.id),
+    );
+
+    final inheritedFromName = inheritedCollection.name;
+    final inheritedScripts = ScriptExecutor.resolveActiveScripts(
+      request: widget.request.copyWith(inheritScripts: true, activeScriptIds: []),
+      collections: requestProvider.collections,
+      workspace: workspace,
+      isPreRequest: true, // Show pre-request as representative example in summary
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ScriptSelectorWidget(
+        allScripts: workspace.scripts,
+        activeScriptIds: widget.request.activeScriptIds,
+        inheritScripts: widget.request.inheritScripts,
+        inheritedFromName: inheritedFromName,
+        inheritedScripts: inheritedScripts,
+        onActiveScriptsChanged: (activeIds) {
+          final updated = widget.request.copyWith(activeScriptIds: activeIds);
+          requestProvider.updateSelectedRequest(updated);
+        },
+        onInheritChanged: (inherit) {
+          final updated = widget.request.copyWith(inheritScripts: inherit);
+          requestProvider.updateSelectedRequest(updated);
+        },
+        onOpenManager: () {
+          showDialog(
+            context: context,
+            builder: (context) => ScriptManagerDialog(
+              workspace: workspace,
+              onWorkspaceUpdated: (updatedWorkspace) {
+                wsProvider.addWorkspace(updatedWorkspace);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildAuthTab(bool isDark) {
     final requestProvider = Provider.of<RequestProvider>(context);
@@ -420,6 +475,7 @@ class _RequestEditorState extends State<RequestEditor>
                             ),
                             const Tab(text: 'Auth'),
                             const Tab(text: 'Body'),
+                            const Tab(text: 'Scripts'),
                           ],
                         ),
                       ),
@@ -454,6 +510,7 @@ class _RequestEditorState extends State<RequestEditor>
                                 ).updateSelectedRequest(updatedRequest);
                               },
                             ),
+                            _buildScriptsTab(isDark),
                           ],
                         ),
                       ),
