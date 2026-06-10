@@ -42,8 +42,8 @@ Checklist de status do projeto e roteiro de implementação.
   - *Nota:* Sintaxe de interpolação e realce dinâmico de variáveis implementada.
 
 ### 2. Sandbox Automation Scripts (Pre/Post-Request)
-- [ ] **Basic (Low-Code):** Visual node-based workflow editor (similar to a simplified N8N) to chain dynamic variables, assertions, and conditions.
-- [ ] **Advanced (Code Editor):** Sandbox script execution using Dart or a secure pseudo-language to run complex custom scripts safely without security risks (escaping privilege escalations).
+- [/] **Basic (Low-Code):** Visual node-based workflow editor (similar to a simplified N8N) to chain dynamic variables, assertions, and conditions. Inherits recursively in 3 levels (Workspace -> Collection -> Request) with OOP-based step nodes and JIT compilation cache.
+- [ ] **Advanced (Code Editor):** Sandbox script execution using Dart DSL inside an isolated sandbox, sharing the same ExecutionContext. (Coming soon dialog placeholder)
 
 ### 3. JSON-to-Types Generator
 - [ ] **Response Converter:** Generate type/interface/class/struct models from JSON responses:

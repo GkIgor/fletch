@@ -14,6 +14,8 @@ class RequestCollection {
   int sortOrder;
   String? parentId;
   final HttpAuth auth;
+  final List<String> activeScriptIds;
+  final bool inheritScripts;
 
   RequestCollection({
     String? id,
@@ -27,9 +29,12 @@ class RequestCollection {
     this.sortOrder = 0,
     this.parentId,
     HttpAuth? auth,
+    List<String>? activeScriptIds,
+    this.inheritScripts = true,
   }) : id = id ?? const Uuid().v4(),
        requests = requests ?? [],
-       auth = auth ?? HttpAuth(type: AuthType.inherit);
+       auth = auth ?? HttpAuth(type: AuthType.inherit),
+       activeScriptIds = activeScriptIds ?? [];
 
   void addRequest(HttpRequest request) {
     requests.add(request);
@@ -55,6 +60,8 @@ class RequestCollection {
     String? parentId,
     bool clearParentId = false,
     HttpAuth? auth,
+    List<String>? activeScriptIds,
+    bool? inheritScripts,
   }) {
     return RequestCollection(
       id: id,
@@ -68,6 +75,8 @@ class RequestCollection {
       sortOrder: sortOrder ?? this.sortOrder,
       parentId: clearParentId ? null : (parentId ?? this.parentId),
       auth: auth ?? this.auth,
+      activeScriptIds: activeScriptIds ?? this.activeScriptIds,
+      inheritScripts: inheritScripts ?? this.inheritScripts,
     );
   }
 
@@ -84,6 +93,8 @@ class RequestCollection {
       'sortOrder': sortOrder,
       'parentId': parentId,
       'auth': auth.toJson(),
+      'activeScriptIds': activeScriptIds,
+      'inheritScripts': inheritScripts,
     };
   }
 
@@ -91,11 +102,11 @@ class RequestCollection {
     return RequestCollection(
       id: json['id'] as String,
       name: json['name'] as String,
+      workspaceId: json['workspaceId'] as String,
       requests: (json['requests'] as List)
           .map((r) => HttpRequest.fromJson(r as Map<String, dynamic>))
           .toList(),
       isExpanded: json['isExpanded'] as bool? ?? true,
-      workspaceId: json['workspaceId'] as String,
       icon: json['icon'] as String? ?? 'folder',
       color: json['color'] as String? ?? '#8b5cf6',
       description: json['description'] as String?,
@@ -104,6 +115,10 @@ class RequestCollection {
       auth: json['auth'] != null
           ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
           : HttpAuth(type: AuthType.inherit),
+      activeScriptIds: json['activeScriptIds'] != null
+          ? List<String>.from(json['activeScriptIds'])
+          : [],
+      inheritScripts: json['inheritScripts'] as bool? ?? true,
     );
   }
 }

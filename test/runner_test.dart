@@ -6,6 +6,7 @@ import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_response.dart';
 import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/services/http_service.dart';
 
@@ -177,14 +178,16 @@ void main() {
     provider.setRunnerItemSelection(1, false);
     expect(provider.runnerItems[1].isSelected, isFalse);
 
+    final ws = WorkspaceModel(name: 'test-ws', id: workspaceId);
+
     // Run session: req-a (selected, success), req-b (not selected, pending)
-    await provider.executeRunnerSession();
+    await provider.executeRunnerSession(workspace: ws);
     expect(provider.runnerItems[0].status, equals('success'));
     expect(provider.runnerItems[1].status, equals('pending'));
 
     // Re-enable and run both
     provider.setRunnerItemSelection(1, true);
-    await provider.executeRunnerSession();
+    await provider.executeRunnerSession(workspace: ws);
     expect(provider.runnerItems[0].status, equals('success'));
     expect(provider.runnerItems[1].status, equals('failure'));
     expect(provider.runnerItems[1].errorMessage, contains('HTTP Status: 500'));

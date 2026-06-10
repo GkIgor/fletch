@@ -308,10 +308,16 @@ class _RequestEditorState extends State<RequestEditor>
                           final activeEnv = wsProvider.activeEnvironment;
                           final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
 
+                          final workspace = wsProvider.currentWorkspace;
+
                           Provider.of<RequestProvider>(
                             context,
                             listen: false,
-                          ).executeRequest(currentReq, variables: variables);
+                          ).executeRequest(
+                            currentReq,
+                            variables: variables,
+                            workspace: workspace,
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(

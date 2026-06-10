@@ -279,7 +279,7 @@ class _RunnerViewState extends State<RunnerView> {
                                           final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
                                           provider.executeRunnerSession(
                                             variables: variables,
-                                            workspaceAuth: wsProvider.currentWorkspace?.auth,
+                                            workspace: wsProvider.currentWorkspace,
                                           );
                                         }
                                       },

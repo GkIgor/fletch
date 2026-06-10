@@ -458,7 +458,11 @@ void main() {
 
       await provider.executeRunnerSession(
         variables: variables,
-        workspaceAuth: wsAuth,
+        workspace: WorkspaceModel(
+          name: 'test-runner-ws',
+          id: workspaceId,
+          auth: wsAuth,
+        ),
       );
 
       expect(provider.runnerItems[0].status, equals('success')); // Req A

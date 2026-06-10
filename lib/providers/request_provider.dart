@@ -12,8 +12,9 @@ import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/services/http_service.dart';
 import 'package:fletch/utils/converters/postman_converter.dart';
 import 'package:fletch/utils/converters/insomnia_converter.dart';
-import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/utils/auth_resolver.dart';
+import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/utils/script_executor.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
@@ -165,26 +166,86 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables, HttpAuth? workspaceAuth}) async {
+  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables, WorkspaceModel? workspace}) async {
     _isLoading = true;
     _currentResponse = null;
     notifyListeners();
 
     try {
-      final resolvedAuth = AuthResolver.resolveAuth(
+      final ws = workspace ?? WorkspaceModel(name: 'Default WS');
+      final initialVars = variables ?? {};
+
+      // 1. Execute Pre-Request Scripts (Modifies request parameters, headers, URL, and body)
+      final context = await ScriptExecutor.executePreRequest(
         request: request,
         collections: _collections,
-        workspaceAuth: workspaceAuth ?? HttpAuth(type: AuthType.none),
+        workspace: ws,
+        initialVariables: initialVars,
       );
-      final response = await _httpService.send(request, variables: variables, resolvedAuth: resolvedAuth);
+
+      // Create a modified request instance with context-interpolated details
+      final runRequest = request.copyWith(
+        url: context.url,
+        body: context.body,
+        headers: context.headers,
+        queryParams: context.queryParams,
+      );
+
+      final resolvedAuth = AuthResolver.resolveAuth(
+        request: runRequest,
+        collections: _collections,
+        workspaceAuth: ws.auth,
+      );
+
+      // 2. Dispatches actual Dio HTTP call
+      final response = await _httpService.send(runRequest, variables: context.variables, resolvedAuth: resolvedAuth);
       _currentResponse = response;
+
+      // Map response headers to key/value pairs safely (supporting list or raw values)
+      final Map<String, String> responseHeaders = response.headers.map((k, v) {
+        if (v is List) {
+          return MapEntry(k, v.join(', '));
+        }
+        return MapEntry(k, v.toString());
+      });
+
+      // 3. Execute Post-Response Scripts (Validates assertions & extracts variables)
+      await ScriptExecutor.executePostResponse(
+        request: request,
+        collections: _collections,
+        workspace: ws,
+        context: context,
+        statusCode: response.statusCode,
+        responseBody: response.body,
+        responseHeaders: responseHeaders,
+      );
+
+      // Propagate variables updated during scripts execution back to the active environment
+      if (workspace != null && workspace.environments.isNotEmpty) {
+        final activeEnvId = workspace.selectedEnvironmentId;
+        if (activeEnvId != null) {
+          final envIdx = workspace.environments.indexWhere((e) => e.id == activeEnvId);
+          if (envIdx != -1) {
+            context.variables.forEach((key, val) {
+              workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(value: val);
+            });
+            // Persist the workspace changes with the newly generated variables safely
+            try {
+              await WorkspaceRepository().save(workspace);
+            } catch (saveError) {
+              debugPrint('Aviso: Não foi possível salvar o Workspace no disco: $saveError');
+            }
+          }
+        }
+      }
     } catch (e) {
-      debugPrint('Erro inesperado ao enviar requisição: $e');
+      debugPrint('Erro inesperado ao enviar requisição ou rodar scripts: $e');
+      final errBody = e.toString().replaceAll('Exception: ', '');
       _currentResponse = HttpResponse(
         statusCode: 0,
         statusMessage: 'Error',
         headers: {},
-        body: e.toString(),
+        body: errBody,
         responseTime: 0,
         contentLength: 0,
       );
@@ -601,7 +662,7 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRunnerSession({Map<String, String>? variables, HttpAuth? workspaceAuth}) async {
+  Future<void> executeRunnerSession({Map<String, String>? variables, WorkspaceModel? workspace}) async {
     if (_isCurrentlyRunning) return;
     _isCurrentlyRunning = true;
     _stopExecution = false;
@@ -614,6 +675,8 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
 
     bool isFirst = true;
+    final ws = workspace ?? WorkspaceModel(name: 'Default WS');
+    final activeVariables = Map<String, String>.from(variables ?? {});
 
     for (int i = 0; i < _runnerItems.length; i++) {
       if (_stopExecution) break;
@@ -631,13 +694,53 @@ class RequestProvider with ChangeNotifier {
       notifyListeners();
 
       try {
-        final resolvedAuth = AuthResolver.resolveAuth(
+        // 1. Pre-Request Scripts execution inside Runner session
+        final context = await ScriptExecutor.executePreRequest(
           request: item.request,
           collections: _collections,
-          workspaceAuth: workspaceAuth ?? HttpAuth(type: AuthType.none),
+          workspace: ws,
+          initialVariables: activeVariables,
         );
-        final response = await _httpService.send(item.request, variables: variables, resolvedAuth: resolvedAuth);
+
+        final runRequest = item.request.copyWith(
+          url: context.url,
+          body: context.body,
+          headers: context.headers,
+          queryParams: context.queryParams,
+        );
+
+        final resolvedAuth = AuthResolver.resolveAuth(
+          request: runRequest,
+          collections: _collections,
+          workspaceAuth: ws.auth,
+        );
+
+        // 2. Dispatch real HTTP call
+        final response = await _httpService.send(runRequest, variables: context.variables, resolvedAuth: resolvedAuth);
         item.response = response;
+
+        // Map response headers to key/value pairs safely (supporting list or raw values)
+        final Map<String, String> responseHeaders = response.headers.map((k, v) {
+          if (v is List) {
+            return MapEntry(k, v.join(', '));
+          }
+          return MapEntry(k, v.toString());
+        });
+
+        // 3. Post-Response Scripts execution inside Runner session
+        await ScriptExecutor.executePostResponse(
+          request: item.request,
+          collections: _collections,
+          workspace: ws,
+          context: context,
+          statusCode: response.statusCode,
+          responseBody: response.body,
+          responseHeaders: responseHeaders,
+        );
+
+        // Keep local runner environment variables updated with dynamically set scripts outputs
+        activeVariables.addAll(context.variables);
+
         if (response.statusCode >= 200 && response.statusCode < 300) {
           item.status = 'success';
         } else {
@@ -646,10 +749,28 @@ class RequestProvider with ChangeNotifier {
         }
       } catch (e) {
         item.status = 'failure';
-        item.errorMessage = e.toString();
+        item.errorMessage = e.toString().replaceAll('Exception: ', '');
       }
 
       notifyListeners();
+    }
+
+    // Save final state of variables updated during batch run back to workspace environment
+    if (workspace != null && workspace.environments.isNotEmpty) {
+      final activeEnvId = workspace.selectedEnvironmentId;
+      if (activeEnvId != null) {
+        final envIdx = workspace.environments.indexWhere((e) => e.id == activeEnvId);
+        if (envIdx != -1) {
+          activeVariables.forEach((key, val) {
+            workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(value: val);
+          });
+          try {
+            await WorkspaceRepository().save(workspace);
+          } catch (saveError) {
+            debugPrint('Aviso: Não foi possível salvar o Workspace no disco durante runner: $saveError');
+          }
+        }
+      }
     }
 
     _isCurrentlyRunning = false;

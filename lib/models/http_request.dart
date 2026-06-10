@@ -64,6 +64,8 @@ class HttpRequest {
   List<FormDataEntry> formData;
   String? binaryPath;
   final HttpAuth auth;
+  final List<String> activeScriptIds;
+  final bool inheritScripts;
 
   HttpRequest({
     String? id,
@@ -77,11 +79,14 @@ class HttpRequest {
     List<FormDataEntry>? formData,
     this.binaryPath,
     HttpAuth? auth,
+    List<String>? activeScriptIds,
+    this.inheritScripts = true,
   }) : id = id ?? const Uuid().v4(),
        queryParams = queryParams ?? {},
        headers = headers ?? {},
        formData = formData ?? [],
-       auth = auth ?? HttpAuth(type: AuthType.inherit);
+       auth = auth ?? HttpAuth(type: AuthType.inherit),
+       activeScriptIds = activeScriptIds ?? [];
 
   /// Cria uma cópia da requisição com campos modificados
   HttpRequest copyWith({
@@ -95,6 +100,8 @@ class HttpRequest {
     List<FormDataEntry>? formData,
     String? binaryPath,
     HttpAuth? auth,
+    List<String>? activeScriptIds,
+    bool? inheritScripts,
   }) {
     return HttpRequest(
       id: id,
@@ -108,6 +115,8 @@ class HttpRequest {
       formData: formData ?? this.formData,
       binaryPath: binaryPath ?? this.binaryPath,
       auth: auth ?? this.auth,
+      activeScriptIds: activeScriptIds ?? this.activeScriptIds,
+      inheritScripts: inheritScripts ?? this.inheritScripts,
     );
   }
 
@@ -125,6 +134,8 @@ class HttpRequest {
       'formData': formData.map((e) => e.toJson()).toList(),
       'binaryPath': binaryPath,
       'auth': auth.toJson(),
+      'activeScriptIds': activeScriptIds,
+      'inheritScripts': inheritScripts,
     };
   }
 
@@ -152,6 +163,10 @@ class HttpRequest {
       auth: json['auth'] != null
           ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
           : HttpAuth(type: AuthType.none),
+      activeScriptIds: json['activeScriptIds'] != null
+          ? List<String>.from(json['activeScriptIds'])
+          : [],
+      inheritScripts: json['inheritScripts'] as bool? ?? true,
     );
   }
 }

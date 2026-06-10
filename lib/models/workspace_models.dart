@@ -1,4 +1,5 @@
 import 'http_auth.dart';
+import 'visual_script.dart';
 
 enum WorkspaceItemType { folder, request }
 
@@ -12,6 +13,8 @@ class WorkspaceModel {
   final DateTime createdAt;
   int requestCount;
   HttpAuth auth;
+  List<VisualScript> scripts;
+  List<String> activeScriptIds;
 
   WorkspaceModel({
     required this.name,
@@ -23,10 +26,14 @@ class WorkspaceModel {
     DateTime? createdAt,
     this.requestCount = 0,
     HttpAuth? auth,
+    List<VisualScript>? scripts,
+    List<String>? activeScriptIds,
   }) : id = id ?? "ws_${DateTime.now().microsecondsSinceEpoch}",
        createdAt = createdAt ?? DateTime.now(),
        environments = environments ?? [EnvironmentModel(name: 'Default')],
-       auth = auth ?? HttpAuth(type: AuthType.none);
+       auth = auth ?? HttpAuth(type: AuthType.none),
+       scripts = scripts ?? [],
+       activeScriptIds = activeScriptIds ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -39,6 +46,8 @@ class WorkspaceModel {
       'createdAt': createdAt.toIso8601String(),
       'requestCount': requestCount,
       'auth': auth.toJson(),
+      'scripts': scripts.map((e) => e.toJson()).toList(),
+      'activeScriptIds': activeScriptIds,
     };
   }
 
@@ -55,6 +64,14 @@ class WorkspaceModel {
       loadedEnvs.add(EnvironmentModel(name: 'Default'));
     }
 
+    final dynamic scriptList = map['scripts'];
+    List<VisualScript> loadedScripts = [];
+    if (scriptList != null && scriptList is List) {
+      loadedScripts = scriptList
+          .map((e) => VisualScript.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+
     return WorkspaceModel(
       name: map['name'],
       description: map['description'] ?? '',
@@ -67,6 +84,10 @@ class WorkspaceModel {
       auth: map['auth'] != null
           ? HttpAuth.fromJson(Map<String, dynamic>.from(map['auth']))
           : HttpAuth(type: AuthType.none),
+      scripts: loadedScripts,
+      activeScriptIds: map['activeScriptIds'] != null
+          ? List<String>.from(map['activeScriptIds'])
+          : [],
     );
   }
 }
