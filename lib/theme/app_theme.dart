@@ -119,6 +119,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceLight,
+        hintStyle: const TextStyle(
+          color: Color(0x9964748B), // AppColors.textSecondaryLight with 60% opacity
+          fontSize: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: const BorderSide(color: AppColors.borderLight),
@@ -272,6 +276,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceDark,
+        hintStyle: const TextStyle(
+          color: Color(0x9994A3B8), // AppColors.textSecondaryDark with 60% opacity
+          fontSize: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: const BorderSide(color: AppColors.borderDark),

@@ -333,7 +333,12 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                               children: [
                                 // Script Header Options
                                 Padding(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: const EdgeInsets.only(
+                                    top: 2.0,
+                                    bottom: 2.0,
+                                    left: 16.0,
+                                    right: 16.0,
+                                  ),
                                   child: Row(
                                     children: [
                                       Expanded(
@@ -348,14 +353,40 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                                           .name
                                                           .length,
                                                     ),
-                                          decoration: const InputDecoration(
-                                            labelText: 'Script Name',
-                                            border: InputBorder.none,
-                                            focusedBorder: InputBorder.none,
+                                          decoration: InputDecoration(
+                                            hintText: 'Script Name',
+                                            hintStyle: TextStyle(
+                                              color: (isDark
+                                                      ? AppColors.textSecondaryDark
+                                                      : AppColors.textSecondaryLight)
+                                                  .withValues(alpha: 0.6),
+                                              fontSize: 13,
+                                            ),
+                                            isDense: true,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              vertical: 6.0,
+                                              horizontal: 10.0,
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(6),
+                                              borderSide: BorderSide(color: borderColor),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(6),
+                                              borderSide: const BorderSide(
+                                                color: AppColors.primary,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            fillColor: isDark
+                                                ? const Color(0x0AFFFFFF)
+                                                : Colors.white,
+                                            filled: true,
                                           ),
-                                          style: const TextStyle(
-                                            fontSize: 15,
+                                          style: TextStyle(
+                                            fontSize: 13,
                                             fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : Colors.black87,
                                           ),
                                           onChanged: (val) {
                                             _updateSelectedScript(
