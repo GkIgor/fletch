@@ -1,9 +1,36 @@
-// Executor engine for visual scripts applying modifications dynamically (ExecutionContext & Inheritance resolution).
+// Executor engine for visual scripts applying modifications dynamically (ExecutionContext & JIT compiler resolution).
+import 'dart:convert';
 import '../models/collection_model.dart';
 import '../models/http_request.dart';
+import '../models/http_method.dart';
 import '../models/visual_script.dart';
 import '../models/workspace_models.dart';
+import '../services/http_service.dart';
 import 'script_compiler.dart';
+
+final _httpService = HttpService();
+
+void _injectHttpExecutor(ExecutionContext context) {
+  context.httpExecutor = (method, url, headers, body) async {
+    final httpMethod = HttpMethod.values.firstWhere(
+      (m) => m.value.toUpperCase() == method.toUpperCase(),
+      orElse: () => HttpMethod.get,
+    );
+    final req = HttpRequest(
+      name: 'Secondary Request',
+      method: httpMethod,
+      url: url,
+      headers: headers,
+      body: body,
+    );
+    final res = await _httpService.send(req);
+    return {
+      'statusCode': res.statusCode,
+      'body': res.body is String ? res.body : jsonEncode(res.body),
+      'headers': res.headers.map((k, v) => MapEntry(k, v.toString())),
+    };
+  };
+}
 
 class ScriptExecutor {
   /// Resolves scripts hierarchy: Workspace -> Collection -> Request.
@@ -88,6 +115,8 @@ class ScriptExecutor {
       body: request.body,
     );
 
+    _injectHttpExecutor(context);
+
     for (var script in activePreScripts) {
       final compiled = JitCache.getOrCreate(script);
       await compiled.execute(context);
@@ -116,6 +145,8 @@ class ScriptExecutor {
     context.statusCode = statusCode;
     context.responseBody = responseBody;
     context.responseHeaders = responseHeaders;
+
+    _injectHttpExecutor(context);
 
     for (var script in activePostScripts) {
       final compiled = JitCache.getOrCreate(script);

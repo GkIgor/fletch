@@ -16,9 +16,11 @@ import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/utils/script_executor.dart';
 import 'package:fletch/widgets/script_selector_widget.dart';
 import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
+import 'package:fletch/utils/script_compiler.dart';
 
 class RequestEditor extends StatefulWidget {
   final HttpRequest request;
+  static bool showLogsTerminal = false;
 
   const RequestEditor({super.key, required this.request});
 
@@ -536,6 +538,7 @@ class _RequestEditorState extends State<RequestEditor>
               ],
             ),
           ),
+          _buildLogsTerminal(requestProvider, isDark),
         ],
       ),
     );
@@ -553,6 +556,176 @@ class _RequestEditorState extends State<RequestEditor>
         return AppColors.methodDelete;
       case HttpMethod.patch:
         return AppColors.methodPatch;
+    }
+  }
+
+  Widget _buildLogsTerminal(RequestProvider requestProvider, bool isDark) {
+    final contextLogs = requestProvider.lastExecutionContext?.logs ?? [];
+    final hasError = contextLogs.any((l) => l.level == LogLevel.error);
+    final hasWarning = contextLogs.any((l) => l.level == LogLevel.warn);
+
+    final termBg = isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC);
+    final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0);
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: borderColor)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Bar
+          InkWell(
+            onTap: () {
+              setState(() {
+                RequestEditor.showLogsTerminal = !RequestEditor.showLogsTerminal;
+              });
+            },
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              color: headerBg,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.terminal_rounded,
+                    size: 14,
+                    color: hasError
+                        ? Colors.redAccent
+                        : hasWarning
+                            ? Colors.amberAccent
+                            : (isDark ? AppColors.slate400 : AppColors.slate600),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Console de Execução de Scripts',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  if (contextLogs.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: hasError
+                            ? Colors.red.withValues(alpha: 0.2)
+                            : (isDark ? Colors.white10 : Colors.black12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${contextLogs.length}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: hasError ? Colors.redAccent : (isDark ? AppColors.slate300 : AppColors.slate700),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  Icon(
+                    RequestEditor.showLogsTerminal
+                        ? Icons.keyboard_arrow_down_rounded
+                        : Icons.keyboard_arrow_up_rounded,
+                    size: 16,
+                    color: isDark ? AppColors.slate400 : AppColors.slate600,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Body Panel
+          if (RequestEditor.showLogsTerminal)
+            Container(
+              height: 160,
+              color: termBg,
+              padding: const EdgeInsets.all(8),
+              child: contextLogs.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Nenhum log de execução disponível. Dispare a requisição para executar os scripts.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.slate500 : AppColors.slate400,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: contextLogs.length,
+                      itemBuilder: (context, index) {
+                        final log = contextLogs[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '[${log.timestamp.toIso8601String().substring(11, 19)}] ',
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                '${log.nodeName}: ',
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  log.message,
+                                  style: TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 11,
+                                    color: _getLogLevelColor(log.level, isDark),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Color _getLogLevelColor(LogLevel level, bool isDark) {
+    if (isDark) {
+      switch (level) {
+        case LogLevel.info:
+          return Colors.greenAccent.shade400;
+        case LogLevel.warn:
+          return Colors.amberAccent;
+        case LogLevel.error:
+          return Colors.redAccent;
+        case LogLevel.debug:
+          return Colors.grey;
+      }
+    } else {
+      switch (level) {
+        case LogLevel.info:
+          return Colors.green.shade700;
+        case LogLevel.warn:
+          return Colors.orange.shade800;
+        case LogLevel.error:
+          return Colors.red.shade700;
+        case LogLevel.debug:
+          return Colors.grey.shade600;
+      }
     }
   }
 }

@@ -1,5 +1,49 @@
-// Visual Script, ValueSource, and Polymorphic Steps models for Fletch visual automation scripts.
+// Visual Script, ValueSource, and Graph-based Steps models for Fletch visual automation scripts.
 import 'package:uuid/uuid.dart';
+
+import 'visual_steps/set_variable_step.dart';
+import 'visual_steps/assert_value_step.dart';
+import 'visual_steps/if_step.dart';
+import 'visual_steps/send_request_step.dart';
+import 'visual_steps/delay_step.dart';
+import 'visual_steps/switch_step.dart';
+import 'visual_steps/merge_step.dart';
+import 'visual_steps/split_out_step.dart';
+import 'visual_steps/aggregate_step.dart';
+import 'visual_steps/date_time_step.dart';
+import 'visual_steps/sort_step.dart';
+import 'visual_steps/limit_step.dart';
+import 'visual_steps/remove_duplicates_step.dart';
+import 'visual_steps/crypto_step.dart';
+import 'visual_steps/json_convert_step.dart';
+import 'visual_steps/xml_convert_step.dart';
+import 'visual_steps/html_convert_step.dart';
+import 'visual_steps/markdown_convert_step.dart';
+import 'visual_steps/json_path_step.dart';
+import 'visual_steps/header_builder_step.dart';
+import 'visual_steps/start_step.dart';
+
+export 'visual_steps/set_variable_step.dart';
+export 'visual_steps/assert_value_step.dart';
+export 'visual_steps/if_step.dart';
+export 'visual_steps/send_request_step.dart';
+export 'visual_steps/delay_step.dart';
+export 'visual_steps/switch_step.dart';
+export 'visual_steps/merge_step.dart';
+export 'visual_steps/split_out_step.dart';
+export 'visual_steps/aggregate_step.dart';
+export 'visual_steps/date_time_step.dart';
+export 'visual_steps/sort_step.dart';
+export 'visual_steps/limit_step.dart';
+export 'visual_steps/remove_duplicates_step.dart';
+export 'visual_steps/crypto_step.dart';
+export 'visual_steps/json_convert_step.dart';
+export 'visual_steps/xml_convert_step.dart';
+export 'visual_steps/html_convert_step.dart';
+export 'visual_steps/markdown_convert_step.dart';
+export 'visual_steps/json_path_step.dart';
+export 'visual_steps/header_builder_step.dart';
+export 'visual_steps/start_step.dart';
 
 enum ScriptMode {
   lowCode,
@@ -11,6 +55,23 @@ enum VisualStepType {
   assertValue,
   sendRequest,
   delay,
+  switchStep,
+  merge,
+  splitOut,
+  aggregate,
+  dateTime,
+  ifStep,
+  sort,
+  limit,
+  removeDuplicates,
+  crypto,
+  jsonConvert,
+  xmlConvert,
+  htmlConvert,
+  markdownConvert,
+  jsonPathStep,
+  headerBuilder,
+  start,
 }
 
 enum ValueSourceType {
@@ -49,15 +110,63 @@ class ValueSource {
       );
 }
 
+/// Helper model for SetVariableStep representing a single variable assignment.
+class VariableAssignment {
+  String variableName;
+  ValueSource valueSource;
+
+  VariableAssignment({
+    this.variableName = '',
+    ValueSource? valueSource,
+  }) : valueSource = valueSource ?? ValueSource();
+
+  Map<String, dynamic> toJson() => {
+        'variableName': variableName,
+        'valueSource': valueSource.toJson(),
+      };
+
+  factory VariableAssignment.fromJson(Map<String, dynamic> json) => VariableAssignment(
+        variableName: json['variableName'] as String? ?? '',
+        valueSource: json['valueSource'] != null
+            ? ValueSource.fromJson(Map<String, dynamic>.from(json['valueSource']))
+            : ValueSource(),
+      );
+}
+
+/// Helper model for SwitchStep representing a branch destination based on matching value.
+class SwitchCase {
+  String value;
+  String? nextStepId;
+
+  SwitchCase({
+    this.value = '',
+    this.nextStepId,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'value': value,
+        'nextStepId': nextStepId,
+      };
+
+  factory SwitchCase.fromJson(Map<String, dynamic> json) => SwitchCase(
+        value: json['value'] as String? ?? '',
+        nextStepId: json['nextStepId'] as String?,
+      );
+}
+
 abstract class VisualStep {
   final String id;
   final VisualStepType type;
+  String name;
   bool enabled;
+  String? nextStepId;
 
   VisualStep({
     String? id,
     required this.type,
+    required this.name,
     this.enabled = true,
+    this.nextStepId,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson();
@@ -75,142 +184,42 @@ abstract class VisualStep {
         return SendRequestStep.fromJson(json);
       case VisualStepType.delay:
         return DelayStep.fromJson(json);
+      case VisualStepType.switchStep:
+        return SwitchStep.fromJson(json);
+      case VisualStepType.merge:
+        return MergeStep.fromJson(json);
+      case VisualStepType.splitOut:
+        return SplitOutStep.fromJson(json);
+      case VisualStepType.aggregate:
+        return AggregateStep.fromJson(json);
+      case VisualStepType.dateTime:
+        return DateTimeStep.fromJson(json);
+      case VisualStepType.ifStep:
+        return IfStep.fromJson(json);
+      case VisualStepType.sort:
+        return SortStep.fromJson(json);
+      case VisualStepType.limit:
+        return LimitStep.fromJson(json);
+      case VisualStepType.removeDuplicates:
+        return RemoveDuplicatesStep.fromJson(json);
+      case VisualStepType.crypto:
+        return CryptoStep.fromJson(json);
+      case VisualStepType.jsonConvert:
+        return JsonConvertStep.fromJson(json);
+      case VisualStepType.xmlConvert:
+        return XmlConvertStep.fromJson(json);
+      case VisualStepType.htmlConvert:
+        return HtmlConvertStep.fromJson(json);
+      case VisualStepType.markdownConvert:
+        return MarkdownConvertStep.fromJson(json);
+      case VisualStepType.jsonPathStep:
+        return JsonPathStep.fromJson(json);
+      case VisualStepType.headerBuilder:
+        return HeaderBuilderStep.fromJson(json);
+      case VisualStepType.start:
+        return StartStep.fromJson(json);
     }
   }
-}
-
-class SetVariableStep extends VisualStep {
-  String variableName;
-  ValueSource valueSource;
-
-  SetVariableStep({
-    super.id,
-    super.enabled,
-    this.variableName = '',
-    ValueSource? valueSource,
-  })  : valueSource = valueSource ?? ValueSource(),
-        super(type: VisualStepType.setVariable);
-
-  @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'enabled': enabled,
-        'variableName': variableName,
-        'valueSource': valueSource.toJson(),
-      };
-
-  factory SetVariableStep.fromJson(Map<String, dynamic> json) => SetVariableStep(
-        id: json['id'] as String?,
-        enabled: json['enabled'] as bool? ?? true,
-        variableName: json['variableName'] as String? ?? '',
-        valueSource: json['valueSource'] != null
-            ? ValueSource.fromJson(Map<String, dynamic>.from(json['valueSource']))
-            : ValueSource(),
-      );
-}
-
-class AssertValueStep extends VisualStep {
-  ValueSource leftSource;
-  String operator;         // e.g. "==", "!=", "contains", ">", "<"
-  ValueSource rightSource;
-
-  AssertValueStep({
-    super.id,
-    super.enabled,
-    ValueSource? leftSource,
-    this.operator = '==',
-    ValueSource? rightSource,
-  })  : leftSource = leftSource ?? ValueSource(),
-        rightSource = rightSource ?? ValueSource(),
-        super(type: VisualStepType.assertValue);
-
-  @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'enabled': enabled,
-        'leftSource': leftSource.toJson(),
-        'operator': operator,
-        'rightSource': rightSource.toJson(),
-      };
-
-  factory AssertValueStep.fromJson(Map<String, dynamic> json) => AssertValueStep(
-        id: json['id'] as String?,
-        enabled: json['enabled'] as bool? ?? true,
-        leftSource: json['leftSource'] != null
-            ? ValueSource.fromJson(Map<String, dynamic>.from(json['leftSource']))
-            : ValueSource(),
-        operator: json['operator'] as String? ?? '==',
-        rightSource: json['rightSource'] != null
-            ? ValueSource.fromJson(Map<String, dynamic>.from(json['rightSource']))
-            : ValueSource(),
-      );
-}
-
-class SendRequestStep extends VisualStep {
-  String method;           // "GET", "POST", etc.
-  String url;
-  Map<String, String> headers;
-  String? body;
-  String saveToVariable;   // Variable name to save the response body to
-
-  SendRequestStep({
-    super.id,
-    super.enabled,
-    this.method = 'GET',
-    this.url = '',
-    Map<String, String>? headers,
-    this.body,
-    this.saveToVariable = '',
-  })  : headers = headers ?? {},
-        super(type: VisualStepType.sendRequest);
-
-  @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'enabled': enabled,
-        'method': method,
-        'url': url,
-        'headers': headers,
-        'body': body,
-        'saveToVariable': saveToVariable,
-      };
-
-  factory SendRequestStep.fromJson(Map<String, dynamic> json) => SendRequestStep(
-        id: json['id'] as String?,
-        enabled: json['enabled'] as bool? ?? true,
-        method: json['method'] as String? ?? 'GET',
-        url: json['url'] as String? ?? '',
-        headers: Map<String, String>.from(json['headers'] ?? {}),
-        body: json['body'] as String?,
-        saveToVariable: json['saveToVariable'] as String? ?? '',
-      );
-}
-
-class DelayStep extends VisualStep {
-  int durationMs;
-
-  DelayStep({
-    super.id,
-    super.enabled,
-    this.durationMs = 1000,
-  }) : super(type: VisualStepType.delay);
-
-  @override
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'enabled': enabled,
-        'durationMs': durationMs,
-      };
-
-  factory DelayStep.fromJson(Map<String, dynamic> json) => DelayStep(
-        id: json['id'] as String?,
-        enabled: json['enabled'] as bool? ?? true,
-        durationMs: json['durationMs'] as int? ?? 1000,
-      );
 }
 
 class VisualScript {
@@ -218,7 +227,8 @@ class VisualScript {
   String name;
   bool isPreRequest;
   ScriptMode mode;
-  List<VisualStep> steps;
+  Map<String, VisualStep> nodes;
+  String? startNodeId;
   String advancedCode;
   DateTime updatedAt;
 
@@ -227,18 +237,20 @@ class VisualScript {
     required this.name,
     this.isPreRequest = true,
     this.mode = ScriptMode.lowCode,
-    List<VisualStep>? steps,
+    Map<String, VisualStep>? nodes,
+    this.startNodeId,
     this.advancedCode = '',
     DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
-        steps = steps ?? [],
+        nodes = nodes ?? {},
         updatedAt = updatedAt ?? DateTime.now();
 
   VisualScript copyWith({
     String? name,
     bool? isPreRequest,
     ScriptMode? mode,
-    List<VisualStep>? steps,
+    Map<String, VisualStep>? nodes,
+    String? startNodeId,
     String? advancedCode,
     DateTime? updatedAt,
   }) {
@@ -247,7 +259,8 @@ class VisualScript {
       name: name ?? this.name,
       isPreRequest: isPreRequest ?? this.isPreRequest,
       mode: mode ?? this.mode,
-      steps: steps ?? this.steps,
+      nodes: nodes ?? this.nodes,
+      startNodeId: startNodeId ?? this.startNodeId,
       advancedCode: advancedCode ?? this.advancedCode,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -258,12 +271,19 @@ class VisualScript {
         'name': name,
         'isPreRequest': isPreRequest,
         'mode': mode.name,
-        'steps': steps.map((e) => e.toJson()).toList(),
+        'nodes': nodes.map((k, v) => MapEntry(k, v.toJson())),
+        'startNodeId': startNodeId,
         'advancedCode': advancedCode,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
   factory VisualScript.fromJson(Map<String, dynamic> json) {
+    final nodesJson = json['nodes'] as Map? ?? {};
+    final Map<String, VisualStep> parsedNodes = {};
+    nodesJson.forEach((k, v) {
+      parsedNodes[k.toString()] = VisualStep.fromJson(Map<String, dynamic>.from(v));
+    });
+
     return VisualScript(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -272,10 +292,8 @@ class VisualScript {
         (e) => e.name == json['mode'],
         orElse: () => ScriptMode.lowCode,
       ),
-      steps: (json['steps'] as List?)
-              ?.map((e) => VisualStep.fromJson(Map<String, dynamic>.from(e)))
-              .toList() ??
-          [],
+      nodes: parsedNodes,
+      startNodeId: json['startNodeId'] as String?,
       advancedCode: json['advancedCode'] as String? ?? '',
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)

@@ -15,6 +15,7 @@ import 'package:fletch/utils/converters/insomnia_converter.dart';
 import 'package:fletch/utils/auth_resolver.dart';
 import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/utils/script_executor.dart';
+import 'package:fletch/utils/script_compiler.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
@@ -29,6 +30,8 @@ class RequestProvider with ChangeNotifier {
   HttpResponse? _currentResponse;
 
   bool _isLoading = false;
+
+  ExecutionContext? _lastExecutionContext;
 
   String _searchFilter = '';
   
@@ -52,6 +55,7 @@ class RequestProvider with ChangeNotifier {
   HttpRequest? get selectedRequest => _selectedRequest;
   HttpResponse? get currentResponse => _currentResponse;
   bool get isLoading => _isLoading;
+  ExecutionContext? get lastExecutionContext => _lastExecutionContext;
   String get searchFilter => _searchFilter;
 
   bool get isRunnerActive => _isRunnerActive;
@@ -169,6 +173,7 @@ class RequestProvider with ChangeNotifier {
   Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables, WorkspaceModel? workspace}) async {
     _isLoading = true;
     _currentResponse = null;
+    _lastExecutionContext = null;
     notifyListeners();
 
     try {
@@ -182,6 +187,8 @@ class RequestProvider with ChangeNotifier {
         workspace: ws,
         initialVariables: initialVars,
       );
+      _lastExecutionContext = context;
+      notifyListeners();
 
       // Create a modified request instance with context-interpolated details
       final runRequest = request.copyWith(

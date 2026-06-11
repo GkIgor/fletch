@@ -203,7 +203,7 @@ class ScriptSelectorWidget extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          '${script.isPreRequest ? "Pre-Request" : "Post-Response"} • ${script.steps.length} steps',
+          '${script.isPreRequest ? "Pre-Request" : "Post-Response"} • ${script.nodes.length} nós',
           style: TextStyle(fontSize: 11, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
         ),
         trailing: isReadonly
