@@ -579,24 +579,6 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                 final isHovered = _hoveredNodeId == id;
                 final showInsertionButtons = isSelected || isHovered;
                 final nodeH = getNodeHeight(node);
-                final hasUnconnectedBranch = (node is IfStep && (node.trueStepId == null || node.trueStepId!.isEmpty || node.falseStepId == null || node.falseStepId!.isEmpty)) ||
-                                             (node is SwitchStep && (node.cases.any((c) => c.nextStepId == null || c.nextStepId!.isEmpty) || node.defaultStepId == null || node.defaultStepId!.isEmpty));
-
-                IconData? statusIcon;
-                Color? statusColor;
-                if (widget.lastExecutionContext != null) {
-                  final logs = widget.lastExecutionContext!.logs.where((l) => l.nodeId == id).toList();
-                  if (logs.isNotEmpty) {
-                    final hasError = logs.any((l) => l.level == LogLevel.error);
-                    if (hasError) {
-                      statusIcon = Icons.cancel_rounded;
-                      statusColor = Colors.red;
-                    } else {
-                      statusIcon = Icons.check_circle_rounded;
-                      statusColor = Colors.green;
-                    }
-                  }
-                }
 
                 return Positioned(
                   left: offset.dx,
@@ -755,23 +737,6 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                               ),
                             ),
                           ),
-                          // Execution status indicator
-                          if (statusIcon != null)
-                            Positioned(
-                              top: -6,
-                              left: -6,
-                              child: Icon(statusIcon, size: 14, color: statusColor),
-                            ),
-                          // Validation warning indicator
-                          if (hasUnconnectedBranch)
-                            Positioned(
-                              top: -6,
-                              left: nodeW - 8,
-                              child: Tooltip(
-                                message: 'Warning: Unconnected branch(es) will default to Fail step.',
-                                child: Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amber.shade700),
-                              ),
-                            ),
                           // Output Connection Ports
                           if (showInsertionButtons) ...[
                             if (node is IfStep) ...[
@@ -849,6 +814,65 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                     ),
                   ),
                 );
+              }),
+              // Overlay indicators: rendered after all nodes so they always appear on top
+              ...widget.script.nodes.entries.expand((entry) {
+                final id = entry.key;
+                final node = entry.value;
+                final offset = pixelPositions[id] ?? Offset.zero;
+                final overlays = <Widget>[];
+
+                // Execution status indicator
+                IconData? statusIcon;
+                Color? statusColor;
+                if (widget.lastExecutionContext != null) {
+                  final logs = widget.lastExecutionContext!.logs.where((l) => l.nodeId == id).toList();
+                  if (logs.isNotEmpty) {
+                    final hasError = logs.any((l) => l.level == LogLevel.error);
+                    if (hasError) {
+                      statusIcon = Icons.cancel_rounded;
+                      statusColor = Colors.red;
+                    } else {
+                      statusIcon = Icons.check_circle_rounded;
+                      statusColor = Colors.green;
+                    }
+                  }
+                }
+                if (statusIcon != null) {
+                  overlays.add(
+                    Positioned(
+                      left: offset.dx - 6,
+                      top: offset.dy - 6,
+                      child: Icon(statusIcon, size: 14, color: statusColor),
+                    ),
+                  );
+                }
+
+                // Validation warning indicator
+                final hasUnconnectedBranch =
+                    (node is IfStep &&
+                        (node.trueStepId == null ||
+                            node.trueStepId!.isEmpty ||
+                            node.falseStepId == null ||
+                            node.falseStepId!.isEmpty)) ||
+                    (node is SwitchStep &&
+                        (node.cases.any((c) => c.nextStepId == null || c.nextStepId!.isEmpty) ||
+                            node.defaultStepId == null ||
+                            node.defaultStepId!.isEmpty));
+                if (hasUnconnectedBranch) {
+                  overlays.add(
+                    Positioned(
+                      left: offset.dx + nodeW - 8,
+                      top: offset.dy - 6,
+                      child: Tooltip(
+                        message: 'Warning: Unconnected branch(es) will default to Fail step.',
+                        child: Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amber.shade700),
+                      ),
+                    ),
+                  );
+                }
+
+                return overlays;
               }),
             ],
           ),
