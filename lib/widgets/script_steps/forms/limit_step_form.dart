@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class LimitStepForm extends StatelessWidget {
   final String nodeId;
@@ -28,12 +29,10 @@ class LimitStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.limit.toString())
-            ..selection = TextSelection.collapsed(offset: node.limit.toString().length),
-          decoration: const InputDecoration(labelText: 'Limite (Limit)', labelStyle: TextStyle(fontSize: 11)),
+        VisualStepTextField(
+          value: node.limit.toString(),
+          labelText: 'Limite (Limit)',
           keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 12),
           onChanged: (val) {
             final parsed = int.tryParse(val);
             if (parsed != null) {
@@ -43,12 +42,10 @@ class LimitStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.offset.toString())
-            ..selection = TextSelection.collapsed(offset: node.offset.toString().length),
-          decoration: const InputDecoration(labelText: 'Deslocamento (Offset)', labelStyle: TextStyle(fontSize: 11)),
+        VisualStepTextField(
+          value: node.offset.toString(),
+          labelText: 'Deslocamento (Offset)',
           keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 12),
           onChanged: (val) {
             final parsed = int.tryParse(val);
             if (parsed != null) {
@@ -58,11 +55,9 @@ class LimitStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

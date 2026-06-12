@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/theme/app_colors.dart';
+import 'forms/visual_step_text_field.dart';
 
 class ValueSourceForm extends StatelessWidget {
   final String label;
@@ -86,10 +87,14 @@ class ValueSourceForm extends StatelessWidget {
               source.type == ValueSourceType.variable ||
               source.type == ValueSourceType.responseHeader) ...[
             const SizedBox(height: 6),
-            TextField(
-              controller:
-                  TextEditingController(text: source.key)
-                    ..selection = TextSelection.collapsed(offset: source.key.length),
+            VisualStepTextField(
+              value: source.key,
+              labelText: source.type == ValueSourceType.constant
+                  ? 'Constant Value'
+                  : 'Key Name',
+              hintText: source.type == ValueSourceType.constant
+                  ? 'e.g. 200'
+                  : 'e.g. auth_token',
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
@@ -104,7 +109,6 @@ class ValueSourceForm extends StatelessWidget {
                     ? 'e.g. 200'
                     : 'e.g. auth_token',
               ),
-              style: const TextStyle(fontSize: 12),
               onChanged: (val) {
                 onChanged(
                   ValueSource(
@@ -118,11 +122,10 @@ class ValueSourceForm extends StatelessWidget {
           ],
           if (source.type == ValueSourceType.responseBody) ...[
             const SizedBox(height: 6),
-            TextField(
-              controller:
-                  TextEditingController(text: source.jsonPath)
-                    ..selection =
-                        TextSelection.collapsed(offset: source.jsonPath.length),
+            VisualStepTextField(
+              value: source.jsonPath,
+              labelText: 'JSON Path Selector',
+              hintText: 'e.g. data.token',
               decoration: const InputDecoration(
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
@@ -133,7 +136,6 @@ class ValueSourceForm extends StatelessWidget {
                 labelStyle: TextStyle(fontSize: 11),
                 hintText: 'e.g. data.token',
               ),
-              style: const TextStyle(fontSize: 12),
               onChanged: (val) {
                 onChanged(
                   ValueSource(

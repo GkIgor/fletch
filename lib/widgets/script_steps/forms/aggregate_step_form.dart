@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class AggregateStepForm extends StatelessWidget {
   final String nodeId;
@@ -28,11 +29,9 @@ class AggregateStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.targetListVariable)
-            ..selection = TextSelection.collapsed(offset: node.targetListVariable.length),
-          decoration: const InputDecoration(labelText: 'Variável de Destino (Lista)', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.targetListVariable,
+          labelText: 'Variável de Destino (Lista)',
           onChanged: (val) {
             node.targetListVariable = val;
             onUpdated(nodeId, node);

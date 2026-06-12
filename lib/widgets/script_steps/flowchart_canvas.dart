@@ -3,6 +3,43 @@ import 'package:flutter/material.dart';
 import '../../models/visual_script.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/script_compiler.dart';
+import 'node_selector_dialog.dart';
+
+double getNodeHeight(VisualStep node) {
+  if (node is SwitchStep) {
+    return 36.0 + (node.cases.length + 1) * 28.0 + 8.0;
+  }
+  return 70.0;
+}
+
+double getOutputYOffset(VisualStep node, String connectionType, {String? switchCaseVal}) {
+  if (node is SwitchStep) {
+    if (connectionType == 'switch_default') {
+      return 36.0 + node.cases.length * 28.0 + 14.0;
+    } else if (connectionType == 'switch_case' && switchCaseVal != null) {
+      final idx = node.cases.indexWhere((c) => c.value == switchCaseVal);
+      if (idx != -1) {
+        return 36.0 + idx * 28.0 + 14.0;
+      }
+    }
+    return 36.0 + 14.0;
+  }
+  const double nodeH = 70.0;
+  if (node is IfStep) {
+    if (connectionType == 'true') return nodeH / 4;
+    if (connectionType == 'false') return (nodeH * 3) / 4;
+  }
+  if (node is SplitOutStep) {
+    if (connectionType == 'loop') return nodeH / 4;
+    if (connectionType == 'next') return (nodeH * 3) / 4;
+  }
+  return nodeH / 2;
+}
+
+int getNodeRowSpan(VisualStep node) {
+  final height = getNodeHeight(node);
+  return (height / 110.0).ceil();
+}
 
 class FlowchartLayoutManager {
   final Map<String, Point<int>> gridPositions = {};
@@ -15,6 +52,20 @@ class FlowchartLayoutManager {
     occupiedCells.clear();
     if (script.startNodeId == null || script.nodes[script.startNodeId] == null) return;
     _layoutNode(script, script.startNodeId!, 0, 0);
+
+    // Layout orphaned nodes below the main flow
+    script.nodes.forEach((id, node) {
+      if (!visited.contains(id)) {
+        int maxOccupiedRow = -1;
+        occupiedCells.forEach((col, rows) {
+          for (var r in rows) {
+            if (r > maxOccupiedRow) maxOccupiedRow = r;
+          }
+        });
+        int startRow = maxOccupiedRow + 2;
+        _layoutNode(script, id, 0, startRow);
+      }
+    });
   }
 
   void _layoutNode(VisualScript script, String nodeId, int col, int row) {
@@ -24,12 +75,27 @@ class FlowchartLayoutManager {
     final node = script.nodes[nodeId];
     if (node == null) return;
 
-    // Resolve collision
+    // Resolve collision taking row span into account
     int targetRow = row;
-    while (isCellOccupied(col, targetRow)) {
-      targetRow++;
+    int span = getNodeRowSpan(node);
+    bool hasCollision = true;
+
+    while (hasCollision) {
+      hasCollision = false;
+      for (int r = 0; r < span; r++) {
+        if (isCellOccupied(col, targetRow + r)) {
+          hasCollision = true;
+          break;
+        }
+      }
+      if (hasCollision) {
+        targetRow++;
+      }
     }
-    occupyCell(col, targetRow);
+
+    for (int r = 0; r < span; r++) {
+      occupyCell(col, targetRow + r);
+    }
     gridPositions[nodeId] = Point(col, targetRow);
 
     if (node is IfStep) {
@@ -98,11 +164,12 @@ class FlowchartCanvas extends StatefulWidget {
 class _FlowchartCanvasState extends State<FlowchartCanvas> {
   final FlowchartLayoutManager _layoutManager = FlowchartLayoutManager();
   bool _topologyChanged = true;
+  String? _hoveredNodeId;
+  TapDownDetails? _tapDownDetails;
 
   @override
   void didUpdateWidget(covariant FlowchartCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If nodes count or connections change, mark topology changed
     if (oldWidget.script.nodes.length != widget.script.nodes.length ||
         oldWidget.script.startNodeId != widget.script.startNodeId ||
         oldWidget.script.updatedAt != widget.script.updatedAt) {
@@ -125,14 +192,14 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.setVariable:
         newStep = SetVariableStep(
           id: newStepId,
-          name: 'Atribuir Variáveis',
+          name: 'Assign Variables',
           assignments: [VariableAssignment(variableName: 'var_name', valueSource: ValueSource(type: ValueSourceType.constant, key: 'value'))],
         );
         break;
       case VisualStepType.assertValue:
         newStep = AssertValueStep(
           id: newStepId,
-          name: 'Validar Asserção',
+          name: 'Assert Value',
           leftSource: ValueSource(type: ValueSourceType.responseStatusCode),
           operator: '==',
           rightSource: ValueSource(type: ValueSourceType.constant, key: '200'),
@@ -198,7 +265,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.ifStep:
         newStep = IfStep(
           id: newStepId,
-          name: 'Condição IF',
+          name: 'IF Condition',
           leftSource: ValueSource(type: ValueSourceType.responseStatusCode),
           operator: '==',
           rightSource: ValueSource(type: ValueSourceType.constant, key: '200'),
@@ -207,7 +274,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.sort:
         newStep = SortStep(
           id: newStepId,
-          name: 'Ordenar Lista',
+          name: 'Sort List',
           arraySource: ValueSource(type: ValueSourceType.variable, key: 'list_result'),
           sortByPath: 'id',
           ascending: true,
@@ -217,7 +284,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.limit:
         newStep = LimitStep(
           id: newStepId,
-          name: 'Limitar Lista',
+          name: 'Limit List',
           arraySource: ValueSource(type: ValueSourceType.variable, key: 'list_result'),
           limit: 10,
           offset: 0,
@@ -227,7 +294,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.removeDuplicates:
         newStep = RemoveDuplicatesStep(
           id: newStepId,
-          name: 'Remover Duplicatas',
+          name: 'Remove Duplicates',
           arraySource: ValueSource(type: ValueSourceType.variable, key: 'list_result'),
           comparePath: 'id',
           saveToVariable: 'unique_list',
@@ -302,33 +369,46 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.start:
         newStep = StartStep(
           id: newStepId,
-          name: 'Início',
+          name: 'Start',
         );
         break;
     }
 
     final Map<String, VisualStep> updatedNodes = Map.from(widget.script.nodes);
-    updatedNodes[newStepId] = newStep;
-
     final parent = updatedNodes[parentId];
+    String? oldChildId;
+
     if (parent != null) {
       if (connectionType == 'next') {
+        oldChildId = parent.nextStepId;
         parent.nextStepId = newStepId;
       } else if (connectionType == 'true' && parent is IfStep) {
+        oldChildId = parent.trueStepId;
         parent.trueStepId = newStepId;
       } else if (connectionType == 'false' && parent is IfStep) {
+        oldChildId = parent.falseStepId;
         parent.falseStepId = newStepId;
       } else if (connectionType == 'loop' && parent is SplitOutStep) {
+        oldChildId = parent.loopStepId;
         parent.loopStepId = newStepId;
       } else if (connectionType == 'switch_case' && parent is SwitchStep && switchCaseVal != null) {
         final idx = parent.cases.indexWhere((c) => c.value == switchCaseVal);
         if (idx != -1) {
+          oldChildId = parent.cases[idx].nextStepId;
           parent.cases[idx].nextStepId = newStepId;
         }
       } else if (connectionType == 'switch_default' && parent is SwitchStep) {
+        oldChildId = parent.defaultStepId;
         parent.defaultStepId = newStepId;
       }
     }
+
+    // Connect downstream nodes to heal chain (splicing)
+    if (oldChildId != null && oldChildId.isNotEmpty) {
+      newStep.nextStepId = oldChildId;
+    }
+
+    updatedNodes[newStepId] = newStep;
 
     widget.onChanged(widget.script.copyWith(
       nodes: updatedNodes,
@@ -418,44 +498,105 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
     ));
   }
 
+  bool _isPortConnected(VisualStep node, String connectionType, {String? switchCaseVal}) {
+    if (connectionType == 'next') {
+      return node.nextStepId != null && node.nextStepId!.isNotEmpty;
+    } else if (connectionType == 'true' && node is IfStep) {
+      return node.trueStepId != null && node.trueStepId!.isNotEmpty;
+    } else if (connectionType == 'false' && node is IfStep) {
+      return node.falseStepId != null && node.falseStepId!.isNotEmpty;
+    } else if (connectionType == 'loop' && node is SplitOutStep) {
+      return node.loopStepId != null && node.loopStepId!.isNotEmpty;
+    } else if (connectionType == 'switch_case' && node is SwitchStep && switchCaseVal != null) {
+      final idx = node.cases.indexWhere((c) => c.value == switchCaseVal);
+      if (idx != -1) {
+        return node.cases[idx].nextStepId != null && node.cases[idx].nextStepId!.isNotEmpty;
+      }
+    } else if (connectionType == 'switch_default' && node is SwitchStep) {
+      return node.defaultStepId != null && node.defaultStepId!.isNotEmpty;
+    }
+    return false;
+  }
+
   Widget _buildInsertionButton(String parentId, String connectionType, {String? switchCaseVal}) {
-    return PopupMenuButton<VisualStepType>(
-      icon: Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.green.shade600,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          final selectedType = await showDialog<VisualStepType>(
+            context: context,
+            builder: (context) => const NodeSelectorDialog(),
+          );
+          if (!mounted) return;
+          if (selectedType != null) {
+            _addNode(parentId, connectionType, selectedType, switchCaseVal: switchCaseVal);
+          }
+        },
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFF4B2BEE),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 3,
+                offset: Offset(0, 1),
+              )
+            ],
+          ),
+          child: const Icon(Icons.add_rounded, size: 12, color: Colors.white),
         ),
-        child: const Icon(Icons.add, size: 12, color: Colors.white),
       ),
-      tooltip: 'Inserir Nó',
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
-      onSelected: (type) => _addNode(parentId, connectionType, type, switchCaseVal: switchCaseVal),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: VisualStepType.sendRequest, child: Text('HTTP Request')),
-        const PopupMenuItem(value: VisualStepType.setVariable, child: Text('Set/Edit Fields')),
-        const PopupMenuItem(value: VisualStepType.assertValue, child: Text('Assert Value')),
-        const PopupMenuItem(value: VisualStepType.delay, child: Text('Delay Timer')),
-        const PopupMenuItem(value: VisualStepType.switchStep, child: Text('Switch')),
-        const PopupMenuItem(value: VisualStepType.merge, child: Text('Merge')),
-        const PopupMenuItem(value: VisualStepType.splitOut, child: Text('Split Out')),
-        const PopupMenuItem(value: VisualStepType.aggregate, child: Text('Aggregate')),
-        const PopupMenuItem(value: VisualStepType.dateTime, child: Text('Date & Time')),
-        const PopupMenuItem(value: VisualStepType.ifStep, child: Text('If')),
-        const PopupMenuItem(value: VisualStepType.sort, child: Text('Sort')),
-        const PopupMenuItem(value: VisualStepType.limit, child: Text('Limit')),
-        const PopupMenuItem(value: VisualStepType.removeDuplicates, child: Text('Remove Duplicates')),
-        const PopupMenuItem(value: VisualStepType.crypto, child: Text('Crypto')),
-        const PopupMenuItem(value: VisualStepType.jsonConvert, child: Text('JSON Convert')),
-        const PopupMenuItem(value: VisualStepType.xmlConvert, child: Text('XML Convert')),
-        const PopupMenuItem(value: VisualStepType.htmlConvert, child: Text('HTML Convert')),
-        const PopupMenuItem(value: VisualStepType.markdownConvert, child: Text('Markdown Convert')),
-        const PopupMenuItem(value: VisualStepType.jsonPathStep, child: Text('JSON Path')),
-        const PopupMenuItem(value: VisualStepType.headerBuilder, child: Text('Header Builder')),
-      ],
     );
+  }
+
+  void _showNodeMenu(BuildContext context, String id, VisualStep node, Offset tapPos) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(tapPos.dx, tapPos.dy, 0, 0),
+      Offset.zero & overlay.size,
+    );
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      items: [
+        PopupMenuItem(
+          value: 'rename',
+          child: Text(
+            'Rename Node',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'disconnect',
+          child: Text(
+            'Disconnect Node',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+          ),
+        ),
+        if (node.type != VisualStepType.start)
+          const PopupMenuItem(
+            value: 'delete',
+            child: Text(
+              'Delete Node',
+              style: TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+      ],
+    ).then((val) {
+      if (!context.mounted) return;
+      if (val == 'rename') {
+        _showRenameDialog(context, id, node.name);
+      } else if (val == 'disconnect') {
+        _disconnectNode(id);
+      } else if (val == 'delete') {
+        _deleteNode(id);
+      }
+    });
   }
 
   @override
@@ -471,14 +612,14 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
             Icon(Icons.schema_outlined, size: 48, color: isDark ? AppColors.slate500 : AppColors.slate400),
             const SizedBox(height: 16),
             const Text(
-              'Canvas Vazio. Adicione o primeiro nó para começar.',
+              'Empty Canvas. Add the first node to start.',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
                 final startId = UniqueKey().toString();
-                final startNode = StartStep(id: startId, name: 'Início');
+                final startNode = StartStep(id: startId, name: 'Start');
                 widget.onChanged(widget.script.copyWith(
                   nodes: {startId: startNode},
                   startNodeId: startId,
@@ -487,7 +628,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                 widget.onSelectNode(startId);
               },
               icon: const Icon(Icons.add, size: 14),
-              label: const Text('Adicionar Início'),
+              label: const Text('Add Start'),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
             )
           ],
@@ -498,7 +639,6 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
     const double colWidth = 180.0;
     const double rowHeight = 110.0;
     const double nodeW = 140.0;
-    const double nodeH = 70.0;
     const double startX = 30.0;
     const double startY = 30.0;
 
@@ -513,212 +653,286 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
     });
 
     final canvasW = max(1000.0, (maxCol + 1) * colWidth + 100.0);
-    final canvasH = max(600.0, (maxRow + 1) * rowHeight + 100.0);
+    double computedCanvasH = 0.0;
+    pixelPositions.forEach((id, offset) {
+      final node = widget.script.nodes[id];
+      if (node != null) {
+        final nodeH = getNodeHeight(node);
+        if (offset.dy + nodeH > computedCanvasH) {
+          computedCanvasH = offset.dy + nodeH;
+        }
+      }
+    });
+    final canvasH = max(600.0, computedCanvasH + 100.0);
+    final canvasColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
-    return InteractiveViewer(
-      constrained: false,
-      boundaryMargin: const EdgeInsets.all(100.0),
-      minScale: 0.5,
-      maxScale: 1.5,
-      child: Container(
-        width: canvasW,
-        height: canvasH,
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        child: Stack(
-          children: [
-            // Background connections layer
-            Positioned.fill(
-              child: CustomPaint(
-                painter: FlowchartPainter(
-                  script: widget.script,
-                  positions: pixelPositions,
-                  nodeWidth: nodeW,
-                  nodeHeight: nodeH,
-                  isDark: isDark,
-                ),
-              ),
-            ),
-            // Nodes rendering
-            ...widget.script.nodes.entries.map((entry) {
-              final id = entry.key;
-              final node = entry.value;
-              final offset = pixelPositions[id] ?? Offset.zero;
-              final isSelected = widget.selectedNodeId == id;
-
-              // Check execution log state
-              IconData? statusIcon;
-              Color? statusColor;
-              if (widget.lastExecutionContext != null) {
-                final logs = widget.lastExecutionContext!.logs.where((l) => l.nodeId == id).toList();
-                if (logs.isNotEmpty) {
-                  final hasError = logs.any((l) => l.level == LogLevel.error);
-                  if (hasError) {
-                    statusIcon = Icons.cancel_rounded;
-                    statusColor = Colors.red;
-                  } else {
-                    statusIcon = Icons.check_circle_rounded;
-                    statusColor = Colors.green;
-                  }
-                }
-              }
-
-              return Positioned(
-                left: offset.dx,
-                top: offset.dy,
-                child: GestureDetector(
-                  onTap: () => widget.onSelectNode(id),
-                  onDoubleTap: () => widget.onDoubleSelectNode(id),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: nodeW,
-                        height: nodeH,
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF4B2BEE)
-                                : isDark
-                                    ? const Color(0xFF334155)
-                                    : const Color(0xFFE2E8F0),
-                            width: isSelected ? 2.0 : 1.0,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        child: Row(
-                          children: [
-                            Icon(_getStepIcon(node.type), size: 18, color: _getStepColor(node.type)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    node.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _getStepTypeName(node.type),
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: isDark ? AppColors.slate400 : AppColors.slate500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Node context options button
-                            PopupMenuButton<String>(
-                              icon: Icon(Icons.more_vert, size: 14, color: isDark ? AppColors.slate400 : AppColors.slate500),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onSelected: (val) {
-                                if (val == 'delete') {
-                                  _deleteNode(id);
-                                } else if (val == 'disconnect') {
-                                  _disconnectNode(id);
-                                } else if (val == 'rename') {
-                                  _showRenameDialog(context, id, node.name);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'rename', child: Text('Renomear')),
-                                const PopupMenuItem(value: 'disconnect', child: Text('Desconectar')),
-                                if (node.type != VisualStepType.start)
-                                  const PopupMenuItem(value: 'delete', child: Text('Excluir', style: TextStyle(color: Colors.red))),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Execution status dot
-                      if (statusIcon != null)
-                        Positioned(
-                          top: -6,
-                          left: -6,
-                          child: Icon(statusIcon, size: 14, color: statusColor),
-                        ),
-                      // Loop/Next insertion output ports
-                      if (node is IfStep) ...[
-                        Positioned(
-                          right: -10,
-                          top: nodeH / 4 - 10,
-                          child: _buildInsertionButton(id, 'true'),
-                        ),
-                        Positioned(
-                          right: -10,
-                          top: (nodeH * 3) / 4 - 10,
-                          child: _buildInsertionButton(id, 'false'),
-                        ),
-                      ] else if (node is SwitchStep) ...[
-                        ...node.cases.asMap().entries.map((e) {
-                          final idx = e.key;
-                          final c = e.value;
-                          final offsetPercent = (idx + 1) / (node.cases.length + 2);
-                          return Positioned(
-                            right: -10,
-                            top: nodeH * offsetPercent - 10,
-                            child: Tooltip(
-                              message: 'Caso: ${c.value}',
-                              child: _buildInsertionButton(id, 'switch_case', switchCaseVal: c.value),
-                            ),
-                          );
-                        }),
-                        Positioned(
-                          right: -10,
-                          top: nodeH * ((node.cases.length + 1) / (node.cases.length + 2)) - 10,
-                          child: Tooltip(
-                            message: 'Padrão (Default)',
-                            child: _buildInsertionButton(id, 'switch_default'),
-                          ),
-                        ),
-                      ] else if (node is SplitOutStep) ...[
-                        Positioned(
-                          right: -10,
-                          top: nodeH / 4 - 10,
-                          child: Tooltip(
-                            message: 'Loop Body',
-                            child: _buildInsertionButton(id, 'loop'),
-                          ),
-                        ),
-                        Positioned(
-                          right: -10,
-                          top: (nodeH * 3) / 4 - 10,
-                          child: Tooltip(
-                            message: 'Continuação',
-                            child: _buildInsertionButton(id, 'next'),
-                          ),
-                        ),
-                      ] else ...[
-                        Positioned(
-                          right: -10,
-                          top: nodeH / 2 - 10,
-                          child: _buildInsertionButton(id, 'next'),
-                        ),
-                      ]
-                    ],
+    return Container(
+      color: canvasColor,
+      child: InteractiveViewer(
+        constrained: false,
+        boundaryMargin: const EdgeInsets.all(100.0),
+        minScale: 0.5,
+        maxScale: 1.5,
+        child: Container(
+          width: canvasW,
+          height: canvasH,
+          color: canvasColor,
+          child: Stack(
+            children: [
+              // Background connections layer
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: FlowchartPainter(
+                    script: widget.script,
+                    positions: pixelPositions,
+                    nodeWidth: nodeW,
+                    isDark: isDark,
                   ),
                 ),
-              );
-            }),
-          ],
+              ),
+              // Nodes rendering
+              ...widget.script.nodes.entries.map((entry) {
+                final id = entry.key;
+                final node = entry.value;
+                final offset = pixelPositions[id] ?? Offset.zero;
+                final isSelected = widget.selectedNodeId == id;
+                final isHovered = _hoveredNodeId == id;
+                final showInsertionButtons = isSelected || isHovered;
+                final nodeH = getNodeHeight(node);
+
+                IconData? statusIcon;
+                Color? statusColor;
+                if (widget.lastExecutionContext != null) {
+                  final logs = widget.lastExecutionContext!.logs.where((l) => l.nodeId == id).toList();
+                  if (logs.isNotEmpty) {
+                    final hasError = logs.any((l) => l.level == LogLevel.error);
+                    if (hasError) {
+                      statusIcon = Icons.cancel_rounded;
+                      statusColor = Colors.red;
+                    } else {
+                      statusIcon = Icons.check_circle_rounded;
+                      statusColor = Colors.green;
+                    }
+                  }
+                }
+
+                return Positioned(
+                  left: offset.dx,
+                  top: offset.dy,
+                  child: MouseRegion(
+                    onEnter: (_) => setState(() => _hoveredNodeId = id),
+                    onExit: (_) => setState(() {
+                      if (_hoveredNodeId == id) _hoveredNodeId = null;
+                    }),
+                    child: GestureDetector(
+                      onTapDown: (details) {
+                        _tapDownDetails = details;
+                      },
+                      onTap: () {
+                        widget.onSelectNode(id);
+                        if (_tapDownDetails != null) {
+                          _showNodeMenu(context, id, node, _tapDownDetails!.globalPosition);
+                        }
+                      },
+                      onDoubleTap: () => widget.onDoubleSelectNode(id),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: nodeW,
+                            height: nodeH,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF4B2BEE)
+                                    : isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0),
+                                width: isSelected ? 2.0 : 1.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: node is SwitchStep
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Header
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 4),
+                                        child: Row(
+                                          children: [
+                                            Icon(_getStepIcon(node.type), size: 16, color: _getStepColor(node.type)),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                node.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark ? Colors.white : Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Divider(height: 1, thickness: 0.5),
+                                      // Cases list
+                                      ...node.cases.map((c) => Container(
+                                            height: 28,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              c.value,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: isDark ? AppColors.slate300 : AppColors.slate700,
+                                              ),
+                                            ),
+                                          )),
+                                      // Default case
+                                      Container(
+                                        height: 28,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          'Default',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontStyle: FontStyle.italic,
+                                            color: isDark ? AppColors.slate400 : AppColors.slate600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      const SizedBox(width: 10),
+                                      Icon(_getStepIcon(node.type), size: 18, color: _getStepColor(node.type)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              node.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark ? Colors.white : Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _getStepTypeName(node.type),
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                color: isDark ? AppColors.slate400 : AppColors.slate500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                    ],
+                                  ),
+                          ),
+                          // Execution status indicator
+                          if (statusIcon != null)
+                            Positioned(
+                              top: -6,
+                              left: -6,
+                              child: Icon(statusIcon, size: 14, color: statusColor),
+                            ),
+                          // Output Connection Ports
+                          if (showInsertionButtons) ...[
+                            if (node is IfStep) ...[
+                              if (!_isPortConnected(node, 'true'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'true') - 9,
+                                  child: _buildInsertionButton(id, 'true'),
+                                ),
+                              if (!_isPortConnected(node, 'false'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'false') - 9,
+                                  child: _buildInsertionButton(id, 'false'),
+                                ),
+                            ] else if (node is SwitchStep) ...[
+                              ...node.cases.asMap().entries.map((e) {
+                                final c = e.value;
+                                if (_isPortConnected(node, 'switch_case', switchCaseVal: c.value)) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'switch_case', switchCaseVal: c.value) - 9,
+                                  child: Tooltip(
+                                    message: 'Case: ${c.value}',
+                                    child: _buildInsertionButton(id, 'switch_case', switchCaseVal: c.value),
+                                  ),
+                                );
+                              }),
+                              if (!_isPortConnected(node, 'switch_default'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'switch_default') - 9,
+                                  child: Tooltip(
+                                    message: 'Default',
+                                    child: _buildInsertionButton(id, 'switch_default'),
+                                  ),
+                                ),
+                            ] else if (node is SplitOutStep) ...[
+                              if (!_isPortConnected(node, 'loop'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'loop') - 9,
+                                  child: Tooltip(
+                                    message: 'Loop Body',
+                                    child: _buildInsertionButton(id, 'loop'),
+                                  ),
+                                ),
+                              if (!_isPortConnected(node, 'next'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'next') - 9,
+                                  child: Tooltip(
+                                    message: 'Next',
+                                    child: _buildInsertionButton(id, 'next'),
+                                  ),
+                                ),
+                            ] else ...[
+                              if (!_isPortConnected(node, 'next'))
+                                Positioned(
+                                  right: -9,
+                                  top: getOutputYOffset(node, 'next') - 9,
+                                  child: _buildInsertionButton(id, 'next'),
+                                ),
+                            ]
+                          ]
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -729,20 +943,20 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Renomear Nó', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        title: const Text('Rename Node', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Novo nome para o nó'),
+          decoration: const InputDecoration(hintText: 'New node name'),
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               _renameNode(id, controller.text);
               Navigator.pop(context);
             },
-            child: const Text('Renomear'),
+            child: const Text('Rename'),
           )
         ],
       ),
@@ -852,7 +1066,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.sendRequest:
         return 'HTTP Request';
       case VisualStepType.start:
-        return 'Início';
+        return 'Start';
       case VisualStepType.delay:
         return 'Delay';
       case VisualStepType.switchStep:
@@ -895,14 +1109,12 @@ class FlowchartPainter extends CustomPainter {
   final VisualScript script;
   final Map<String, Offset> positions;
   final double nodeWidth;
-  final double nodeHeight;
   final bool isDark;
 
   FlowchartPainter({
     required this.script,
     required this.positions,
     required this.nodeWidth,
-    required this.nodeHeight,
     required this.isDark,
   });
 
@@ -923,21 +1135,19 @@ class FlowchartPainter extends CustomPainter {
       if (src == null) return;
 
       if (node is IfStep) {
-        _drawConnection(canvas, id, node.trueStepId, src, nodeHeight / 4, paintNormal, paintBackEdge, label: 'T');
-        _drawConnection(canvas, id, node.falseStepId, src, (nodeHeight * 3) / 4, paintNormal, paintBackEdge, label: 'F');
+        _drawConnection(canvas, id, node.trueStepId, src, getOutputYOffset(node, 'true'), paintNormal, paintBackEdge, label: 'T');
+        _drawConnection(canvas, id, node.falseStepId, src, getOutputYOffset(node, 'false'), paintNormal, paintBackEdge, label: 'F');
       } else if (node is SwitchStep) {
         for (int i = 0; i < node.cases.length; i++) {
           final c = node.cases[i];
-          final offsetPercent = (i + 1) / (node.cases.length + 2);
-          _drawConnection(canvas, id, c.nextStepId, src, nodeHeight * offsetPercent, paintNormal, paintBackEdge, label: c.value);
+          _drawConnection(canvas, id, c.nextStepId, src, getOutputYOffset(node, 'switch_case', switchCaseVal: c.value), paintNormal, paintBackEdge, label: c.value);
         }
-        final defaultOffset = (node.cases.length + 1) / (node.cases.length + 2);
-        _drawConnection(canvas, id, node.defaultStepId, src, nodeHeight * defaultOffset, paintNormal, paintBackEdge, label: 'Default');
+        _drawConnection(canvas, id, node.defaultStepId, src, getOutputYOffset(node, 'switch_default'), paintNormal, paintBackEdge, label: 'Default');
       } else if (node is SplitOutStep) {
-        _drawConnection(canvas, id, node.loopStepId, src, nodeHeight / 4, paintNormal, paintBackEdge, label: 'Loop');
-        _drawConnection(canvas, id, node.nextStepId, src, (nodeHeight * 3) / 4, paintNormal, paintBackEdge, label: 'Next');
+        _drawConnection(canvas, id, node.loopStepId, src, getOutputYOffset(node, 'loop'), paintNormal, paintBackEdge, label: 'Loop');
+        _drawConnection(canvas, id, node.nextStepId, src, getOutputYOffset(node, 'next'), paintNormal, paintBackEdge, label: 'Next');
       } else {
-        _drawConnection(canvas, id, node.nextStepId, src, nodeHeight / 2, paintNormal, paintBackEdge);
+        _drawConnection(canvas, id, node.nextStepId, src, getOutputYOffset(node, 'next'), paintNormal, paintBackEdge);
       }
     });
   }
@@ -956,25 +1166,24 @@ class FlowchartPainter extends CustomPainter {
     final dest = positions[destId];
     if (dest == null) return;
 
+    final destNode = script.nodes[destId];
+    final destHeight = destNode != null ? getNodeHeight(destNode) : 70.0;
+
     final startPoint = Offset(src.dx + nodeWidth, src.dy + outputYOffset);
-    final endPoint = Offset(dest.dx, dest.dy + nodeHeight / 2);
+    final endPoint = Offset(dest.dx, dest.dy + destHeight / 2);
 
     final isBackEdge = dest.dx <= src.dx;
 
     if (isBackEdge) {
-      // Draw curved dotted loopback back-edge
       final path = Path()..moveTo(startPoint.dx, startPoint.dy);
-      // Curve going upwards/downwards out and around
       final controlPoint1 = Offset(startPoint.dx + 40, startPoint.dy + (dest.dy > src.dy ? 40 : -40));
       final controlPoint2 = Offset(endPoint.dx - 40, endPoint.dy + (dest.dy > src.dy ? 40 : -40));
       
       path.cubicTo(controlPoint1.dx, controlPoint1.dy, controlPoint2.dx, controlPoint2.dy, endPoint.dx, endPoint.dy);
       
-      // Draw dotted path by sampling points along the bezier curve
       _drawDottedPath(canvas, path, paintBackEdge);
       _drawArrowHead(canvas, controlPoint2, endPoint, paintBackEdge.color);
     } else {
-      // Draw normal S-curve connect line
       final path = Path()..moveTo(startPoint.dx, startPoint.dy);
       final controlX = startPoint.dx + (endPoint.dx - startPoint.dx) * 0.5;
       path.cubicTo(controlX, startPoint.dy, controlX, endPoint.dy, endPoint.dx, endPoint.dy);
@@ -982,7 +1191,6 @@ class FlowchartPainter extends CustomPainter {
       _drawArrowHead(canvas, Offset(controlX, endPoint.dy), endPoint, paintNormal.color);
     }
 
-    // Draw connecting labels if present
     if (label != null && label.isNotEmpty) {
       final labelOffset = Offset(startPoint.dx + 12, startPoint.dy - 10);
       final textPainter = TextPainter(
@@ -997,7 +1205,6 @@ class FlowchartPainter extends CustomPainter {
   }
 
   void _drawDottedPath(Canvas canvas, Path path, Paint paint) {
-    // Basic path sampling for dotted line effect
     final metrics = path.computeMetrics();
     for (final metric in metrics) {
       double distance = 0.0;

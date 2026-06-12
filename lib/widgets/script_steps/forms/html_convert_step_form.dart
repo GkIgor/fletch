@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class HtmlConvertStepForm extends StatelessWidget {
   final String nodeId;
@@ -46,11 +47,9 @@ class HtmlConvertStepForm extends StatelessWidget {
         ),
         if (node.operation == 'extractSelector' || node.operation == 'extractAttributes') ...[
           const SizedBox(height: 12),
-          TextField(
-            controller: TextEditingController(text: node.selector)
-              ..selection = TextSelection.collapsed(offset: node.selector.length),
-            decoration: const InputDecoration(labelText: 'Seletor CSS (e.g. a.link)', labelStyle: TextStyle(fontSize: 11)),
-            style: const TextStyle(fontSize: 12),
+          VisualStepTextField(
+            value: node.selector,
+            labelText: 'Seletor CSS (e.g. a.link)',
             onChanged: (val) {
               node.selector = val;
               onUpdated(nodeId, node);
@@ -59,11 +58,9 @@ class HtmlConvertStepForm extends StatelessWidget {
         ],
         if (node.operation == 'extractAttributes') ...[
           const SizedBox(height: 12),
-          TextField(
-            controller: TextEditingController(text: node.attribute)
-              ..selection = TextSelection.collapsed(offset: node.attribute.length),
-            decoration: const InputDecoration(labelText: 'Atributo a Extrair (e.g. href)', labelStyle: TextStyle(fontSize: 11)),
-            style: const TextStyle(fontSize: 12),
+          VisualStepTextField(
+            value: node.attribute,
+            labelText: 'Atributo a Extrair (e.g. href)',
             onChanged: (val) {
               node.attribute = val;
               onUpdated(nodeId, node);
@@ -71,11 +68,9 @@ class HtmlConvertStepForm extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

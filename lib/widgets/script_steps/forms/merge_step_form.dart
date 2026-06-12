@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
+import 'visual_step_text_field.dart';
 
 class MergeStepForm extends StatelessWidget {
   final String nodeId;
@@ -56,11 +57,9 @@ class MergeStepForm extends StatelessWidget {
           return Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: TextEditingController(text: src)
-                    ..selection = TextSelection.collapsed(offset: src.length),
-                  decoration: InputDecoration(labelText: 'Variável ${idx + 1}', labelStyle: const TextStyle(fontSize: 10)),
-                  style: const TextStyle(fontSize: 11),
+                child: VisualStepTextField(
+                  value: src,
+                  labelText: 'Variável ${idx + 1}',
                   onChanged: (val) {
                     node.sources[idx] = val;
                     onUpdated(nodeId, node);
@@ -78,11 +77,9 @@ class MergeStepForm extends StatelessWidget {
           );
         }),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveTo)
-            ..selection = TextSelection.collapsed(offset: node.saveTo.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveTo,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveTo = val;
             onUpdated(nodeId, node);

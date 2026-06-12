@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
+import 'visual_step_text_field.dart';
 
 class DateTimeStepForm extends StatelessWidget {
   final String nodeId;
@@ -36,15 +37,10 @@ class DateTimeStepForm extends StatelessWidget {
         ),
         if (node.operation == 'add' || node.operation == 'subtract') ...[
           const SizedBox(height: 12),
-          TextField(
-            controller: TextEditingController(text: node.value)
-              ..selection = TextSelection.collapsed(offset: node.value.length),
-            decoration: const InputDecoration(
-              labelText: 'Valor do Deslocamento',
-              labelStyle: TextStyle(fontSize: 11),
-              hintText: 'e.g. 1 day, 12 hours, 30 minutes',
-            ),
-            style: const TextStyle(fontSize: 12),
+          VisualStepTextField(
+            value: node.value,
+            labelText: 'Valor do Deslocamento',
+            hintText: 'e.g. 1 day, 12 hours, 30 minutes',
             onChanged: (val) {
               node.value = val;
               onUpdated(nodeId, node);
@@ -52,22 +48,18 @@ class DateTimeStepForm extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.formatPattern)
-            ..selection = TextSelection.collapsed(offset: node.formatPattern.length),
-          decoration: const InputDecoration(labelText: 'Padrão de Formato', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.formatPattern,
+          labelText: 'Padrão de Formato',
           onChanged: (val) {
             node.formatPattern = val;
             onUpdated(nodeId, node);
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

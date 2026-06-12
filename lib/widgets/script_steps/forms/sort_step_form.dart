@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class SortStepForm extends StatelessWidget {
   final String nodeId;
@@ -28,32 +29,35 @@ class SortStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.sortByPath)
-            ..selection = TextSelection.collapsed(offset: node.sortByPath.length),
-          decoration: const InputDecoration(labelText: 'Ordenar por (JSON Path)', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.sortByPath,
+          labelText: 'Ordenar por (JSON Path)',
           onChanged: (val) {
             node.sortByPath = val;
             onUpdated(nodeId, node);
           },
         ),
         const SizedBox(height: 12),
-        SwitchListTile(
-          title: const Text('Ordem Crescente', style: TextStyle(fontSize: 11)),
-          value: node.ascending,
-          contentPadding: EdgeInsets.zero,
-          onChanged: (val) {
-            node.ascending = val;
-            onUpdated(nodeId, node);
-          },
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Ordem Crescente', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+              Switch(
+                value: node.ascending,
+                onChanged: (val) {
+                  node.ascending = val;
+                  onUpdated(nodeId, node);
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

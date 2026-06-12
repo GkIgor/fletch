@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class HeaderBuilderStepForm extends StatelessWidget {
   final String nodeId;
@@ -80,9 +81,10 @@ class HeaderBuilderStepForm extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: TextEditingController(text: k)
-                      ..selection = TextSelection.collapsed(offset: k.length),
+                  child: VisualStepTextField(
+                    value: k,
+                    labelText: '',
+                    hintText: 'Chave',
                     decoration: const InputDecoration(hintText: 'Chave', isDense: true, hintStyle: TextStyle(fontSize: 10)),
                     style: const TextStyle(fontSize: 11),
                     onChanged: (newKey) {
@@ -96,9 +98,10 @@ class HeaderBuilderStepForm extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: TextField(
-                    controller: TextEditingController(text: v)
-                      ..selection = TextSelection.collapsed(offset: v.length),
+                  child: VisualStepTextField(
+                    value: v,
+                    labelText: '',
+                    hintText: 'Valor',
                     decoration: const InputDecoration(hintText: 'Valor', isDense: true, hintStyle: TextStyle(fontSize: 10)),
                     style: const TextStyle(fontSize: 11),
                     onChanged: (newVal) {
@@ -119,11 +122,9 @@ class HeaderBuilderStepForm extends StatelessWidget {
           );
         }),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Headers em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Headers em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

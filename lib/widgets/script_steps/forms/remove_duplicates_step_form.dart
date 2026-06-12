@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class RemoveDuplicatesStepForm extends StatelessWidget {
   final String nodeId;
@@ -28,22 +29,18 @@ class RemoveDuplicatesStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.comparePath)
-            ..selection = TextSelection.collapsed(offset: node.comparePath.length),
-          decoration: const InputDecoration(labelText: 'Comparar por (JSON Path)', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.comparePath,
+          labelText: 'Comparar por (JSON Path)',
           onChanged: (val) {
             node.comparePath = val;
             onUpdated(nodeId, node);
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resultado em', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resultado em',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

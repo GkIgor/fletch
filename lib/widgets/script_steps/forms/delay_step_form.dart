@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
+import 'visual_step_text_field.dart';
 
 class DelayStepForm extends StatelessWidget {
   final String nodeId;
@@ -15,12 +16,10 @@ class DelayStepForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: TextEditingController(text: node.durationMs.toString())
-        ..selection = TextSelection.collapsed(offset: node.durationMs.toString().length),
-      decoration: const InputDecoration(labelText: 'Duração (ms)', labelStyle: TextStyle(fontSize: 11)),
+    return VisualStepTextField(
+      value: node.durationMs.toString(),
+      labelText: 'Duração (ms)',
       keyboardType: TextInputType.number,
-      style: const TextStyle(fontSize: 12),
       onChanged: (val) {
         final parsed = int.tryParse(val);
         if (parsed != null) {

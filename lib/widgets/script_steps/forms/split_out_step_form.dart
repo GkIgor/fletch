@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class SplitOutStepForm extends StatelessWidget {
   final String nodeId;
@@ -28,12 +29,10 @@ class SplitOutStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.maxConcurrency.toString())
-            ..selection = TextSelection.collapsed(offset: node.maxConcurrency.toString().length),
-          decoration: const InputDecoration(labelText: 'Concorrência Máxima', labelStyle: TextStyle(fontSize: 11)),
+        VisualStepTextField(
+          value: node.maxConcurrency.toString(),
+          labelText: 'Concorrência Máxima',
           keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 12),
           onChanged: (val) {
             final parsed = int.tryParse(val);
             if (parsed != null) {
@@ -43,14 +42,21 @@ class SplitOutStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        SwitchListTile(
-          title: const Text('Executar em Paralelo', style: TextStyle(fontSize: 11)),
-          value: node.runInParallel,
-          contentPadding: EdgeInsets.zero,
-          onChanged: (val) {
-            node.runInParallel = val;
-            onUpdated(nodeId, node);
-          },
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Executar em Paralelo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+              Switch(
+                value: node.runInParallel,
+                onChanged: (val) {
+                  node.runInParallel = val;
+                  onUpdated(nodeId, node);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );

@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
+import 'visual_step_text_field.dart';
 
 class SendRequestStepForm extends StatelessWidget {
   final String nodeId;
@@ -36,22 +37,18 @@ class SendRequestStepForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.url)
-            ..selection = TextSelection.collapsed(offset: node.url.length),
-          decoration: const InputDecoration(labelText: 'URL (Aceita {{var}})', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.url,
+          labelText: 'URL (Aceita {{var}})',
           onChanged: (val) {
             node.url = val;
             onUpdated(nodeId, node);
           },
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: TextEditingController(text: node.saveToVariable)
-            ..selection = TextSelection.collapsed(offset: node.saveToVariable.length),
-          decoration: const InputDecoration(labelText: 'Salvar Resposta na Variável', labelStyle: TextStyle(fontSize: 11)),
-          style: const TextStyle(fontSize: 12),
+        VisualStepTextField(
+          value: node.saveToVariable,
+          labelText: 'Salvar Resposta na Variável',
           onChanged: (val) {
             node.saveToVariable = val;
             onUpdated(nodeId, node);

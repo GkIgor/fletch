@@ -50,9 +50,9 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
   String? _selectedNodeId;
 
   void _createNewScript() {
-    final startNode = StartStep(name: 'Início');
+    final startNode = StartStep(name: 'Start');
     final newScript = VisualScript(
-      name: 'Novo Script ${_getUniqueIndex()}',
+      name: 'New Script ${_getUniqueIndex()}',
       isPreRequest: true,
       mode: ScriptMode.lowCode,
       nodes: {startNode.id: startNode},
@@ -96,7 +96,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
 
   void _duplicateScript(VisualScript script) {
     final duplicated = VisualScript(
-      name: '${script.name} Copiar',
+      name: '${script.name} Copy',
       isPreRequest: script.isPreRequest,
       mode: script.mode,
       nodes: Map.from(script.nodes),
@@ -159,7 +159,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                   Icon(Icons.settings_suggest_rounded, color: isDark ? Colors.white70 : Colors.black87),
                   const SizedBox(width: 8),
                   Text(
-                    'Automação de Scripts E2E',
+                    'E2E Script Automation',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -173,7 +173,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                       ScriptManagerDialog.showLeftSidebar ? Icons.keyboard_tab_rounded : Icons.menu_open_rounded,
                       size: 20,
                     ),
-                    tooltip: ScriptManagerDialog.showLeftSidebar ? 'Esconder Biblioteca' : 'Mostrar Biblioteca',
+                    tooltip: ScriptManagerDialog.showLeftSidebar ? 'Hide Library' : 'Show Library',
                     onPressed: () {
                       setState(() {
                         ScriptManagerDialog.showLeftSidebar = !ScriptManagerDialog.showLeftSidebar;
@@ -187,7 +187,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                       ScriptManagerDialog.showRightSidebar ? Icons.chrome_reader_mode_outlined : Icons.chrome_reader_mode_rounded,
                       size: 20,
                     ),
-                    tooltip: ScriptManagerDialog.showRightSidebar ? 'Esconder Propriedades' : 'Mostrar Propriedades',
+                    tooltip: ScriptManagerDialog.showRightSidebar ? 'Hide Properties' : 'Show Properties',
                     onPressed: () {
                       setState(() {
                         ScriptManagerDialog.showRightSidebar = !ScriptManagerDialog.showRightSidebar;
@@ -202,7 +202,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Fechar',
+                    tooltip: 'Close',
                     splashRadius: 20,
                   ),
                 ],
@@ -228,7 +228,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                               child: ElevatedButton.icon(
                                 onPressed: _createNewScript,
                                 icon: const Icon(Icons.add_rounded, size: 14),
-                                label: const Text('Novo Script', style: TextStyle(fontSize: 12)),
+                                label: const Text('New Script', style: TextStyle(fontSize: 12)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -243,7 +243,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                               child: widget.workspace.scripts.isEmpty
                                   ? const Center(
                                       child: Text(
-                                        'Sem scripts cadastrados.',
+                                        'No scripts registered.',
                                         style: TextStyle(fontSize: 11, color: Colors.grey),
                                       ),
                                     )
@@ -279,7 +279,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           subtitle: Text(
-                                            '${script.isPreRequest ? "Pré" : "Pós"} • ${script.nodes.length} nós',
+                                            '${script.isPreRequest ? "Pre" : "Post"} • ${script.nodes.length} nodes',
                                             style: const TextStyle(fontSize: 10),
                                           ),
                                           trailing: isSelected
@@ -293,8 +293,8 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                                     }
                                                   },
                                                   itemBuilder: (context) => [
-                                                    const PopupMenuItem(value: 'duplicate', child: Text('Duplicar', style: TextStyle(fontSize: 12))),
-                                                    const PopupMenuItem(value: 'delete', child: Text('Excluir', style: TextStyle(fontSize: 12, color: Colors.red))),
+                                                    const PopupMenuItem(value: 'duplicate', child: Text('Duplicate', style: TextStyle(fontSize: 12))),
+                                                    const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red))),
                                                   ],
                                                 )
                                               : null,
@@ -323,7 +323,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                 Icon(Icons.dashboard_customize_outlined, size: 64, color: isDark ? AppColors.borderDark : AppColors.slate300),
                                 const SizedBox(height: 16),
                                 const Text(
-                                  'Selecione ou crie um script para editar seu fluxograma.',
+                                  'Select or create a script to edit its flowchart.',
                                   style: TextStyle(fontSize: 13, color: Colors.grey),
                                 ),
                               ],
@@ -347,7 +347,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                               controller: TextEditingController(text: _selectedScript!.name)
                                                 ..selection = TextSelection.collapsed(offset: _selectedScript!.name.length),
                                               decoration: InputDecoration(
-                                                hintText: 'Nome do Script',
+                                                hintText: 'Script Name',
                                                 isDense: true,
                                                 contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                                                 enabledBorder: OutlineInputBorder(
@@ -370,8 +370,8 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                             value: _selectedScript!.isPreRequest,
                                             dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
                                             items: const [
-                                              DropdownMenuItem(value: true, child: Text('Pré-Request', style: TextStyle(fontSize: 12))),
-                                              DropdownMenuItem(value: false, child: Text('Pós-Response', style: TextStyle(fontSize: 12))),
+                                              DropdownMenuItem(value: true, child: Text('Pre-Request', style: TextStyle(fontSize: 12))),
+                                              DropdownMenuItem(value: false, child: Text('Post-Response', style: TextStyle(fontSize: 12))),
                                             ],
                                             onChanged: (val) {
                                               if (val != null) {
@@ -414,7 +414,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                   child: _selectedNodeId == null || !_selectedScript!.nodes.containsKey(_selectedNodeId)
                                       ? const Center(
                                           child: Text(
-                                            'Selecione um nó no canvas\npara editar propriedades.',
+                                            'Select a node in the canvas\nto edit properties.',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(fontSize: 11, color: Colors.grey),
                                           ),
@@ -449,7 +449,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
               Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
               const SizedBox(width: 8),
               const Text(
-                'Propriedades do Nó',
+                'Node Properties',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
@@ -465,7 +465,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                 controller: TextEditingController(text: node.name)
                   ..selection = TextSelection.collapsed(offset: node.name.length),
                 decoration: const InputDecoration(
-                  labelText: 'Nome do Nó',
+                  labelText: 'Node Name',
                   labelStyle: TextStyle(fontSize: 11),
                   isDense: true,
                 ),

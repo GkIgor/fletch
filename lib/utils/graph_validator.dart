@@ -27,13 +27,13 @@ class GraphValidator {
   static List<GraphValidationError> validate(VisualScript script) {
     final List<GraphValidationError> errors = [];
 
-    // 1. Validar início do script
+    // 1. Validate script start node
     if (script.startNodeId == null || script.startNodeId!.isEmpty) {
       errors.add(GraphValidationError(
         severity: ValidationErrorSeverity.error,
         nodeId: 'start',
         nodeName: 'Script',
-        message: 'Nenhum nó inicial configurado no fluxograma.',
+        message: 'No initial node configured in the flowchart.',
       ));
       return errors;
     }
@@ -43,7 +43,7 @@ class GraphValidator {
         severity: ValidationErrorSeverity.error,
         nodeId: 'start',
         nodeName: 'Script',
-        message: 'Nó de início do script "${script.startNodeId}" não existe no grafo.',
+        message: 'Script start node "${script.startNodeId}" does not exist in the graph.',
       ));
     }
 
@@ -51,7 +51,7 @@ class GraphValidator {
     bool hasSplitOut = false;
     bool hasAggregate = false;
 
-    // 2. Validar conexões
+    // 2. Validate connections
     script.nodes.forEach((id, node) {
       if (node.type == VisualStepType.splitOut) {
         hasSplitOut = true;
@@ -60,21 +60,21 @@ class GraphValidator {
         hasAggregate = true;
       }
 
-      // Validar conexão padrão nextStepId
+      // Validate default connection nextStepId
       if (node.nextStepId != null && node.nextStepId!.isNotEmpty) {
         if (!script.nodes.containsKey(node.nextStepId)) {
           errors.add(GraphValidationError(
             severity: ValidationErrorSeverity.error,
             nodeId: id,
             nodeName: node.name,
-            message: 'A conexão de saída padrão aponta para o nó inexistente "${node.nextStepId}".',
+            message: 'Default output connection points to non-existent node "${node.nextStepId}".',
           ));
         } else {
           referencedIds.add(node.nextStepId!);
         }
       }
 
-      // Validar nós condicionais / bifurcações
+      // Validate conditional / branching nodes
       if (node is IfStep) {
         if (node.trueStepId != null && node.trueStepId!.isNotEmpty) {
           if (!script.nodes.containsKey(node.trueStepId)) {
@@ -82,7 +82,7 @@ class GraphValidator {
               severity: ValidationErrorSeverity.error,
               nodeId: id,
               nodeName: node.name,
-              message: 'Conexão "True" aponta para o nó inexistente "${node.trueStepId}".',
+              message: 'Connection "True" points to non-existent node "${node.trueStepId}".',
             ));
           } else {
             referencedIds.add(node.trueStepId!);
@@ -94,7 +94,7 @@ class GraphValidator {
               severity: ValidationErrorSeverity.error,
               nodeId: id,
               nodeName: node.name,
-              message: 'Conexão "False" aponta para o nó inexistente "${node.falseStepId}".',
+              message: 'Connection "False" points to non-existent node "${node.falseStepId}".',
             ));
           } else {
             referencedIds.add(node.falseStepId!);
@@ -108,7 +108,7 @@ class GraphValidator {
                 severity: ValidationErrorSeverity.error,
                 nodeId: id,
                 nodeName: node.name,
-                message: 'Caso "${c.value}" aponta para o nó inexistente "${c.nextStepId}".',
+                message: 'Case "${c.value}" points to non-existent node "${c.nextStepId}".',
               ));
             } else {
               referencedIds.add(c.nextStepId!);
@@ -121,7 +121,7 @@ class GraphValidator {
               severity: ValidationErrorSeverity.error,
               nodeId: id,
               nodeName: node.name,
-              message: 'Ramificação padrão (Default) aponta para o nó inexistente "${node.defaultStepId}".',
+              message: 'Default branch points to non-existent node "${node.defaultStepId}".',
             ));
           } else {
             referencedIds.add(node.defaultStepId!);
@@ -134,7 +134,7 @@ class GraphValidator {
               severity: ValidationErrorSeverity.error,
               nodeId: id,
               nodeName: node.name,
-              message: 'Cadeia de repetição (Loop) aponta para o nó inexistente "${node.loopStepId}".',
+              message: 'Loop sequence points to non-existent node "${node.loopStepId}".',
             ));
           } else {
             referencedIds.add(node.loopStepId!);
@@ -143,25 +143,25 @@ class GraphValidator {
       }
     });
 
-    // 3. Validar nós órfãos
+    // 3. Validate orphan nodes
     script.nodes.forEach((id, node) {
       if (!referencedIds.contains(id)) {
         errors.add(GraphValidationError(
           severity: ValidationErrorSeverity.warning,
           nodeId: id,
           nodeName: node.name,
-          message: 'O nó está desconectado do fluxo principal (órfão).',
+          message: 'The node is disconnected from the main flow (orphan).',
         ));
       }
     });
 
-    // 4. Split Out sem Aggregate Warning
+    // 4. Split Out without Aggregate warning
     if (hasSplitOut && !hasAggregate) {
       errors.add(GraphValidationError(
         severity: ValidationErrorSeverity.warning,
         nodeId: 'split_aggregate',
         nodeName: 'Script',
-        message: 'Loop "Split Out" configurado sem um correspondente nó "Aggregate".',
+        message: 'Loop "Split Out" configured without a corresponding "Aggregate" node.',
       ));
     }
 

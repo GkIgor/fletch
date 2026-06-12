@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class SetVariableStepForm extends StatelessWidget {
   final String nodeId;
@@ -53,15 +54,14 @@ class SetVariableStepForm extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: TextEditingController(text: item.variableName)
-                          ..selection = TextSelection.collapsed(offset: item.variableName.length),
+                      child: VisualStepTextField(
+                        value: item.variableName,
+                        labelText: 'Variável',
                         decoration: const InputDecoration(
                           labelText: 'Variável',
                           labelStyle: TextStyle(fontSize: 10),
                           isDense: true,
                         ),
-                        style: const TextStyle(fontSize: 11),
                         onChanged: (val) {
                           item.variableName = val;
                           onUpdated(nodeId, node);

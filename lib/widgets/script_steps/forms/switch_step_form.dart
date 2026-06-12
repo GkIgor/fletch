@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
+import 'visual_step_text_field.dart';
 
 class SwitchStepForm extends StatelessWidget {
   final String nodeId;
@@ -47,11 +48,9 @@ class SwitchStepForm extends StatelessWidget {
           return Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: TextEditingController(text: c.value)
-                    ..selection = TextSelection.collapsed(offset: c.value.length),
-                  decoration: InputDecoration(labelText: 'Caso ${idx + 1}', labelStyle: const TextStyle(fontSize: 10)),
-                  style: const TextStyle(fontSize: 11),
+                child: VisualStepTextField(
+                  value: c.value,
+                  labelText: 'Caso ${idx + 1}',
                   onChanged: (val) {
                     c.value = val;
                     onUpdated(nodeId, node);
