@@ -6,6 +6,9 @@ class SendRequestStep extends VisualStep {
   Map<String, String> headers;
   String? body;
   String saveToVariable;   // Variable name to save the response body to
+  /// When set, uses the referenced workspace HttpRequest's method/url/headers/body.
+  /// Scripts attached to that request are NOT executed (anti-loop guard).
+  String? requestId;
 
   SendRequestStep({
     super.id,
@@ -17,6 +20,7 @@ class SendRequestStep extends VisualStep {
     Map<String, String>? headers,
     this.body,
     this.saveToVariable = '',
+    this.requestId,
   })  : headers = headers ?? {},
         super(type: VisualStepType.sendRequest);
 
@@ -32,6 +36,7 @@ class SendRequestStep extends VisualStep {
         'headers': headers,
         'body': body,
         'saveToVariable': saveToVariable,
+        'requestId': requestId,
       };
 
   factory SendRequestStep.fromJson(Map<String, dynamic> json) => SendRequestStep(
@@ -44,5 +49,6 @@ class SendRequestStep extends VisualStep {
         headers: Map<String, String>.from(json['headers'] ?? {}),
         body: json['body'] as String?,
         saveToVariable: json['saveToVariable'] as String? ?? '',
+        requestId: json['requestId'] as String?,
       );
 }

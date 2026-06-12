@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/visual_script.dart';
 import '../../models/workspace_models.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/script_compiler.dart';
 import '../script_steps/flowchart_canvas.dart';
 
 import '../script_steps/forms/set_variable_step_form.dart';
@@ -32,6 +33,9 @@ import '../script_steps/forms/end_step_form.dart';
 class ScriptManagerDialog extends StatefulWidget {
   final WorkspaceModel workspace;
   final ValueChanged<WorkspaceModel> onWorkspaceUpdated;
+  /// Slim request refs built by the call site from RequestProvider.collections.
+  /// Passed here to avoid loading full HttpRequest bodies in widget memory.
+  final List<WorkspaceRequestRef> availableRequests;
 
   // Global visual persistence variables for sidebar visibilities
   static bool showLeftSidebar = true;
@@ -41,6 +45,7 @@ class ScriptManagerDialog extends StatefulWidget {
     super.key,
     required this.workspace,
     required this.onWorkspaceUpdated,
+    this.availableRequests = const [],
   });
 
   @override
@@ -605,7 +610,12 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
     } else if (node is IfStep) {
       return IfStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
     } else if (node is SendRequestStep) {
-      return SendRequestStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
+      return SendRequestStepForm(
+        nodeId: nodeId,
+        node: node,
+        onUpdated: _updateNode,
+        availableRequests: widget.availableRequests,
+      );
     } else if (node is DelayStep) {
       return DelayStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
     } else if (node is SwitchStep) {

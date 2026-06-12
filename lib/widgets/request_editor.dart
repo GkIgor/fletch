@@ -127,10 +127,23 @@ class _RequestEditorState extends State<RequestEditor>
           requestProvider.updateSelectedRequest(updated);
         },
         onOpenManager: () {
+          // Build slim refs here — call site owns RequestProvider
+          final refs = requestProvider.collections
+              .expand((c) => c.requests)
+              .map((r) => WorkspaceRequestRef(
+                    id: r.id,
+                    name: r.name,
+                    method: r.method.value,
+                    url: r.url,
+                    headers: r.headers,
+                    body: r.body,
+                  ))
+              .toList();
           showDialog(
             context: context,
             builder: (context) => ScriptManagerDialog(
               workspace: workspace,
+              availableRequests: refs,
               onWorkspaceUpdated: (updatedWorkspace) {
                 wsProvider.addWorkspace(updatedWorkspace);
               },

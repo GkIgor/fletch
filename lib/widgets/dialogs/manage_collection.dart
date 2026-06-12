@@ -11,6 +11,7 @@ import 'package:fletch/widgets/script_selector_widget.dart';
 import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/utils/script_compiler.dart';
 
 class NewCollectionDialogBody extends StatefulWidget {
   const NewCollectionDialogBody({
@@ -330,10 +331,22 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
                         onOpenManager: () {
                           final workspace = wsProvider.currentWorkspace;
                           if (workspace != null) {
+                            final refs = requestProvider.collections
+                                .expand((c) => c.requests)
+                                .map((r) => WorkspaceRequestRef(
+                                      id: r.id,
+                                      name: r.name,
+                                      method: r.method.value,
+                                      url: r.url,
+                                      headers: r.headers,
+                                      body: r.body,
+                                    ))
+                                .toList();
                             showDialog(
                               context: context,
                               builder: (context) => ScriptManagerDialog(
                                 workspace: workspace,
+                                availableRequests: refs,
                                 onWorkspaceUpdated: (updatedWorkspace) {
                                   wsProvider.addWorkspace(updatedWorkspace);
                                 },

@@ -1,7 +1,6 @@
 // JIT Engine, ExecutionLog, and compiled instruction steps for Fletch visual automation scripts.
 import 'dart:convert';
 import '../models/visual_script.dart';
-
 import 'compiled_steps/compiled_set_variable_step.dart';
 import 'compiled_steps/compiled_assert_value_step.dart';
 import 'compiled_steps/compiled_if_step.dart';
@@ -49,6 +48,27 @@ export 'compiled_steps/compiled_header_builder_step.dart';
 export 'compiled_steps/compiled_start_step.dart';
 export 'compiled_steps/compiled_fail_step.dart';
 export 'compiled_steps/compiled_end_step.dart';
+
+/// Lightweight reference to a workspace HttpRequest — only the fields needed
+/// by the JIT compiler to resolve a SendRequestStep with requestId.
+/// Using a slim DTO avoids loading full request bodies into the canvas's RAM.
+class WorkspaceRequestRef {
+  final String id;
+  final String name;
+  final String method;
+  final String url;
+  final Map<String, String> headers;
+  final String? body;
+
+  const WorkspaceRequestRef({
+    required this.id,
+    required this.name,
+    required this.method,
+    required this.url,
+    required this.headers,
+    this.body,
+  });
+}
 
 enum LogLevel { info, warn, error, debug }
 
@@ -232,18 +252,28 @@ class JitCache {
   static final Map<String, CompiledScript> _cache = {};
   static final Map<String, DateTime> _timestamps = {};
 
-  static CompiledScript getOrCreate(VisualScript script) {
+  static CompiledScript getOrCreate(
+    VisualScript script, {
+    List<WorkspaceRequestRef>? availableRequests,
+  }) {
     final cached = _cache[script.id];
     final lastModified = _timestamps[script.id];
 
-    if (cached != null && lastModified != null && !lastModified.isBefore(script.updatedAt)) {
+    // Cache hit: only valid when no request refs are provided (pre-request scripts
+    // with no workspace-request steps) OR when the timestamp has not changed.
+    if (availableRequests == null &&
+        cached != null &&
+        lastModified != null &&
+        !lastModified.isBefore(script.updatedAt)) {
       return cached;
     }
 
-    // Compile and cache
-    final compiled = ScriptCompiler.compile(script);
-    _cache[script.id] = compiled;
-    _timestamps[script.id] = script.updatedAt;
+    // Compile and cache only when there are no dynamic request refs.
+    final compiled = ScriptCompiler.compile(script, availableRequests: availableRequests);
+    if (availableRequests == null) {
+      _cache[script.id] = compiled;
+      _timestamps[script.id] = script.updatedAt;
+    }
     return compiled;
   }
 
@@ -260,8 +290,15 @@ class JitCache {
 
 /// JIT Compiler that translates VisualScript structures to optimized runtime representations.
 class ScriptCompiler {
-  static CompiledScript compile(VisualScript script) {
+  static CompiledScript compile(
+    VisualScript script, {
+    List<WorkspaceRequestRef>? availableRequests,
+  }) {
     final Map<String, CompiledStep> compiledNodes = {};
+    final Map<String, WorkspaceRequestRef> requestsById = {
+      if (availableRequests != null)
+        for (final r in availableRequests) r.id: r,
+    };
 
     script.nodes.forEach((id, step) {
       if (!step.enabled) return;
@@ -294,14 +331,16 @@ class ScriptCompiler {
           break;
         case VisualStepType.sendRequest:
           final s = step as SendRequestStep;
+          // Resolve workspace request reference when present.
+          final ref = s.requestId != null ? requestsById[s.requestId] : null;
           compiledNodes[id] = CompiledSendRequestStep(
             id: s.id,
             name: s.name,
             nextStepId: s.nextStepId,
-            method: s.method,
-            url: s.url,
-            headers: s.headers,
-            body: s.body,
+            method: ref?.method ?? s.method,
+            url: ref?.url ?? s.url,
+            headers: ref?.headers ?? s.headers,
+            body: ref?.body ?? s.body,
             saveToVariable: s.saveToVariable,
           );
           break;
