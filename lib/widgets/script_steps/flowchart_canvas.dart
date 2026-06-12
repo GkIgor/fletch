@@ -240,6 +240,18 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
           name: 'Start',
         );
         break;
+      case VisualStepType.fail:
+        newStep = FailStep(
+          id: newStepId,
+          name: 'Fail',
+        );
+        break;
+      case VisualStepType.end:
+        newStep = EndStep(
+          id: newStepId,
+          name: 'End',
+        );
+        break;
     }
 
     final Map<String, VisualStep> updatedNodes = Map.from(widget.script.nodes);
@@ -567,6 +579,8 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                 final isHovered = _hoveredNodeId == id;
                 final showInsertionButtons = isSelected || isHovered;
                 final nodeH = getNodeHeight(node);
+                final hasUnconnectedBranch = (node is IfStep && (node.trueStepId == null || node.trueStepId!.isEmpty || node.falseStepId == null || node.falseStepId!.isEmpty)) ||
+                                             (node is SwitchStep && (node.cases.any((c) => c.nextStepId == null || c.nextStepId!.isEmpty) || node.defaultStepId == null || node.defaultStepId!.isEmpty));
 
                 IconData? statusIcon;
                 Color? statusColor;
@@ -598,13 +612,6 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          // Execution status indicator
-                          if (statusIcon != null)
-                            Positioned(
-                              top: -6,
-                              left: -6,
-                              child: Icon(statusIcon, size: 14, color: statusColor),
-                            ),
                           // Card widget and gestures
                           Positioned(
                             left: 0,
@@ -748,6 +755,23 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                               ),
                             ),
                           ),
+                          // Execution status indicator
+                          if (statusIcon != null)
+                            Positioned(
+                              top: -6,
+                              left: -6,
+                              child: Icon(statusIcon, size: 14, color: statusColor),
+                            ),
+                          // Validation warning indicator
+                          if (hasUnconnectedBranch)
+                            Positioned(
+                              top: -6,
+                              left: nodeW - 8,
+                              child: Tooltip(
+                                message: 'Warning: Unconnected branch(es) will default to Fail step.',
+                                child: Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amber.shade700),
+                              ),
+                            ),
                           // Output Connection Ports
                           if (showInsertionButtons) ...[
                             if (node is IfStep) ...[
@@ -755,13 +779,19 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                                 Positioned(
                                   left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'true') - 9,
-                                  child: _buildInsertionButton(id, 'true'),
+                                  child: Tooltip(
+                                    message: 'true',
+                                    child: _buildInsertionButton(id, 'true'),
+                                  ),
                                 ),
                               if (!_isPortConnected(node, 'false'))
                                 Positioned(
                                   left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'false') - 9,
-                                  child: _buildInsertionButton(id, 'false'),
+                                  child: Tooltip(
+                                    message: 'false',
+                                    child: _buildInsertionButton(id, 'false'),
+                                  ),
                                 ),
                             ] else if (node is SwitchStep) ...[
                               ...node.cases.map((c) {
@@ -862,6 +892,10 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
         return Icons.http_outlined;
       case VisualStepType.start:
         return Icons.play_arrow_rounded;
+      case VisualStepType.fail:
+        return Icons.cancel_outlined;
+      case VisualStepType.end:
+        return Icons.stop_circle_outlined;
       case VisualStepType.delay:
         return Icons.hourglass_top_outlined;
       case VisualStepType.switchStep:
@@ -909,6 +943,10 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
         return Colors.blue;
       case VisualStepType.start:
         return Colors.green;
+      case VisualStepType.fail:
+        return Colors.red.shade600;
+      case VisualStepType.end:
+        return Colors.green.shade600;
       case VisualStepType.delay:
         return Colors.teal;
       case VisualStepType.switchStep:
@@ -956,6 +994,10 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
         return 'HTTP Request';
       case VisualStepType.start:
         return 'Start';
+      case VisualStepType.fail:
+        return 'Fail';
+      case VisualStepType.end:
+        return 'End';
       case VisualStepType.delay:
         return 'Delay';
       case VisualStepType.switchStep:

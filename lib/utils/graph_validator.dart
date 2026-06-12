@@ -74,72 +74,25 @@ class GraphValidator {
         }
       }
 
-      // Validate conditional / branching nodes
-      if (node is IfStep) {
-        if (node.trueStepId != null && node.trueStepId!.isNotEmpty) {
-          if (!script.nodes.containsKey(node.trueStepId)) {
-            errors.add(GraphValidationError(
-              severity: ValidationErrorSeverity.error,
-              nodeId: id,
-              nodeName: node.name,
-              message: 'Connection "True" points to non-existent node "${node.trueStepId}".',
-            ));
-          } else {
-            referencedIds.add(node.trueStepId!);
+      // Validate conditional / branching nodes using switch/case
+      switch (node.type) {
+        case VisualStepType.ifStep:
+          if (node is IfStep) {
+            _validateIfNode(script, id, node, errors, referencedIds);
           }
-        }
-        if (node.falseStepId != null && node.falseStepId!.isNotEmpty) {
-          if (!script.nodes.containsKey(node.falseStepId)) {
-            errors.add(GraphValidationError(
-              severity: ValidationErrorSeverity.error,
-              nodeId: id,
-              nodeName: node.name,
-              message: 'Connection "False" points to non-existent node "${node.falseStepId}".',
-            ));
-          } else {
-            referencedIds.add(node.falseStepId!);
+          break;
+        case VisualStepType.switchStep:
+          if (node is SwitchStep) {
+            _validateSwitchNode(script, id, node, errors, referencedIds);
           }
-        }
-      } else if (node is SwitchStep) {
-        for (var c in node.cases) {
-          if (c.nextStepId != null && c.nextStepId!.isNotEmpty) {
-            if (!script.nodes.containsKey(c.nextStepId)) {
-              errors.add(GraphValidationError(
-                severity: ValidationErrorSeverity.error,
-                nodeId: id,
-                nodeName: node.name,
-                message: 'Case "${c.value}" points to non-existent node "${c.nextStepId}".',
-              ));
-            } else {
-              referencedIds.add(c.nextStepId!);
-            }
+          break;
+        case VisualStepType.splitOut:
+          if (node is SplitOutStep) {
+            _validateSplitOutNode(script, id, node, errors, referencedIds);
           }
-        }
-        if (node.defaultStepId != null && node.defaultStepId!.isNotEmpty) {
-          if (!script.nodes.containsKey(node.defaultStepId)) {
-            errors.add(GraphValidationError(
-              severity: ValidationErrorSeverity.error,
-              nodeId: id,
-              nodeName: node.name,
-              message: 'Default branch points to non-existent node "${node.defaultStepId}".',
-            ));
-          } else {
-            referencedIds.add(node.defaultStepId!);
-          }
-        }
-      } else if (node is SplitOutStep) {
-        if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
-          if (!script.nodes.containsKey(node.loopStepId)) {
-            errors.add(GraphValidationError(
-              severity: ValidationErrorSeverity.error,
-              nodeId: id,
-              nodeName: node.name,
-              message: 'Loop sequence points to non-existent node "${node.loopStepId}".',
-            ));
-          } else {
-            referencedIds.add(node.loopStepId!);
-          }
-        }
+          break;
+        default:
+          break;
       }
     });
 
@@ -166,5 +119,116 @@ class GraphValidator {
     }
 
     return errors;
+  }
+
+  static void _validateIfNode(
+    VisualScript script,
+    String id,
+    IfStep node,
+    List<GraphValidationError> errors,
+    Set<String> referencedIds,
+  ) {
+    if (node.trueStepId == null || node.trueStepId!.isEmpty) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.warning,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'True branch is empty and will fallback to Fail step.',
+      ));
+    } else if (!script.nodes.containsKey(node.trueStepId)) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.error,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'Connection "True" points to non-existent node "${node.trueStepId}".',
+      ));
+    } else {
+      referencedIds.add(node.trueStepId!);
+    }
+
+    if (node.falseStepId == null || node.falseStepId!.isEmpty) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.warning,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'False branch is empty and will fallback to Fail step.',
+      ));
+    } else if (!script.nodes.containsKey(node.falseStepId)) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.error,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'Connection "False" points to non-existent node "${node.falseStepId}".',
+      ));
+    } else {
+      referencedIds.add(node.falseStepId!);
+    }
+  }
+
+  static void _validateSwitchNode(
+    VisualScript script,
+    String id,
+    SwitchStep node,
+    List<GraphValidationError> errors,
+    Set<String> referencedIds,
+  ) {
+    for (var c in node.cases) {
+      if (c.nextStepId == null || c.nextStepId!.isEmpty) {
+        errors.add(GraphValidationError(
+          severity: ValidationErrorSeverity.warning,
+          nodeId: id,
+          nodeName: node.name,
+          message: 'Case "${c.value}" branch is empty and will fallback to Fail step.',
+        ));
+      } else if (!script.nodes.containsKey(c.nextStepId)) {
+        errors.add(GraphValidationError(
+          severity: ValidationErrorSeverity.error,
+          nodeId: id,
+          nodeName: node.name,
+          message: 'Case "${c.value}" points to non-existent node "${c.nextStepId}".',
+        ));
+      } else {
+        referencedIds.add(c.nextStepId!);
+      }
+    }
+
+    if (node.defaultStepId == null || node.defaultStepId!.isEmpty) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.warning,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'Default branch is empty and will fallback to Fail step.',
+      ));
+    } else if (!script.nodes.containsKey(node.defaultStepId)) {
+      errors.add(GraphValidationError(
+        severity: ValidationErrorSeverity.error,
+        nodeId: id,
+        nodeName: node.name,
+        message: 'Default branch points to non-existent node "${node.defaultStepId}".',
+      ));
+    } else {
+      referencedIds.add(node.defaultStepId!);
+    }
+  }
+
+  static void _validateSplitOutNode(
+    VisualScript script,
+    String id,
+    SplitOutStep node,
+    List<GraphValidationError> errors,
+    Set<String> referencedIds,
+  ) {
+    if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
+      if (!script.nodes.containsKey(node.loopStepId)) {
+        errors.add(GraphValidationError(
+          severity: ValidationErrorSeverity.error,
+          nodeId: id,
+          nodeName: node.name,
+          message: 'Loop sequence points to non-existent node "${node.loopStepId}".',
+        ));
+      } else {
+        referencedIds.add(node.loopStepId!);
+      }
+    }
   }
 }

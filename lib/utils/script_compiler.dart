@@ -23,6 +23,8 @@ import 'compiled_steps/compiled_markdown_convert_step.dart';
 import 'compiled_steps/compiled_json_path_step.dart';
 import 'compiled_steps/compiled_header_builder_step.dart';
 import 'compiled_steps/compiled_start_step.dart';
+import 'compiled_steps/compiled_fail_step.dart';
+import 'compiled_steps/compiled_end_step.dart';
 
 export 'compiled_steps/compiled_set_variable_step.dart';
 export 'compiled_steps/compiled_assert_value_step.dart';
@@ -45,6 +47,8 @@ export 'compiled_steps/compiled_markdown_convert_step.dart';
 export 'compiled_steps/compiled_json_path_step.dart';
 export 'compiled_steps/compiled_header_builder_step.dart';
 export 'compiled_steps/compiled_start_step.dart';
+export 'compiled_steps/compiled_fail_step.dart';
+export 'compiled_steps/compiled_end_step.dart';
 
 enum LogLevel { info, warn, error, debug }
 
@@ -312,12 +316,33 @@ class ScriptCompiler {
           break;
         case VisualStepType.switchStep:
           final s = step as SwitchStep;
+          final List<SwitchCase> compiledCases = [];
+          for (int i = 0; i < s.cases.length; i++) {
+            final c = s.cases[i];
+            String? caseNextId = c.nextStepId;
+            if (caseNextId == null || caseNextId.isEmpty) {
+              caseNextId = 'virtual_fail_${s.id}_case_$i';
+              compiledNodes[caseNextId] = CompiledFailStep(
+                id: caseNextId,
+                name: 'Virtual Fail (Case: ${c.value})',
+              );
+            }
+            compiledCases.add(SwitchCase(value: c.value, nextStepId: caseNextId));
+          }
+          String? defaultId = s.defaultStepId;
+          if (defaultId == null || defaultId.isEmpty) {
+            defaultId = 'virtual_fail_${s.id}_default';
+            compiledNodes[defaultId] = CompiledFailStep(
+              id: defaultId,
+              name: 'Virtual Fail (Default Branch)',
+            );
+          }
           compiledNodes[id] = CompiledSwitchStep(
             id: s.id,
             name: s.name,
             valueSource: compileValueSource(s.valueSource),
-            cases: s.cases,
-            defaultStepId: s.defaultStepId,
+            cases: compiledCases,
+            defaultStepId: defaultId,
           );
           break;
         case VisualStepType.merge:
@@ -367,14 +392,30 @@ class ScriptCompiler {
           break;
         case VisualStepType.ifStep:
           final s = step as IfStep;
+          String? trueId = s.trueStepId;
+          if (trueId == null || trueId.isEmpty) {
+            trueId = 'virtual_fail_${s.id}_true';
+            compiledNodes[trueId] = CompiledFailStep(
+              id: trueId,
+              name: 'Virtual Fail (True Branch)',
+            );
+          }
+          String? falseId = s.falseStepId;
+          if (falseId == null || falseId.isEmpty) {
+            falseId = 'virtual_fail_${s.id}_false';
+            compiledNodes[falseId] = CompiledFailStep(
+              id: falseId,
+              name: 'Virtual Fail (False Branch)',
+            );
+          }
           compiledNodes[id] = CompiledIfStep(
             id: s.id,
             name: s.name,
             left: compileValueSource(s.leftSource),
             operator: s.operator,
             right: compileValueSource(s.rightSource),
-            trueStepId: s.trueStepId,
-            falseStepId: s.falseStepId,
+            trueStepId: trueId,
+            falseStepId: falseId,
           );
           break;
         case VisualStepType.sort:
@@ -499,6 +540,20 @@ class ScriptCompiler {
             id: s.id,
             name: s.name,
             nextStepId: s.nextStepId,
+          );
+          break;
+        case VisualStepType.fail:
+          final s = step as FailStep;
+          compiledNodes[id] = CompiledFailStep(
+            id: s.id,
+            name: s.name,
+          );
+          break;
+        case VisualStepType.end:
+          final s = step as EndStep;
+          compiledNodes[id] = CompiledEndStep(
+            id: s.id,
+            name: s.name,
           );
           break;
       }

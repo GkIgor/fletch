@@ -588,5 +588,73 @@ void main() {
       expect(headersMap['Authorization'], equals('Bearer my-secret-token'));
       expect(headersMap['Content-Type'], equals('application/json'));
     });
+
+    test('FailStep stops execution with failure', () async {
+      final script = VisualScript(
+        id: 'script-fail',
+        name: 'Fail Step Test',
+        startNodeId: 'fail-node',
+        nodes: {
+          'fail-node': FailStep(
+            id: 'fail-node',
+            name: 'Fail Node',
+          ),
+        },
+      );
+
+      final compiled = ScriptCompiler.compile(script);
+      final context = ExecutionContext(variables: {});
+      
+      await expectLater(
+        compiled.execute(context),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('Fail step reached'))),
+      );
+      expect(context.logs.any((l) => l.message.contains('Flow execution failed at Fail step')), isTrue);
+    });
+
+    test('EndStep terminates execution successfully', () async {
+      final script = VisualScript(
+        id: 'script-end',
+        name: 'End Step Test',
+        startNodeId: 'end-node',
+        nodes: {
+          'end-node': EndStep(
+            id: 'end-node',
+            name: 'End Node',
+          ),
+        },
+      );
+
+      final compiled = ScriptCompiler.compile(script);
+      final context = ExecutionContext(variables: {});
+      await compiled.execute(context);
+      
+      expect(context.logs.any((l) => l.message.contains('Flow completed at End step')), isTrue);
+    });
+
+    test('Conditional step empty branches automatically route to virtual FailStep', () async {
+      final script = VisualScript(
+        id: 'script-cond-fallback',
+        name: 'Conditional Fallback Test',
+        startNodeId: 'if-node',
+        nodes: {
+          'if-node': IfStep(
+            id: 'if-node',
+            leftSource: ValueSource(type: ValueSourceType.constant, key: '1'),
+            operator: '==',
+            rightSource: ValueSource(type: ValueSourceType.constant, key: '1'),
+          ),
+        },
+      );
+
+      final compiled = ScriptCompiler.compile(script);
+      final context = ExecutionContext(variables: {});
+
+      await expectLater(
+        compiled.execute(context),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('Fail step reached'))),
+      );
+      expect(context.logs.any((l) => l.nodeName.contains('Virtual Fail (True Branch)')), isTrue);
+    });
   });
 }

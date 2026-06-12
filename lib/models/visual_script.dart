@@ -22,6 +22,8 @@ import 'visual_steps/markdown_convert_step.dart';
 import 'visual_steps/json_path_step.dart';
 import 'visual_steps/header_builder_step.dart';
 import 'visual_steps/start_step.dart';
+import 'visual_steps/fail_step.dart';
+import 'visual_steps/end_step.dart';
 
 export 'visual_steps/set_variable_step.dart';
 export 'visual_steps/assert_value_step.dart';
@@ -44,6 +46,8 @@ export 'visual_steps/markdown_convert_step.dart';
 export 'visual_steps/json_path_step.dart';
 export 'visual_steps/header_builder_step.dart';
 export 'visual_steps/start_step.dart';
+export 'visual_steps/fail_step.dart';
+export 'visual_steps/end_step.dart';
 
 enum ScriptMode {
   lowCode,
@@ -72,6 +76,8 @@ enum VisualStepType {
   jsonPathStep,
   headerBuilder,
   start,
+  fail,
+  end,
 }
 
 enum ValueSourceType {
@@ -218,6 +224,10 @@ abstract class VisualStep {
         return HeaderBuilderStep.fromJson(json);
       case VisualStepType.start:
         return StartStep.fromJson(json);
+      case VisualStepType.fail:
+        return FailStep.fromJson(json);
+      case VisualStepType.end:
+        return EndStep.fromJson(json);
     }
   }
 }

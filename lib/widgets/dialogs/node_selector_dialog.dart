@@ -54,6 +54,20 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
           icon: Icons.call_split_rounded,
           color: Colors.indigo,
         ),
+        NodeSelectorItem(
+          type: VisualStepType.end,
+          title: 'End',
+          description: 'Successfully terminate the flowchart execution flow.',
+          icon: Icons.stop_circle_outlined,
+          color: Colors.green.shade600,
+        ),
+        NodeSelectorItem(
+          type: VisualStepType.fail,
+          title: 'Fail',
+          description: 'Explicitly fail the script execution with error.',
+          icon: Icons.cancel_outlined,
+          color: Colors.red.shade600,
+        ),
       ],
     },
     {

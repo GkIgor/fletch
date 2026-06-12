@@ -34,8 +34,8 @@ class FlowchartPainter extends CustomPainter {
       if (src == null) return;
 
       if (node is IfStep) {
-        _drawConnection(canvas, id, node.trueStepId, src, getOutputYOffset(node, 'true'), paintNormal, paintBackEdge, label: 'T');
-        _drawConnection(canvas, id, node.falseStepId, src, getOutputYOffset(node, 'false'), paintNormal, paintBackEdge, label: 'F');
+        _drawConnection(canvas, id, node.trueStepId, src, getOutputYOffset(node, 'true'), paintNormal, paintBackEdge, label: 'true');
+        _drawConnection(canvas, id, node.falseStepId, src, getOutputYOffset(node, 'false'), paintNormal, paintBackEdge, label: 'false');
       } else if (node is SwitchStep) {
         for (int i = 0; i < node.cases.length; i++) {
           final c = node.cases[i];

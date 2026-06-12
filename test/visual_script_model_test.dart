@@ -315,5 +315,44 @@ void main() {
       expect(decodedStart.enabled, isTrue);
       expect(decodedStart.nextStepId, equals('next-1'));
     });
+
+    test('Should serialize and deserialize FailStep and EndStep correctly', () {
+      final failStep = FailStep(
+        id: 'fail-1',
+        name: 'My Fail',
+        enabled: true,
+      );
+      final endStep = EndStep(
+        id: 'end-1',
+        name: 'My End',
+        enabled: true,
+      );
+
+      final script = VisualScript(
+        name: 'Fail and End Step Test Script',
+        startNodeId: 'start-1',
+        nodes: {
+          'fail-1': failStep,
+          'end-1': endStep,
+        },
+      );
+
+      final jsonMap = script.toJson();
+      final jsonStr = jsonEncode(jsonMap);
+      final decodedScript = VisualScript.fromJson(jsonDecode(jsonStr));
+
+      expect(decodedScript.nodes.length, equals(2));
+      expect(decodedScript.nodes['fail-1'], isA<FailStep>());
+      final decodedFail = decodedScript.nodes['fail-1'] as FailStep;
+      expect(decodedFail.type, equals(VisualStepType.fail));
+      expect(decodedFail.type.name, equals('fail'));
+      expect(decodedFail.name, equals('My Fail'));
+
+      expect(decodedScript.nodes['end-1'], isA<EndStep>());
+      final decodedEnd = decodedScript.nodes['end-1'] as EndStep;
+      expect(decodedEnd.type, equals(VisualStepType.end));
+      expect(decodedEnd.type.name, equals('end'));
+      expect(decodedEnd.name, equals('My End'));
+    });
   });
 }

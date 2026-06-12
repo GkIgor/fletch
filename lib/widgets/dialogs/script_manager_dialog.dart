@@ -26,6 +26,8 @@ import '../script_steps/forms/markdown_convert_step_form.dart';
 import '../script_steps/forms/json_path_step_form.dart';
 import '../script_steps/forms/header_builder_step_form.dart';
 import '../script_steps/forms/start_step_form.dart';
+import '../script_steps/forms/fail_step_form.dart';
+import '../script_steps/forms/end_step_form.dart';
 
 class ScriptManagerDialog extends StatefulWidget {
   final WorkspaceModel workspace;
@@ -138,6 +140,103 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
     ));
   }
 
+  void _autoFillFailSteps() {
+    final List<VisualScript> updatedScripts = [];
+    bool anyChanged = false;
+
+    for (var script in widget.workspace.scripts) {
+      final Map<String, VisualStep> updatedNodes = Map.from(script.nodes);
+      bool scriptChanged = false;
+
+      for (var entry in script.nodes.entries) {
+        final nodeId = entry.key;
+        final node = entry.value;
+
+        if (node is IfStep) {
+          String? trueId = node.trueStepId;
+          if (trueId == null || trueId.isEmpty) {
+            final failNodeId = UniqueKey().toString();
+            final failStep = FailStep(
+              id: failNodeId,
+              name: 'Fail',
+            );
+            updatedNodes[failNodeId] = failStep;
+            final updatedNode = IfStep.fromJson(node.toJson())..trueStepId = failNodeId;
+            updatedNodes[nodeId] = updatedNode;
+            scriptChanged = true;
+          }
+          final currentNode = updatedNodes[nodeId] as IfStep;
+          String? falseId = currentNode.falseStepId;
+          if (falseId == null || falseId.isEmpty) {
+            final failNodeId = UniqueKey().toString();
+            final failStep = FailStep(
+              id: failNodeId,
+              name: 'Fail',
+            );
+            updatedNodes[failNodeId] = failStep;
+            final updatedNode = IfStep.fromJson(currentNode.toJson())..falseStepId = failNodeId;
+            updatedNodes[nodeId] = updatedNode;
+            scriptChanged = true;
+          }
+        } else if (node is SwitchStep) {
+          final List<SwitchCase> updatedCases = [];
+          bool switchChanged = false;
+
+          for (var c in node.cases) {
+            String? caseNextId = c.nextStepId;
+            if (caseNextId == null || caseNextId.isEmpty) {
+              final failNodeId = UniqueKey().toString();
+              final failStep = FailStep(
+                id: failNodeId,
+                name: 'Fail',
+              );
+              updatedNodes[failNodeId] = failStep;
+              updatedCases.add(SwitchCase(value: c.value, nextStepId: failNodeId));
+              switchChanged = true;
+            } else {
+              updatedCases.add(c);
+            }
+          }
+
+          String? newDefaultStepId = node.defaultStepId;
+          if (newDefaultStepId == null || newDefaultStepId.isEmpty) {
+            final failNodeId = UniqueKey().toString();
+            final failStep = FailStep(
+              id: failNodeId,
+              name: 'Fail',
+            );
+            updatedNodes[failNodeId] = failStep;
+            newDefaultStepId = failNodeId;
+            switchChanged = true;
+          }
+
+          if (switchChanged) {
+            final updatedNode = SwitchStep.fromJson(node.toJson())
+              ..cases = updatedCases
+              ..defaultStepId = newDefaultStepId;
+            updatedNodes[nodeId] = updatedNode;
+            scriptChanged = true;
+          }
+        }
+      }
+
+      if (scriptChanged) {
+        updatedScripts.add(script.copyWith(
+          nodes: updatedNodes,
+          updatedAt: DateTime.now(),
+        ));
+        anyChanged = true;
+      } else {
+        updatedScripts.add(script);
+      }
+    }
+
+    if (anyChanged) {
+      widget.workspace.scripts = updatedScripts;
+      widget.onWorkspaceUpdated(widget.workspace);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -147,9 +246,14 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
     final dialogWidth = screenSize.width * 0.95;
     final dialogHeight = screenSize.height * 0.90;
 
-    return Dialog(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return WillPopScope(
+      onWillPop: () async {
+        _autoFillFailSteps();
+        return true;
+      },
+      child: Dialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
         width: dialogWidth,
         height: dialogHeight,
@@ -204,7 +308,10 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                   const SizedBox(width: 12),
                   // Close Dialog Button
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      _autoFillFailSteps();
+                      Navigator.pop(context);
+                    },
                     icon: const Icon(Icons.close_rounded),
                     tooltip: 'Close',
                     splashRadius: 20,
@@ -435,8 +542,9 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPropertiesPanel(bool isDark, Color borderColor) {
     final nodeId = _selectedNodeId!;
@@ -532,6 +640,10 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
       return HeaderBuilderStepForm(nodeId: nodeId, node: node, borderColor: borderColor, onUpdated: _updateNode);
     } else if (node is StartStep) {
       return StartStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
+    } else if (node is FailStep) {
+      return FailStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
+    } else if (node is EndStep) {
+      return EndStepForm(nodeId: nodeId, node: node, onUpdated: _updateNode);
     }
     return const SizedBox.shrink();
   }
