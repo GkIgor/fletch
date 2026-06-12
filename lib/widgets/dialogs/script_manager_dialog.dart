@@ -143,12 +143,16 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = screenSize.width * 0.95;
+    final dialogHeight = screenSize.height * 0.90;
+
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
-        width: 1200,
-        height: 750,
+        width: dialogWidth,
+        height: dialogHeight,
         child: Column(
           children: [
             // Title Header Row

@@ -3,141 +3,9 @@ import 'package:flutter/material.dart';
 import '../../models/visual_script.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/script_compiler.dart';
-import 'node_selector_dialog.dart';
-
-double getNodeHeight(VisualStep node) {
-  if (node is SwitchStep) {
-    return 36.0 + (node.cases.length + 1) * 28.0 + 8.0;
-  }
-  return 70.0;
-}
-
-double getOutputYOffset(VisualStep node, String connectionType, {String? switchCaseVal}) {
-  if (node is SwitchStep) {
-    if (connectionType == 'switch_default') {
-      return 36.0 + node.cases.length * 28.0 + 14.0;
-    } else if (connectionType == 'switch_case' && switchCaseVal != null) {
-      final idx = node.cases.indexWhere((c) => c.value == switchCaseVal);
-      if (idx != -1) {
-        return 36.0 + idx * 28.0 + 14.0;
-      }
-    }
-    return 36.0 + 14.0;
-  }
-  const double nodeH = 70.0;
-  if (node is IfStep) {
-    if (connectionType == 'true') return nodeH / 4;
-    if (connectionType == 'false') return (nodeH * 3) / 4;
-  }
-  if (node is SplitOutStep) {
-    if (connectionType == 'loop') return nodeH / 4;
-    if (connectionType == 'next') return (nodeH * 3) / 4;
-  }
-  return nodeH / 2;
-}
-
-int getNodeRowSpan(VisualStep node) {
-  final height = getNodeHeight(node);
-  return (height / 110.0).ceil();
-}
-
-class FlowchartLayoutManager {
-  final Map<String, Point<int>> gridPositions = {};
-  final Set<String> visited = {};
-  final Map<int, Set<int>> occupiedCells = {}; // col -> set of rows
-
-  void calculate(VisualScript script) {
-    gridPositions.clear();
-    visited.clear();
-    occupiedCells.clear();
-    if (script.startNodeId == null || script.nodes[script.startNodeId] == null) return;
-    _layoutNode(script, script.startNodeId!, 0, 0);
-
-    // Layout orphaned nodes below the main flow
-    script.nodes.forEach((id, node) {
-      if (!visited.contains(id)) {
-        int maxOccupiedRow = -1;
-        occupiedCells.forEach((col, rows) {
-          for (var r in rows) {
-            if (r > maxOccupiedRow) maxOccupiedRow = r;
-          }
-        });
-        int startRow = maxOccupiedRow + 2;
-        _layoutNode(script, id, 0, startRow);
-      }
-    });
-  }
-
-  void _layoutNode(VisualScript script, String nodeId, int col, int row) {
-    if (visited.contains(nodeId)) return;
-    visited.add(nodeId);
-
-    final node = script.nodes[nodeId];
-    if (node == null) return;
-
-    // Resolve collision taking row span into account
-    int targetRow = row;
-    int span = getNodeRowSpan(node);
-    bool hasCollision = true;
-
-    while (hasCollision) {
-      hasCollision = false;
-      for (int r = 0; r < span; r++) {
-        if (isCellOccupied(col, targetRow + r)) {
-          hasCollision = true;
-          break;
-        }
-      }
-      if (hasCollision) {
-        targetRow++;
-      }
-    }
-
-    for (int r = 0; r < span; r++) {
-      occupyCell(col, targetRow + r);
-    }
-    gridPositions[nodeId] = Point(col, targetRow);
-
-    if (node is IfStep) {
-      if (node.trueStepId != null && node.trueStepId!.isNotEmpty) {
-        _layoutNode(script, node.trueStepId!, col + 1, targetRow);
-      }
-      if (node.falseStepId != null && node.falseStepId!.isNotEmpty) {
-        _layoutNode(script, node.falseStepId!, col + 1, targetRow + 1);
-      }
-    } else if (node is SwitchStep) {
-      int offset = 0;
-      for (var caseItem in node.cases) {
-        if (caseItem.nextStepId != null && caseItem.nextStepId!.isNotEmpty) {
-          _layoutNode(script, caseItem.nextStepId!, col + 1, targetRow + offset);
-          offset++;
-        }
-      }
-      if (node.defaultStepId != null && node.defaultStepId!.isNotEmpty) {
-        _layoutNode(script, node.defaultStepId!, col + 1, targetRow + offset);
-      }
-    } else if (node is SplitOutStep) {
-      if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
-        _layoutNode(script, node.loopStepId!, col + 1, targetRow + 1);
-      }
-      if (node.nextStepId != null && node.nextStepId!.isNotEmpty) {
-        _layoutNode(script, node.nextStepId!, col + 1, targetRow);
-      }
-    } else {
-      if (node.nextStepId != null && node.nextStepId!.isNotEmpty) {
-        _layoutNode(script, node.nextStepId!, col + 1, targetRow);
-      }
-    }
-  }
-
-  bool isCellOccupied(int col, int row) {
-    return occupiedCells[col]?.contains(row) ?? false;
-  }
-
-  void occupyCell(int col, int row) {
-    occupiedCells.putIfAbsent(col, () => {}).add(row);
-  }
-}
+import '../dialogs/node_selector_dialog.dart';
+import 'flowchart_layout_manager.dart';
+import 'flowchart_painter.dart';
 
 class FlowchartCanvas extends StatefulWidget {
   final VisualScript script;
@@ -724,133 +592,12 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                     onExit: (_) => setState(() {
                       if (_hoveredNodeId == id) _hoveredNodeId = null;
                     }),
-                    child: GestureDetector(
-                      onTapDown: (details) {
-                        _tapDownDetails = details;
-                      },
-                      onTap: () {
-                        widget.onSelectNode(id);
-                        if (_tapDownDetails != null) {
-                          _showNodeMenu(context, id, node, _tapDownDetails!.globalPosition);
-                        }
-                      },
-                      onDoubleTap: () => widget.onDoubleSelectNode(id),
+                    child: SizedBox(
+                      width: nodeW + 24.0,
+                      height: nodeH,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Container(
-                            width: nodeW,
-                            height: nodeH,
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF4B2BEE)
-                                    : isDark
-                                        ? const Color(0xFF334155)
-                                        : const Color(0xFFE2E8F0),
-                                width: isSelected ? 2.0 : 1.0,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
-                            ),
-                            child: node is SwitchStep
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Header
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 4),
-                                        child: Row(
-                                          children: [
-                                            Icon(_getStepIcon(node.type), size: 16, color: _getStepColor(node.type)),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                node.name,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDark ? Colors.white : Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Divider(height: 1, thickness: 0.5),
-                                      // Cases list
-                                      ...node.cases.map((c) => Container(
-                                            height: 28,
-                                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                                            alignment: Alignment.centerRight,
-                                            child: Text(
-                                              c.value,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: isDark ? AppColors.slate300 : AppColors.slate700,
-                                              ),
-                                            ),
-                                          )),
-                                      // Default case
-                                      Container(
-                                        height: 28,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          'Default',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontStyle: FontStyle.italic,
-                                            color: isDark ? AppColors.slate400 : AppColors.slate600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      const SizedBox(width: 10),
-                                      Icon(_getStepIcon(node.type), size: 18, color: _getStepColor(node.type)),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              node.name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              _getStepTypeName(node.type),
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                color: isDark ? AppColors.slate400 : AppColors.slate500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                    ],
-                                  ),
-                          ),
                           // Execution status indicator
                           if (statusIcon != null)
                             Positioned(
@@ -858,29 +605,171 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                               left: -6,
                               child: Icon(statusIcon, size: 14, color: statusColor),
                             ),
+                          // Card widget and gestures
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                widget.onSelectNode(id);
+                              },
+                              onSecondaryTapDown: (details) {
+                                _tapDownDetails = details;
+                              },
+                              onSecondaryTap: () {
+                                if (_tapDownDetails != null) {
+                                  _showNodeMenu(context, id, node, _tapDownDetails!.globalPosition);
+                                }
+                              },
+                              onLongPressStart: (details) {
+                                _tapDownDetails = TapDownDetails(
+                                  globalPosition: details.globalPosition,
+                                  localPosition: details.localPosition,
+                                );
+                              },
+                              onLongPress: () {
+                                if (_tapDownDetails != null) {
+                                  _showNodeMenu(context, id, node, _tapDownDetails!.globalPosition);
+                                }
+                              },
+                              onDoubleTap: () => widget.onDoubleSelectNode(id),
+                              child: Container(
+                                width: nodeW,
+                                height: nodeH,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF4B2BEE)
+                                        : isDark
+                                            ? const Color(0xFF334155)
+                                            : const Color(0xFFE2E8F0),
+                                    width: isSelected ? 2.0 : 1.0,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                                child: node is SwitchStep
+                                    ? Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Header
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 4),
+                                            child: Row(
+                                              children: [
+                                                Icon(_getStepIcon(node.type), size: 16, color: _getStepColor(node.type)),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    node.name,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isDark ? Colors.white : Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Divider(height: 1, thickness: 0.5),
+                                          // Cases list
+                                          ...node.cases.map((c) => Container(
+                                                height: 28,
+                                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                alignment: Alignment.centerRight,
+                                                child: Text(
+                                                  c.value,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: isDark ? AppColors.slate300 : AppColors.slate700,
+                                                  ),
+                                                ),
+                                              )),
+                                          // Default case
+                                          Container(
+                                            height: 28,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              'Default',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontStyle: FontStyle.italic,
+                                                color: isDark ? AppColors.slate400 : AppColors.slate600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        children: [
+                                          const SizedBox(width: 10),
+                                          Icon(_getStepIcon(node.type), size: 18, color: _getStepColor(node.type)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  node.name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDark ? Colors.white : Colors.black87,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _getStepTypeName(node.type),
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: isDark ? AppColors.slate400 : AppColors.slate500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ),
                           // Output Connection Ports
                           if (showInsertionButtons) ...[
                             if (node is IfStep) ...[
                               if (!_isPortConnected(node, 'true'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'true') - 9,
                                   child: _buildInsertionButton(id, 'true'),
                                 ),
                               if (!_isPortConnected(node, 'false'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'false') - 9,
                                   child: _buildInsertionButton(id, 'false'),
                                 ),
                             ] else if (node is SwitchStep) ...[
-                              ...node.cases.asMap().entries.map((e) {
-                                final c = e.value;
+                              ...node.cases.map((c) {
                                 if (_isPortConnected(node, 'switch_case', switchCaseVal: c.value)) {
                                   return const SizedBox.shrink();
                                 }
                                 return Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'switch_case', switchCaseVal: c.value) - 9,
                                   child: Tooltip(
                                     message: 'Case: ${c.value}',
@@ -890,7 +779,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                               }),
                               if (!_isPortConnected(node, 'switch_default'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'switch_default') - 9,
                                   child: Tooltip(
                                     message: 'Default',
@@ -900,7 +789,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                             ] else if (node is SplitOutStep) ...[
                               if (!_isPortConnected(node, 'loop'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'loop') - 9,
                                   child: Tooltip(
                                     message: 'Loop Body',
@@ -909,7 +798,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                                 ),
                               if (!_isPortConnected(node, 'next'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'next') - 9,
                                   child: Tooltip(
                                     message: 'Next',
@@ -919,7 +808,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                             ] else ...[
                               if (!_isPortConnected(node, 'next'))
                                 Positioned(
-                                  right: -9,
+                                  left: nodeW - 9.0,
                                   top: getOutputYOffset(node, 'next') - 9,
                                   child: _buildInsertionButton(id, 'next'),
                                 ),
@@ -1102,141 +991,5 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       case VisualStepType.headerBuilder:
         return 'Header Builder';
     }
-  }
-}
-
-class FlowchartPainter extends CustomPainter {
-  final VisualScript script;
-  final Map<String, Offset> positions;
-  final double nodeWidth;
-  final bool isDark;
-
-  FlowchartPainter({
-    required this.script,
-    required this.positions,
-    required this.nodeWidth,
-    required this.isDark,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paintNormal = Paint()
-      ..color = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    final paintBackEdge = Paint()
-      ..color = Colors.orange.shade700
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    script.nodes.forEach((id, node) {
-      final src = positions[id];
-      if (src == null) return;
-
-      if (node is IfStep) {
-        _drawConnection(canvas, id, node.trueStepId, src, getOutputYOffset(node, 'true'), paintNormal, paintBackEdge, label: 'T');
-        _drawConnection(canvas, id, node.falseStepId, src, getOutputYOffset(node, 'false'), paintNormal, paintBackEdge, label: 'F');
-      } else if (node is SwitchStep) {
-        for (int i = 0; i < node.cases.length; i++) {
-          final c = node.cases[i];
-          _drawConnection(canvas, id, c.nextStepId, src, getOutputYOffset(node, 'switch_case', switchCaseVal: c.value), paintNormal, paintBackEdge, label: c.value);
-        }
-        _drawConnection(canvas, id, node.defaultStepId, src, getOutputYOffset(node, 'switch_default'), paintNormal, paintBackEdge, label: 'Default');
-      } else if (node is SplitOutStep) {
-        _drawConnection(canvas, id, node.loopStepId, src, getOutputYOffset(node, 'loop'), paintNormal, paintBackEdge, label: 'Loop');
-        _drawConnection(canvas, id, node.nextStepId, src, getOutputYOffset(node, 'next'), paintNormal, paintBackEdge, label: 'Next');
-      } else {
-        _drawConnection(canvas, id, node.nextStepId, src, getOutputYOffset(node, 'next'), paintNormal, paintBackEdge);
-      }
-    });
-  }
-
-  void _drawConnection(
-    Canvas canvas,
-    String srcId,
-    String? destId,
-    Offset src,
-    double outputYOffset,
-    Paint paintNormal,
-    Paint paintBackEdge, {
-    String? label,
-  }) {
-    if (destId == null || destId.isEmpty) return;
-    final dest = positions[destId];
-    if (dest == null) return;
-
-    final destNode = script.nodes[destId];
-    final destHeight = destNode != null ? getNodeHeight(destNode) : 70.0;
-
-    final startPoint = Offset(src.dx + nodeWidth, src.dy + outputYOffset);
-    final endPoint = Offset(dest.dx, dest.dy + destHeight / 2);
-
-    final isBackEdge = dest.dx <= src.dx;
-
-    if (isBackEdge) {
-      final path = Path()..moveTo(startPoint.dx, startPoint.dy);
-      final controlPoint1 = Offset(startPoint.dx + 40, startPoint.dy + (dest.dy > src.dy ? 40 : -40));
-      final controlPoint2 = Offset(endPoint.dx - 40, endPoint.dy + (dest.dy > src.dy ? 40 : -40));
-      
-      path.cubicTo(controlPoint1.dx, controlPoint1.dy, controlPoint2.dx, controlPoint2.dy, endPoint.dx, endPoint.dy);
-      
-      _drawDottedPath(canvas, path, paintBackEdge);
-      _drawArrowHead(canvas, controlPoint2, endPoint, paintBackEdge.color);
-    } else {
-      final path = Path()..moveTo(startPoint.dx, startPoint.dy);
-      final controlX = startPoint.dx + (endPoint.dx - startPoint.dx) * 0.5;
-      path.cubicTo(controlX, startPoint.dy, controlX, endPoint.dy, endPoint.dx, endPoint.dy);
-      canvas.drawPath(path, paintNormal);
-      _drawArrowHead(canvas, Offset(controlX, endPoint.dy), endPoint, paintNormal.color);
-    }
-
-    if (label != null && label.isNotEmpty) {
-      final labelOffset = Offset(startPoint.dx + 12, startPoint.dy - 10);
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: label.length > 8 ? '${label.substring(0, 6)}..' : label,
-          style: TextStyle(fontSize: 8, color: isBackEdge ? Colors.orange.shade700 : (isDark ? AppColors.slate400 : AppColors.slate600)),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      textPainter.paint(canvas, labelOffset);
-    }
-  }
-
-  void _drawDottedPath(Canvas canvas, Path path, Paint paint) {
-    final metrics = path.computeMetrics();
-    for (final metric in metrics) {
-      double distance = 0.0;
-      const double dashLength = 4.0;
-      const double spaceLength = 4.0;
-      while (distance < metric.length) {
-        final segment = metric.extractPath(distance, distance + dashLength);
-        canvas.drawPath(segment, paint);
-        distance += dashLength + spaceLength;
-      }
-    }
-  }
-
-  void _drawArrowHead(Canvas canvas, Offset from, Offset to, Color color) {
-    final double angle = atan2(to.dy - from.dy, to.dx - from.dx);
-    const double arrowSize = 6.0;
-
-    final path = Path()
-      ..moveTo(to.dx, to.dy)
-      ..lineTo(to.dx - arrowSize * cos(angle - pi / 6), to.dy - arrowSize * sin(angle - pi / 6))
-      ..lineTo(to.dx - arrowSize * cos(angle + pi / 6), to.dy - arrowSize * sin(angle + pi / 6))
-      ..close();
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant FlowchartPainter oldDelegate) {
-    return oldDelegate.script != script || oldDelegate.positions != positions || oldDelegate.isDark != isDark;
   }
 }
