@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../models/visual_script.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/graph_validator.dart';
+
+class NodeSelectorResult {
+  final VisualStepType? type;
+  final String? existingNodeId;
+
+  const NodeSelectorResult({this.type, this.existingNodeId});
+}
 
 class NodeSelectorItem {
   final VisualStepType type;
@@ -19,7 +27,14 @@ class NodeSelectorItem {
 }
 
 class NodeSelectorDialog extends StatefulWidget {
-  const NodeSelectorDialog({super.key});
+  final VisualScript? script;
+  final String? parentNodeId;
+
+  const NodeSelectorDialog({
+    super.key,
+    this.script,
+    this.parentNodeId,
+  });
 
   @override
   State<NodeSelectorDialog> createState() => _NodeSelectorDialogState();
@@ -28,6 +43,7 @@ class NodeSelectorDialog extends StatefulWidget {
 class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<VisualStep> _candidateOrphans = [];
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -212,6 +228,42 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
   ];
 
   @override
+  @override
+  void initState() {
+    super.initState();
+    _calculateCandidateOrphans();
+  }
+
+  void _calculateCandidateOrphans() {
+    final script = widget.script;
+    final parentId = widget.parentNodeId;
+    if (script == null || parentId == null) return;
+
+    final reachable = GraphValidator.getReachableNodeIds(script);
+    final allNodes = script.nodes.keys.toSet();
+    final unreachable = allNodes.difference(reachable);
+
+    final List<VisualStep> list = [];
+    for (var orphanId in unreachable) {
+      if (!GraphValidator.wouldCreateCycle(script, parentId, orphanId)) {
+        final node = script.nodes[orphanId];
+        if (node != null) {
+          list.add(node);
+        }
+      }
+    }
+    _candidateOrphans = list;
+  }
+
+  List<VisualStep> _getFilteredOrphans() {
+    if (_searchQuery.trim().isEmpty) return _candidateOrphans;
+    return _candidateOrphans.where((node) {
+      return node.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          node.type.name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -242,6 +294,8 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _getFilteredCategories();
+    final filteredOrphans = _getFilteredOrphans();
+    final hasOrphans = filteredOrphans.isNotEmpty;
 
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -331,7 +385,7 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
             const SizedBox(height: 16),
             // Categories & Items list
             Expanded(
-              child: filtered.isEmpty
+              child: filtered.isEmpty && filteredOrphans.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -346,8 +400,12 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
                       ),
                     )
                   : ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, catIdx) {
+                      itemCount: filtered.length + (hasOrphans ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (hasOrphans && index == 0) {
+                          return _buildOrphansSection(context, filteredOrphans);
+                        }
+                        final catIdx = hasOrphans ? index - 1 : index;
                         final category = filtered[catIdx];
                         final catItems = category['items'] as List<NodeSelectorItem>;
 
@@ -370,7 +428,7 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 4.0),
                                 child: InkWell(
-                                  onTap: () => Navigator.pop(context, item.type),
+                                  onTap: () => Navigator.pop(context, NodeSelectorResult(type: item.type)),
                                   borderRadius: BorderRadius.circular(8),
                                   hoverColor: isDark
                                       ? const Color(0xFF334155).withValues(alpha: 0.4)
@@ -437,5 +495,128 @@ class _NodeSelectorDialogState extends State<NodeSelectorDialog> {
         ),
       ),
     );
+  }
+
+  Widget _buildOrphansSection(BuildContext context, List<VisualStep> orphans) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          child: Row(
+            children: [
+              Icon(Icons.link_rounded, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                'RECONNECT ORPHANED NODE',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: AppColors.primary.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...orphans.map((node) {
+          final nodeIcon = _getOrphanIcon(node.type);
+          final nodeColor = _getOrphanColor(node.type);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: InkWell(
+              onTap: () => Navigator.pop(context, NodeSelectorResult(existingNodeId: node.id)),
+              borderRadius: BorderRadius.circular(8),
+              hoverColor: isDark
+                  ? const Color(0xFF334155).withValues(alpha: 0.4)
+                  : const Color(0xFFF1F5F9),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155).withValues(alpha: 0.3)
+                        : const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: nodeColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(nodeIcon, size: 18, color: nodeColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            node.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Reconnect this existing ${_getOrphanTypeName(node.type)} step (and its downstream flow).',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark ? AppColors.slate400 : AppColors.slate500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  IconData _getOrphanIcon(VisualStepType type) {
+    for (var cat in _categories) {
+      final items = cat['items'] as List<NodeSelectorItem>;
+      for (var item in items) {
+        if (item.type == type) return item.icon;
+      }
+    }
+    return Icons.help_outline_rounded;
+  }
+
+  Color _getOrphanColor(VisualStepType type) {
+    for (var cat in _categories) {
+      final items = cat['items'] as List<NodeSelectorItem>;
+      for (var item in items) {
+        if (item.type == type) return item.color;
+      }
+    }
+    return Colors.grey;
+  }
+
+  String _getOrphanTypeName(VisualStepType type) {
+    for (var cat in _categories) {
+      final items = cat['items'] as List<NodeSelectorItem>;
+      for (var item in items) {
+        if (item.type == type) return item.title;
+      }
+    }
+    return type.name;
   }
 }

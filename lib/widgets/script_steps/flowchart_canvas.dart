@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/visual_script.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/graph_validator.dart';
 import '../../utils/script_compiler.dart';
 import '../dialogs/node_selector_dialog.dart';
 import 'flowchart_layout_manager.dart';
@@ -378,6 +379,35 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
     ));
   }
 
+  void _connectExistingNode(String parentId, String connectionType, String childId, {String? switchCaseVal}) {
+    final Map<String, VisualStep> updatedNodes = Map.from(widget.script.nodes);
+    final parent = updatedNodes[parentId];
+
+    if (parent != null) {
+      if (connectionType == 'next') {
+        parent.nextStepId = childId;
+      } else if (connectionType == 'true' && parent is IfStep) {
+        parent.trueStepId = childId;
+      } else if (connectionType == 'false' && parent is IfStep) {
+        parent.falseStepId = childId;
+      } else if (connectionType == 'loop' && parent is SplitOutStep) {
+        parent.loopStepId = childId;
+      } else if (connectionType == 'switch_case' && parent is SwitchStep && switchCaseVal != null) {
+        final idx = parent.cases.indexWhere((c) => c.value == switchCaseVal);
+        if (idx != -1) {
+          parent.cases[idx].nextStepId = childId;
+        }
+      } else if (connectionType == 'switch_default' && parent is SwitchStep) {
+        parent.defaultStepId = childId;
+      }
+    }
+
+    widget.onChanged(widget.script.copyWith(
+      nodes: updatedNodes,
+      updatedAt: DateTime.now(),
+    ));
+  }
+
   bool _isPortConnected(VisualStep node, String connectionType, {String? switchCaseVal}) {
     if (connectionType == 'next') {
       return node.nextStepId != null && node.nextStepId!.isNotEmpty;
@@ -403,13 +433,20 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () async {
-          final selectedType = await showDialog<VisualStepType>(
+          final result = await showDialog<NodeSelectorResult>(
             context: context,
-            builder: (context) => const NodeSelectorDialog(),
+            builder: (context) => NodeSelectorDialog(
+              script: widget.script,
+              parentNodeId: parentId,
+            ),
           );
           if (!mounted) return;
-          if (selectedType != null) {
-            _addNode(parentId, connectionType, selectedType, switchCaseVal: switchCaseVal);
+          if (result != null) {
+            if (result.existingNodeId != null) {
+              _connectExistingNode(parentId, connectionType, result.existingNodeId!, switchCaseVal: switchCaseVal);
+            } else if (result.type != null) {
+              _addNode(parentId, connectionType, result.type!, switchCaseVal: switchCaseVal);
+            }
           }
         },
         child: Container(
@@ -483,6 +520,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     _calculateLayoutIfNeeded();
+    final reachableIds = GraphValidator.getReachableNodeIds(widget.script);
 
     if (widget.script.nodes.isEmpty) {
       return Center(
@@ -579,6 +617,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                 final isHovered = _hoveredNodeId == id;
                 final showInsertionButtons = isSelected || isHovered;
                 final nodeH = getNodeHeight(node);
+                final isOrphan = !reachableIds.contains(id);
 
                 return Positioned(
                   left: offset.dx,
@@ -622,9 +661,11 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                                 }
                               },
                               onDoubleTap: () => widget.onDoubleSelectNode(id),
-                              child: Container(
-                                width: nodeW,
-                                height: nodeH,
+                              child: Opacity(
+                                opacity: isOrphan ? 0.65 : 1.0,
+                                child: Container(
+                                  width: nodeW,
+                                  height: nodeH,
                                 decoration: BoxDecoration(
                                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                                   borderRadius: BorderRadius.circular(8),
@@ -734,6 +775,7 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                                           const SizedBox(width: 10),
                                         ],
                                       ),
+                                ),
                               ),
                             ),
                           ),
@@ -867,6 +909,21 @@ class _FlowchartCanvasState extends State<FlowchartCanvas> {
                       child: Tooltip(
                         message: 'Warning: Unconnected branch(es) will default to Fail step.',
                         child: Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amber.shade700),
+                      ),
+                    ),
+                  );
+                }
+
+                final isOrphan = !reachableIds.contains(id);
+                if (isOrphan) {
+                  final nodeH = getNodeHeight(node);
+                  overlays.add(
+                    Positioned(
+                      left: offset.dx - 6,
+                      top: offset.dy + nodeH - 8,
+                      child: Tooltip(
+                        message: 'Warning: This node is unreachable from the Start node.',
+                        child: Icon(Icons.link_off_rounded, size: 14, color: Colors.orange.shade700),
                       ),
                     ),
                   );

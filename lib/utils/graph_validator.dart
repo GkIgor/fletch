@@ -24,6 +24,99 @@ class GraphValidationError {
 }
 
 class GraphValidator {
+  static Set<String> getReachableNodeIds(VisualScript script) {
+    final Set<String> reachable = {};
+    if (script.startNodeId == null || script.startNodeId!.isEmpty) {
+      return reachable;
+    }
+    if (!script.nodes.containsKey(script.startNodeId)) {
+      return reachable;
+    }
+
+    final List<String> queue = [script.startNodeId!];
+    while (queue.isNotEmpty) {
+      final currentId = queue.removeLast();
+      if (!reachable.contains(currentId)) {
+        reachable.add(currentId);
+        final node = script.nodes[currentId];
+        if (node != null) {
+          if (node.nextStepId != null && node.nextStepId!.isNotEmpty) {
+            queue.add(node.nextStepId!);
+          }
+          if (node is IfStep) {
+            if (node.trueStepId != null && node.trueStepId!.isNotEmpty) {
+              queue.add(node.trueStepId!);
+            }
+            if (node.falseStepId != null && node.falseStepId!.isNotEmpty) {
+              queue.add(node.falseStepId!);
+            }
+          }
+          if (node is SwitchStep) {
+            for (var c in node.cases) {
+              if (c.nextStepId != null && c.nextStepId!.isNotEmpty) {
+                queue.add(c.nextStepId!);
+              }
+            }
+            if (node.defaultStepId != null && node.defaultStepId!.isNotEmpty) {
+              queue.add(node.defaultStepId!);
+            }
+          }
+          if (node is SplitOutStep) {
+            if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
+              queue.add(node.loopStepId!);
+            }
+          }
+        }
+      }
+    }
+    return reachable;
+  }
+
+  static bool wouldCreateCycle(VisualScript script, String fromId, String toId) {
+    final Set<String> visited = {};
+    final List<String> queue = [toId];
+
+    while (queue.isNotEmpty) {
+      final currentId = queue.removeLast();
+      if (currentId == fromId) {
+        return true;
+      }
+      if (!visited.contains(currentId)) {
+        visited.add(currentId);
+        final node = script.nodes[currentId];
+        if (node != null) {
+          if (node.nextStepId != null && node.nextStepId!.isNotEmpty) {
+            queue.add(node.nextStepId!);
+          }
+          if (node is IfStep) {
+            if (node.trueStepId != null && node.trueStepId!.isNotEmpty) {
+              queue.add(node.trueStepId!);
+            }
+            if (node.falseStepId != null && node.falseStepId!.isNotEmpty) {
+              queue.add(node.falseStepId!);
+            }
+          }
+          if (node is SwitchStep) {
+            for (var c in node.cases) {
+              if (c.nextStepId != null && c.nextStepId!.isNotEmpty) {
+                queue.add(c.nextStepId!);
+              }
+            }
+            if (node.defaultStepId != null && node.defaultStepId!.isNotEmpty) {
+              queue.add(node.defaultStepId!);
+            }
+          }
+          if (node is SplitOutStep) {
+            if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
+              queue.add(node.loopStepId!);
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   static List<GraphValidationError> validate(VisualScript script) {
     final List<GraphValidationError> errors = [];
 
@@ -47,7 +140,7 @@ class GraphValidator {
       ));
     }
 
-    final Set<String> referencedIds = {script.startNodeId!};
+    final Set<String> reachableIds = getReachableNodeIds(script);
     bool hasSplitOut = false;
     bool hasAggregate = false;
 
@@ -69,8 +162,6 @@ class GraphValidator {
             nodeName: node.name,
             message: 'Default output connection points to non-existent node "${node.nextStepId}".',
           ));
-        } else {
-          referencedIds.add(node.nextStepId!);
         }
       }
 
@@ -78,17 +169,17 @@ class GraphValidator {
       switch (node.type) {
         case VisualStepType.ifStep:
           if (node is IfStep) {
-            _validateIfNode(script, id, node, errors, referencedIds);
+            _validateIfNode(script, id, node, errors);
           }
           break;
         case VisualStepType.switchStep:
           if (node is SwitchStep) {
-            _validateSwitchNode(script, id, node, errors, referencedIds);
+            _validateSwitchNode(script, id, node, errors);
           }
           break;
         case VisualStepType.splitOut:
           if (node is SplitOutStep) {
-            _validateSplitOutNode(script, id, node, errors, referencedIds);
+            _validateSplitOutNode(script, id, node, errors);
           }
           break;
         default:
@@ -98,7 +189,7 @@ class GraphValidator {
 
     // 3. Validate orphan nodes
     script.nodes.forEach((id, node) {
-      if (!referencedIds.contains(id)) {
+      if (!reachableIds.contains(id)) {
         errors.add(GraphValidationError(
           severity: ValidationErrorSeverity.warning,
           nodeId: id,
@@ -126,7 +217,6 @@ class GraphValidator {
     String id,
     IfStep node,
     List<GraphValidationError> errors,
-    Set<String> referencedIds,
   ) {
     if (node.trueStepId == null || node.trueStepId!.isEmpty) {
       errors.add(GraphValidationError(
@@ -142,8 +232,6 @@ class GraphValidator {
         nodeName: node.name,
         message: 'Connection "True" points to non-existent node "${node.trueStepId}".',
       ));
-    } else {
-      referencedIds.add(node.trueStepId!);
     }
 
     if (node.falseStepId == null || node.falseStepId!.isEmpty) {
@@ -160,8 +248,6 @@ class GraphValidator {
         nodeName: node.name,
         message: 'Connection "False" points to non-existent node "${node.falseStepId}".',
       ));
-    } else {
-      referencedIds.add(node.falseStepId!);
     }
   }
 
@@ -170,7 +256,6 @@ class GraphValidator {
     String id,
     SwitchStep node,
     List<GraphValidationError> errors,
-    Set<String> referencedIds,
   ) {
     for (var c in node.cases) {
       if (c.nextStepId == null || c.nextStepId!.isEmpty) {
@@ -187,8 +272,6 @@ class GraphValidator {
           nodeName: node.name,
           message: 'Case "${c.value}" points to non-existent node "${c.nextStepId}".',
         ));
-      } else {
-        referencedIds.add(c.nextStepId!);
       }
     }
 
@@ -206,8 +289,6 @@ class GraphValidator {
         nodeName: node.name,
         message: 'Default branch points to non-existent node "${node.defaultStepId}".',
       ));
-    } else {
-      referencedIds.add(node.defaultStepId!);
     }
   }
 
@@ -216,7 +297,6 @@ class GraphValidator {
     String id,
     SplitOutStep node,
     List<GraphValidationError> errors,
-    Set<String> referencedIds,
   ) {
     if (node.loopStepId != null && node.loopStepId!.isNotEmpty) {
       if (!script.nodes.containsKey(node.loopStepId)) {
@@ -226,8 +306,6 @@ class GraphValidator {
           nodeName: node.name,
           message: 'Loop sequence points to non-existent node "${node.loopStepId}".',
         ));
-      } else {
-        referencedIds.add(node.loopStepId!);
       }
     }
   }
