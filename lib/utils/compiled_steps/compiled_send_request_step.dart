@@ -22,6 +22,13 @@ class CompiledSendRequestStep extends CompiledStep {
   @override
   Future<ExecutionResult> execute(ExecutionContext context, Map<String, CompiledStep> nodes) async {
     final resolvedUrl = interpolate(url, context);
+    final resolvedBody = body != null ? interpolate(body!, context) : null;
+    
+    final Map<String, String> resolvedHeaders = {};
+    headers.forEach((k, v) {
+      resolvedHeaders[k] = interpolate(v, context);
+    });
+
     context.log(id, name, 'Disparando requisição HTTP secundária: $method $resolvedUrl', level: LogLevel.info);
     
     if (context.httpExecutor == null) {
@@ -29,7 +36,7 @@ class CompiledSendRequestStep extends CompiledStep {
     }
 
     try {
-      final res = await context.httpExecutor!(method, resolvedUrl, headers, body);
+      final res = await context.httpExecutor!(method, resolvedUrl, resolvedHeaders, resolvedBody);
       final bodyStr = res['body'] as String? ?? '';
       
       if (saveToVariable.isNotEmpty) {

@@ -83,6 +83,20 @@ class CompiledScript {
 }
 
 /// A JIT-compiled source operand. Resolves its value dynamically using the scope model.
+String cleanJsonPath(String path) {
+  var clean = path.trim();
+  if (clean.startsWith('\$.')) {
+    clean = clean.substring(2);
+  } else if (clean.startsWith('\$')) {
+    clean = clean.substring(1);
+  }
+  if (clean.startsWith('.')) {
+    clean = clean.substring(1);
+  }
+  return clean;
+}
+
+/// A JIT-compiled source operand. Resolves its value dynamically using the scope model.
 class CompiledValueSource {
   final ValueSourceType type;
   final String key;
@@ -111,19 +125,30 @@ class CompiledValueSource {
             key.startsWith('item.') ||
             key == 'index';
 
-        if (pattern) {
-          return resolveScopePath(key, context)?.toString() ?? '';
-        }
+        final resolvedVal = pattern
+            ? (resolveScopePath(key, context)?.toString() ?? '')
+            : (context.variables[key] ?? '');
 
-        return context.variables[key] ?? '';
+        if (jsonPath.isNotEmpty && resolvedVal.isNotEmpty) {
+          try {
+            final cleanPath = cleanJsonPath(jsonPath);
+            final decoded = context.getDecodedJson(resolvedVal);
+            if (decoded != null) {
+              final extracted = cleanPath.isEmpty ? decoded : getValueByPath(decoded, cleanPath);
+              return extracted?.toString() ?? '';
+            }
+          } catch (_) {}
+        }
+        return resolvedVal;
       case ValueSourceType.responseBody:
         if (context.responseBody == null || context.responseBody!.isEmpty) {
           return '';
         }
         if (jsonPath.isNotEmpty) {
           try {
+            final cleanPath = cleanJsonPath(jsonPath);
             final decoded = context.getDecodedJson(context.responseBody!);
-            final extracted = getValueByPath(decoded, jsonPath);
+            final extracted = cleanPath.isEmpty ? decoded : getValueByPath(decoded, cleanPath);
             return extracted?.toString() ?? '';
           } catch (_) {
             return '';
@@ -204,6 +229,25 @@ dynamic resolveScopePath(String path, ExecutionContext context) {
   }
   if (path.startsWith('globals.')) {
     final key = path.substring(8);
+    if (context.variables.containsKey(key)) {
+      return context.variables[key];
+    }
+    if (key.contains('.')) {
+      final dotIdx = key.indexOf('.');
+      final varName = key.substring(0, dotIdx);
+      final rest = key.substring(dotIdx + 1);
+      if (context.variables.containsKey(varName)) {
+        final valStr = context.variables[varName];
+        if (valStr != null && valStr.isNotEmpty) {
+          try {
+            final decoded = context.getDecodedJson(valStr);
+            if (decoded != null) {
+              return getValueByPath(decoded, rest);
+            }
+          } catch (_) {}
+        }
+      }
+    }
     return context.variables[key];
   }
   if (path.startsWith('response.')) {
@@ -219,8 +263,9 @@ dynamic resolveScopePath(String path, ExecutionContext context) {
     }
     if (path.startsWith('response.body.')) {
       final rest = path.substring(14);
-      if (context.responseBody == null || context.responseBody!.isEmpty)
+      if (context.responseBody == null || context.responseBody!.isEmpty) {
         return null;
+      }
       try {
         final decoded = context.getDecodedJson(context.responseBody!);
         return getValueByPath(decoded, rest);
@@ -243,6 +288,27 @@ dynamic resolveScopePath(String path, ExecutionContext context) {
     if (path.startsWith('request.queryParams.')) {
       final key = path.substring(20);
       return context.queryParams[key];
+    }
+  }
+
+  // Fallback for user-defined variables (including nested JSON path extraction)
+  if (context.variables.containsKey(path)) {
+    return context.variables[path];
+  }
+  if (path.contains('.')) {
+    final dotIdx = path.indexOf('.');
+    final varName = path.substring(0, dotIdx);
+    final rest = path.substring(dotIdx + 1);
+    if (context.variables.containsKey(varName)) {
+      final valStr = context.variables[varName];
+      if (valStr != null && valStr.isNotEmpty) {
+        try {
+          final decoded = context.getDecodedJson(valStr);
+          if (decoded != null) {
+            return getValueByPath(decoded, rest);
+          }
+        } catch (_) {}
+      }
     }
   }
   return null;

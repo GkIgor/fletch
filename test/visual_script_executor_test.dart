@@ -725,4 +725,133 @@ void main() {
       expect(context.logs.any((l) => l.nodeName.contains('Virtual Fail (True Branch)')), isTrue);
     });
   });
+
+  group('Step Combinations and Usability Improvements Tests', () {
+    test('Should interpolate HTTP request body and headers in SendRequestStep', () async {
+      final script = VisualScript(
+        id: 'script-http-interpolate',
+        name: 'HTTP Interpolate Test',
+        startNodeId: 'send-node',
+        nodes: {
+          'send-node': SendRequestStep(
+            id: 'send-node',
+            method: 'POST',
+            url: 'https://api.example.com/{{globals.path}}',
+            headers: {'X-Test-Header': 'Bearer {{token_var}}', 'Content-Type': 'application/json'},
+            body: '{"message": "{{body_message}}"}',
+            saveToVariable: 'response_body',
+            nextStepId: 'end-node',
+          ),
+          'end-node': EndStep(id: 'end-node', name: 'End'),
+        },
+      );
+
+      String? capturedMethod;
+      String? capturedUrl;
+      Map<String, String>? capturedHeaders;
+      String? capturedBody;
+
+      final context = ExecutionContext(
+        variables: {
+          'globals.path': 'v1/send',
+          'token_var': 'token123',
+          'body_message': 'Hello Fletch',
+        },
+      );
+
+      context.httpExecutor = (method, url, headers, body) async {
+        capturedMethod = method;
+        capturedUrl = url;
+        capturedHeaders = headers;
+        capturedBody = body;
+        return {
+          'statusCode': 200,
+          'body': '{"success": true}',
+          'headers': {'content-type': 'application/json'},
+        };
+      };
+
+      final compiled = ScriptCompiler.compile(script);
+      await compiled.execute(context);
+
+      expect(capturedMethod, equals('POST'));
+      expect(capturedUrl, equals('https://api.example.com/v1/send'));
+      expect(capturedHeaders?['X-Test-Header'], equals('Bearer token123'));
+      expect(capturedHeaders?['Content-Type'], equals('application/json'));
+      expect(capturedBody, equals('{"message": "Hello Fletch"}'));
+      expect(context.variables['response_body'], equals('{"success": true}'));
+    });
+
+    test('Should extract nested JSON dynamically from custom variables in resolveScopePath', () {
+      final context = ExecutionContext(
+        variables: {
+          'myJson': '{"user": {"profile": {"name": "Alice", "hobbies": ["reading"]}}}',
+          'myGlobalJson': '{"system": {"status": "ok"}}',
+        },
+      );
+
+      expect(resolveScopePath('myJson.user.profile.name', context), equals('Alice'));
+      expect(resolveScopePath('myJson.user.profile.hobbies[0]', context), equals('reading'));
+      expect(resolveScopePath('globals.myGlobalJson.system.status', context), equals('ok'));
+    });
+
+    test('Should extract values using jsonPath on variables directly in CompiledValueSource', () {
+      final context = ExecutionContext(
+        variables: {
+          'myUser': '{"id": 42, "role": "admin"}',
+        },
+      );
+
+      final sourceWithJsonPath = CompiledValueSource(
+        type: ValueSourceType.variable,
+        key: 'myUser',
+        jsonPath: r'$.role',
+      );
+
+      final sourceWithoutJsonPath = CompiledValueSource(
+        type: ValueSourceType.variable,
+        key: 'myUser',
+        jsonPath: '',
+      );
+
+      expect(sourceWithJsonPath.resolve(context), equals('admin'));
+      expect(sourceWithoutJsonPath.resolve(context), equals('{"id": 42, "role": "admin"}'));
+    });
+
+    test('Should evaluate IfStep correctly using direct JSON path from variables', () async {
+      final script = VisualScript(
+        id: 'script-if-json-path',
+        name: 'If JSON Path Test',
+        startNodeId: 'if-node',
+        nodes: {
+          'if-node': IfStep(
+            id: 'if-node',
+            leftSource: ValueSource(
+              type: ValueSourceType.variable,
+              key: 'myUser',
+              jsonPath: 'role',
+            ),
+            operator: '==',
+            rightSource: ValueSource(
+              type: ValueSourceType.constant,
+              key: 'admin',
+            ),
+            trueStepId: 'end-node',
+          ),
+          'end-node': EndStep(id: 'end-node', name: 'End'),
+        },
+      );
+
+      final context = ExecutionContext(
+        variables: {
+          'myUser': '{"id": 42, "role": "admin"}',
+        },
+      );
+
+      final compiled = ScriptCompiler.compile(script);
+      await compiled.execute(context);
+      
+      expect(context.logs.any((l) => l.message.contains('Seguindo caminho True')), isTrue);
+    });
+  });
 }

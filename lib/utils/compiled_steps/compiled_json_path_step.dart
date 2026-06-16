@@ -26,15 +26,7 @@ class CompiledJsonPathStep extends CompiledStep {
 
     try {
       final decoded = jsonDecode(value);
-      var cleanPath = jsonPathExpression.trim();
-      if (cleanPath.startsWith('\$.')) {
-        cleanPath = cleanPath.substring(2);
-      } else if (cleanPath.startsWith('\$')) {
-        cleanPath = cleanPath.substring(1);
-      }
-      if (cleanPath.startsWith('.')) {
-        cleanPath = cleanPath.substring(1);
-      }
+      final cleanPath = cleanJsonPath(jsonPathExpression);
 
       final extracted = cleanPath.isEmpty ? decoded : getValueByPath(decoded, cleanPath);
       final resultStr = (extracted is Map || extracted is List) ? jsonEncode(extracted) : extracted?.toString() ?? '';
