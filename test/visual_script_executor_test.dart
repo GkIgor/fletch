@@ -36,6 +36,74 @@ void main() {
       final thirdCompile = JitCache.getOrCreate(updatedScript);
       expect(identical(firstCompile, thirdCompile), isFalse);
     });
+
+    test('JitCache.invalidate should remove a script from cache', () {
+      final script = VisualScript(
+        id: 'script-to-invalidate',
+        name: 'Invalidate Test Script',
+        startNodeId: 'node-1',
+        nodes: {
+          'node-1': DelayStep(id: 'node-1', durationMs: 10),
+        },
+      );
+
+      final firstCompile = JitCache.getOrCreate(script);
+      JitCache.invalidate(script.id);
+      final secondCompile = JitCache.getOrCreate(script);
+
+      expect(identical(firstCompile, secondCompile), isFalse);
+    });
+
+    test('JitCache.clear should remove all scripts from cache', () {
+      final script1 = VisualScript(
+        id: 'script-1',
+        name: 'Script 1',
+        startNodeId: 'node-1',
+        nodes: {
+          'node-1': DelayStep(id: 'node-1', durationMs: 10),
+        },
+      );
+      final script2 = VisualScript(
+        id: 'script-2',
+        name: 'Script 2',
+        startNodeId: 'node-2',
+        nodes: {
+          'node-2': DelayStep(id: 'node-2', durationMs: 10),
+        },
+      );
+
+      final firstCompile = JitCache.getOrCreate(script1);
+      final secondCompile = JitCache.getOrCreate(script2);
+      JitCache.clear();
+
+      final firstCompileAgain = JitCache.getOrCreate(script1);
+      final secondCompileAgain = JitCache.getOrCreate(script2);
+
+      expect(identical(firstCompile, firstCompileAgain), isFalse);
+      expect(identical(secondCompile, secondCompileAgain), isFalse);
+    });
+  });
+
+  group('ExecutionContext JSON Cache Tests', () {
+    test('getDecodedJson should cache decoded JSON objects and return the identical object', () {
+      final context = ExecutionContext();
+      const rawJson = '{"name": "Igor", "details": {"role": "developer"}}';
+
+      final firstDecode = context.getDecodedJson(rawJson);
+      final secondDecode = context.getDecodedJson(rawJson);
+
+      expect(firstDecode, isNotNull);
+      expect(identical(firstDecode, secondDecode), isTrue);
+      expect(firstDecode['name'], equals('Igor'));
+    });
+
+    test('getDecodedJson should return null for invalid JSON and not throw', () {
+      final context = ExecutionContext();
+      const rawJson = 'invalid_json';
+
+      final decode = context.getDecodedJson(rawJson);
+      expect(decode, isNull);
+    });
   });
 
   group('Script Executor and Variable Sandbox Tests', () {

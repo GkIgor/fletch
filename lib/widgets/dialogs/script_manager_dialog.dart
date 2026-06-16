@@ -82,6 +82,7 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
   }
 
   void _deleteScript(VisualScript script) {
+    JitCache.invalidate(script.id);
     final updatedScripts = List<VisualScript>.from(widget.workspace.scripts)
       ..removeWhere((s) => s.id == script.id);
 

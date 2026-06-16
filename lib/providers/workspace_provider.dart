@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/repository/workspace_repository.dart';
 import 'package:fletch/services/workspace_service.dart';
+import 'package:fletch/utils/script_compiler.dart';
 
 class WorkspaceProvider extends ChangeNotifier {
   final WorkspaceRepository _repository = WorkspaceRepository();
@@ -176,6 +177,7 @@ class WorkspaceProvider extends ChangeNotifier {
     _currentWorkspace = workspace;
     _isManagingEnvironments = false;
     _isManagingAuth = false;
+    JitCache.clear();
     notifyListeners();
   }
 
