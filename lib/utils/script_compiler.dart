@@ -176,6 +176,7 @@ class ScriptCompiler {
       headers: ref?.headers ?? s.headers,
       body: ref?.body ?? s.body,
       saveToVariable: s.saveToVariable,
+      auth: ref?.resolvedAuth,
     );
   }
 

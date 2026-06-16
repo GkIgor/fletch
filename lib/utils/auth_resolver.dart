@@ -42,7 +42,14 @@ class AuthResolver {
     required RequestCollection collection,
     required List<RequestCollection> collections,
     required HttpAuth workspaceAuth,
+    Set<String>? visited,
   }) {
+    final visitedIds = visited ?? <String>{};
+    if (visitedIds.contains(collection.id)) {
+      return workspaceAuth;
+    }
+    visitedIds.add(collection.id);
+
     if (collection.auth.type != AuthType.inherit) {
       return collection.auth;
     }
@@ -66,6 +73,7 @@ class AuthResolver {
       collection: parentCol,
       collections: collections,
       workspaceAuth: workspaceAuth,
+      visited: visitedIds,
     );
   }
 
@@ -99,7 +107,14 @@ class AuthResolver {
   static String _getCollectionInheritedSourceName({
     required RequestCollection collection,
     required List<RequestCollection> collections,
+    Set<String>? visited,
   }) {
+    final visitedIds = visited ?? <String>{};
+    if (visitedIds.contains(collection.id)) {
+      return 'Workspace';
+    }
+    visitedIds.add(collection.id);
+
     if (collection.auth.type != AuthType.inherit) {
       return 'Collection "${collection.name}"';
     }
@@ -120,6 +135,7 @@ class AuthResolver {
     return _getCollectionInheritedSourceName(
       collection: parentCol,
       collections: collections,
+      visited: visitedIds,
     );
   }
 }

@@ -382,7 +382,7 @@ void main() {
         expect(response.statusCode, equals(200));
       });
 
-      test('HttpRequest.fromJson defaults to AuthType.none when auth field is missing', () {
+      test('HttpRequest.fromJson defaults to AuthType.inherit when auth field is missing', () {
         final json = {
           'id': 'test-id-123',
           'name': 'Test Request',
@@ -397,7 +397,7 @@ void main() {
         };
 
         final request = HttpRequest.fromJson(json);
-        expect(request.auth.type, equals(AuthType.none));
+        expect(request.auth.type, equals(AuthType.inherit));
         expect(request.auth.apiKeyKey, equals('apikey'));
       });
     });

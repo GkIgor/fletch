@@ -195,5 +195,46 @@ void main() {
       expect(source2, equals('Collection "Parent Folder"'));
       expect(source3, equals('Workspace'));
     });
+
+    test('infinite loop / cycle protection in collection nesting', () {
+      final req = HttpRequest(
+        name: 'Loop request',
+        method: HttpMethod.get,
+        url: 'example.com',
+        auth: HttpAuth(type: AuthType.inherit),
+      );
+
+      final colA = RequestCollection(
+        id: 'col_a',
+        name: 'Collection A',
+        workspaceId: 'ws1',
+        requests: [req],
+        parentId: 'col_b',
+        auth: HttpAuth(type: AuthType.inherit),
+      );
+
+      final colB = RequestCollection(
+        id: 'col_b',
+        name: 'Collection B',
+        workspaceId: 'ws1',
+        requests: [],
+        parentId: 'col_a',
+        auth: HttpAuth(type: AuthType.inherit),
+      );
+
+      final resolved = AuthResolver.resolveAuth(
+        request: req,
+        collections: [colA, colB],
+        workspaceAuth: apiKeyAuth,
+      );
+
+      final source = AuthResolver.getInheritedSourceName(
+        request: req,
+        collections: [colA, colB],
+      );
+
+      expect(resolved.type, equals(AuthType.apiKey));
+      expect(source, equals('Workspace'));
+    });
   });
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../models/http_auth.dart';
 
 /// Lightweight reference to a workspace HttpRequest — only the fields needed
 /// by the JIT compiler to resolve a SendRequestStep with requestId.
@@ -10,6 +11,7 @@ class WorkspaceRequestRef {
   final String url;
   final Map<String, String> headers;
   final String? body;
+  final HttpAuth? resolvedAuth;
 
   const WorkspaceRequestRef({
     required this.id,
@@ -18,6 +20,7 @@ class WorkspaceRequestRef {
     required this.url,
     required this.headers,
     this.body,
+    this.resolvedAuth,
   });
 }
 

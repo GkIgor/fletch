@@ -162,7 +162,7 @@ class HttpRequest {
       binaryPath: json['binaryPath'] as String?,
       auth: json['auth'] != null
           ? HttpAuth.fromJson(Map<String, dynamic>.from(json['auth']))
-          : HttpAuth(type: AuthType.none),
+          : HttpAuth(type: AuthType.inherit),
       activeScriptIds: json['activeScriptIds'] != null
           ? List<String>.from(json['activeScriptIds'])
           : [],

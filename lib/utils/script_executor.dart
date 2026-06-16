@@ -5,8 +5,10 @@ import '../models/http_request.dart';
 import '../models/http_method.dart';
 import '../models/visual_script.dart';
 import '../models/workspace_models.dart';
+import '../models/http_auth.dart';
 import '../services/http_service.dart';
 import 'script_compiler.dart';
+import 'auth_resolver.dart';
 
 final _httpService = HttpService();
 
@@ -22,8 +24,9 @@ void _injectHttpExecutor(ExecutionContext context) {
       url: url,
       headers: headers,
       body: body,
+      auth: HttpAuth(type: AuthType.none),
     );
-    final res = await _httpService.send(req);
+    final res = await _httpService.send(req, variables: context.variables);
     return {
       'statusCode': res.statusCode,
       'body': res.body is String ? res.body : jsonEncode(res.body),
@@ -117,8 +120,28 @@ class ScriptExecutor {
 
     _injectHttpExecutor(context);
 
+    final availableRequests = collections
+        .expand((c) => c.requests)
+        .map((r) {
+          final resolvedAuth = AuthResolver.resolveAuth(
+            request: r,
+            collections: collections,
+            workspaceAuth: workspace.auth,
+          );
+          return WorkspaceRequestRef(
+            id: r.id,
+            name: r.name,
+            method: r.method.value,
+            url: r.url,
+            headers: r.headers,
+            body: r.body,
+            resolvedAuth: resolvedAuth,
+          );
+        })
+        .toList();
+
     for (var script in activePreScripts) {
-      final compiled = JitCache.getOrCreate(script);
+      final compiled = JitCache.getOrCreate(script, availableRequests: availableRequests);
       await compiled.execute(context);
     }
 
@@ -148,8 +171,28 @@ class ScriptExecutor {
 
     _injectHttpExecutor(context);
 
+    final availableRequests = collections
+        .expand((c) => c.requests)
+        .map((r) {
+          final resolvedAuth = AuthResolver.resolveAuth(
+            request: r,
+            collections: collections,
+            workspaceAuth: workspace.auth,
+          );
+          return WorkspaceRequestRef(
+            id: r.id,
+            name: r.name,
+            method: r.method.value,
+            url: r.url,
+            headers: r.headers,
+            body: r.body,
+            resolvedAuth: resolvedAuth,
+          );
+        })
+        .toList();
+
     for (var script in activePostScripts) {
-      final compiled = JitCache.getOrCreate(script);
+      final compiled = JitCache.getOrCreate(script, availableRequests: availableRequests);
       await compiled.execute(context);
     }
   }

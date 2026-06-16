@@ -4,6 +4,7 @@ import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/visual_script.dart';
 import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/utils/script_compiler.dart';
 import 'package:fletch/utils/script_executor.dart';
 
@@ -852,6 +853,63 @@ void main() {
       await compiled.execute(context);
       
       expect(context.logs.any((l) => l.message.contains('Seguindo caminho True')), isTrue);
+    });
+
+    test('Should execute SendRequestStep with inherited/resolved auth configurations correctly', () async {
+      final script = VisualScript(
+        id: 'script-send-request-auth',
+        name: 'Send Request Auth Test',
+        startNodeId: 'send-node',
+        nodes: {
+          'send-node': SendRequestStep(
+            id: 'send-node',
+            name: 'Http Call Step',
+            requestId: 'target-request-123',
+            saveToVariable: 'response_body',
+            nextStepId: 'end-node',
+          ),
+          'end-node': EndStep(id: 'end-node', name: 'End'),
+        },
+      );
+
+      final resolvedAuth = HttpAuth(
+        type: AuthType.apiKey,
+        apiKeyKey: 'X-API-Key',
+        apiKeyValue: 'my-value-12345',
+        apiKeyAddTo: 'header',
+      );
+
+      final requestRef = WorkspaceRequestRef(
+        id: 'target-request-123',
+        name: 'Target Request',
+        method: 'GET',
+        url: 'https://api.example.com/data',
+        headers: {'X-Custom': 'val'},
+        body: null,
+        resolvedAuth: resolvedAuth,
+      );
+
+      String? capturedUrl;
+      Map<String, String>? capturedHeaders;
+
+      final context = ExecutionContext();
+      context.httpExecutor = (method, url, headers, body) async {
+        capturedUrl = url;
+        capturedHeaders = headers;
+        return {
+          'statusCode': 200,
+          'body': 'success',
+          'headers': {},
+        };
+      };
+
+      final compiled = ScriptCompiler.compile(script, availableRequests: [requestRef]);
+      await compiled.execute(context);
+
+      expect(capturedUrl, equals('https://api.example.com/data'));
+      expect(capturedHeaders?['X-Custom'], equals('val'));
+      expect(capturedHeaders?['X-API-Key'], equals('my-value-12345'));
+      expect(context.variables['response_body'], equals('success'));
     });
   });
 }

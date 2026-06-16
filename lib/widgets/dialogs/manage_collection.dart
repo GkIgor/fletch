@@ -333,14 +333,22 @@ class _NewCollectionDialogBodyState extends State<NewCollectionDialogBody> {
                           if (workspace != null) {
                             final refs = requestProvider.collections
                                 .expand((c) => c.requests)
-                                .map((r) => WorkspaceRequestRef(
-                                      id: r.id,
-                                      name: r.name,
-                                      method: r.method.value,
-                                      url: r.url,
-                                      headers: r.headers,
-                                      body: r.body,
-                                    ))
+                                .map((r) {
+                                  final resolvedAuth = AuthResolver.resolveAuth(
+                                    request: r,
+                                    collections: requestProvider.collections,
+                                    workspaceAuth: workspace.auth,
+                                  );
+                                  return WorkspaceRequestRef(
+                                    id: r.id,
+                                    name: r.name,
+                                    method: r.method.value,
+                                    url: r.url,
+                                    headers: r.headers,
+                                    body: r.body,
+                                    resolvedAuth: resolvedAuth,
+                                  );
+                                })
                                 .toList();
                             showDialog(
                               context: context,
