@@ -21,7 +21,8 @@ class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
   final HttpService _httpService;
 
-  RequestProvider({HttpService? httpService}) : _httpService = httpService ?? HttpService();
+  RequestProvider({HttpService? httpService})
+    : _httpService = httpService ?? HttpService();
 
   List<RequestCollection> _collections = [];
 
@@ -34,7 +35,7 @@ class RequestProvider with ChangeNotifier {
   ExecutionContext? _lastExecutionContext;
 
   String _searchFilter = '';
-  
+
   String? _workspaceId;
 
   List<Map<String, dynamic>> _corruptedCollections = [];
@@ -85,7 +86,9 @@ class RequestProvider with ChangeNotifier {
     final maxSortOrder = _collections.isEmpty
         ? 0
         : _collections.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b);
-    final collectionWithSortOrder = collection.copyWith(sortOrder: maxSortOrder + 1);
+    final collectionWithSortOrder = collection.copyWith(
+      sortOrder: maxSortOrder + 1,
+    );
     _collections.add(collectionWithSortOrder);
     await _saveCollections();
     notifyListeners();
@@ -170,7 +173,11 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRequest(HttpRequest request, {Map<String, String>? variables, WorkspaceModel? workspace}) async {
+  Future<void> executeRequest(
+    HttpRequest request, {
+    Map<String, String>? variables,
+    WorkspaceModel? workspace,
+  }) async {
     _isLoading = true;
     _currentResponse = null;
     _lastExecutionContext = null;
@@ -205,7 +212,11 @@ class RequestProvider with ChangeNotifier {
       );
 
       // 2. Dispatches actual Dio HTTP call
-      final response = await _httpService.send(runRequest, variables: context.variables, resolvedAuth: resolvedAuth);
+      final response = await _httpService.send(
+        runRequest,
+        variables: context.variables,
+        resolvedAuth: resolvedAuth,
+      );
       _currentResponse = response;
 
       // Map response headers to key/value pairs safely (supporting list or raw values)
@@ -223,7 +234,9 @@ class RequestProvider with ChangeNotifier {
         workspace: ws,
         context: context,
         statusCode: response.statusCode,
-        responseBody: response.body,
+        responseBody: response.body is String
+            ? response.body
+            : jsonEncode(response.body),
         responseHeaders: responseHeaders,
       );
 
@@ -231,16 +244,21 @@ class RequestProvider with ChangeNotifier {
       if (workspace != null && workspace.environments.isNotEmpty) {
         final activeEnvId = workspace.selectedEnvironmentId;
         if (activeEnvId != null) {
-          final envIdx = workspace.environments.indexWhere((e) => e.id == activeEnvId);
+          final envIdx = workspace.environments.indexWhere(
+            (e) => e.id == activeEnvId,
+          );
           if (envIdx != -1) {
             context.variables.forEach((key, val) {
-              workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(value: val);
+              workspace.environments[envIdx].variables[key] =
+                  WorkspaceSecretKey(value: val);
             });
             // Persist the workspace changes with the newly generated variables safely
             try {
               await WorkspaceRepository().save(workspace);
             } catch (saveError) {
-              debugPrint('Aviso: Não foi possível salvar o Workspace no disco: $saveError');
+              debugPrint(
+                'Aviso: Não foi possível salvar o Workspace no disco: $saveError',
+              );
             }
           }
         }
@@ -307,7 +325,9 @@ class RequestProvider with ChangeNotifier {
     loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     _collections = loaded;
 
-    _corruptedCollections = await _repository.getCorruptedCollections(workspaceId);
+    _corruptedCollections = await _repository.getCorruptedCollections(
+      workspaceId,
+    );
 
     if (_collections.isNotEmpty && _collections[0].requests.isNotEmpty) {
       _selectedRequest = _collections[0].requests[0];
@@ -330,7 +350,10 @@ class RequestProvider with ChangeNotifier {
     final wsId = _workspaceId;
     if (wsId == null) return;
     try {
-      final totalRequests = _collections.fold<int>(0, (sum, c) => sum + c.requests.length);
+      final totalRequests = _collections.fold<int>(
+        0,
+        (sum, c) => sum + c.requests.length,
+      );
       final wsRepo = WorkspaceRepository();
       final ws = await wsRepo.getById(wsId);
       if (ws != null) {
@@ -350,11 +373,23 @@ class RequestProvider with ChangeNotifier {
     return PostmanConverter.exportCollection(_collections, workspaceName);
   }
 
-  Map<String, dynamic> exportInsomnia(String workspaceId, String workspaceName, {int exportFormat = 4}) {
-    return InsomniaConverter.exportCollection(_collections, workspaceId, workspaceName, exportFormat: exportFormat);
+  Map<String, dynamic> exportInsomnia(
+    String workspaceId,
+    String workspaceName, {
+    int exportFormat = 4,
+  }) {
+    return InsomniaConverter.exportCollection(
+      _collections,
+      workspaceId,
+      workspaceName,
+      exportFormat: exportFormat,
+    );
   }
 
-  Future<void> importCollections(List<Map<String, dynamic>> data, String workspaceId) async {
+  Future<void> importCollections(
+    List<Map<String, dynamic>> data,
+    String workspaceId,
+  ) async {
     try {
       final List<RequestCollection> imported = data.map((json) {
         json['workspaceId'] = workspaceId;
@@ -376,7 +411,10 @@ class RequestProvider with ChangeNotifier {
     }
   }
 
-  Future<void> importLoadedCollections(List<RequestCollection> imported, String workspaceId) async {
+  Future<void> importLoadedCollections(
+    List<RequestCollection> imported,
+    String workspaceId,
+  ) async {
     try {
       for (var col in imported) {
         col.workspaceId = workspaceId;
@@ -395,7 +433,11 @@ class RequestProvider with ChangeNotifier {
     }
   }
 
-  void reorderCollections(String draggedId, String targetId, {bool before = true}) {
+  void reorderCollections(
+    String draggedId,
+    String targetId, {
+    bool before = true,
+  }) {
     final dragIndex = _collections.indexWhere((c) => c.id == draggedId);
     if (dragIndex == -1) return;
 
@@ -430,7 +472,9 @@ class RequestProvider with ChangeNotifier {
 
       final parentIdx = _collections.indexWhere((c) => c.id == targetParentId);
       if (parentIdx != -1 && !_collections[parentIdx].isExpanded) {
-        _collections[parentIdx] = _collections[parentIdx].copyWith(isExpanded: true);
+        _collections[parentIdx] = _collections[parentIdx].copyWith(
+          isExpanded: true,
+        );
       }
 
       _saveCollections();
@@ -438,8 +482,13 @@ class RequestProvider with ChangeNotifier {
     }
   }
 
-  Future<void> createSubCollection(String parentCollectionId, String name) async {
-    final parentIdx = _collections.indexWhere((c) => c.id == parentCollectionId);
+  Future<void> createSubCollection(
+    String parentCollectionId,
+    String name,
+  ) async {
+    final parentIdx = _collections.indexWhere(
+      (c) => c.id == parentCollectionId,
+    );
     if (parentIdx == -1) return;
 
     final parent = _collections[parentIdx];
@@ -478,7 +527,9 @@ class RequestProvider with ChangeNotifier {
   }
 
   Future<void> reSignAllCorrupted() async {
-    final List<Map<String, dynamic>> toProcess = List.from(_corruptedCollections);
+    final List<Map<String, dynamic>> toProcess = List.from(
+      _corruptedCollections,
+    );
     for (var data in toProcess) {
       await reSignCollection(data);
     }
@@ -500,8 +551,12 @@ class RequestProvider with ChangeNotifier {
     required String targetCollectionId,
     String? targetRequestId,
   }) {
-    final sourceIdx = _collections.indexWhere((c) => c.id == sourceCollectionId);
-    final targetIdx = _collections.indexWhere((c) => c.id == targetCollectionId);
+    final sourceIdx = _collections.indexWhere(
+      (c) => c.id == sourceCollectionId,
+    );
+    final targetIdx = _collections.indexWhere(
+      (c) => c.id == targetCollectionId,
+    );
 
     if (sourceIdx == -1 || targetIdx == -1) return;
 
@@ -514,7 +569,9 @@ class RequestProvider with ChangeNotifier {
     final request = sourceColl.requests.removeAt(reqIdx);
 
     if (targetRequestId != null) {
-      final targetReqIdx = targetColl.requests.indexWhere((r) => r.id == targetRequestId);
+      final targetReqIdx = targetColl.requests.indexWhere(
+        (r) => r.id == targetRequestId,
+      );
       if (targetReqIdx != -1) {
         targetColl.requests.insert(targetReqIdx, request);
       } else {
@@ -561,7 +618,9 @@ class RequestProvider with ChangeNotifier {
     final reqIdx = collection.requests.indexWhere((r) => r.id == requestId);
     if (reqIdx == -1) return;
 
-    collection.requests[reqIdx] = collection.requests[reqIdx].copyWith(name: newName);
+    collection.requests[reqIdx] = collection.requests[reqIdx].copyWith(
+      name: newName,
+    );
 
     if (_selectedRequest?.id == requestId) {
       _selectedRequest = collection.requests[reqIdx];
@@ -574,31 +633,35 @@ class RequestProvider with ChangeNotifier {
   // Runner Actions
   List<HttpRequest> _gatherRequestsRecursively(String collectionId) {
     final List<HttpRequest> gathered = [];
-    
+
     final collectionIdx = _collections.indexWhere((c) => c.id == collectionId);
     if (collectionIdx != -1) {
       gathered.addAll(_collections[collectionIdx].requests);
     }
-    
-    final children = _collections.where((c) => c.parentId == collectionId).toList();
+
+    final children = _collections
+        .where((c) => c.parentId == collectionId)
+        .toList();
     children.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    
+
     for (var child in children) {
       gathered.addAll(_gatherRequestsRecursively(child.id));
     }
-    
+
     return gathered;
   }
 
   List<HttpRequest> _gatherWorkspaceRequests() {
     final List<HttpRequest> gathered = [];
-    final rootCollections = _collections.where((c) => c.parentId == null).toList();
+    final rootCollections = _collections
+        .where((c) => c.parentId == null)
+        .toList();
     rootCollections.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    
+
     for (var root in rootCollections) {
       gathered.addAll(_gatherRequestsRecursively(root.id));
     }
-    
+
     return gathered;
   }
 
@@ -606,9 +669,11 @@ class RequestProvider with ChangeNotifier {
     _isRunnerActive = true;
     _isRunningWorkspace = false;
     _runnerCollection = collection;
-    
+
     final requests = _gatherRequestsRecursively(collection.id);
-    _runnerItems = requests.map((req) => RunnerItemState(request: req)).toList();
+    _runnerItems = requests
+        .map((req) => RunnerItemState(request: req))
+        .toList();
     _isCurrentlyRunning = false;
     _runnerCurrentIndex = -1;
     _selectedRunnerItem = null;
@@ -619,9 +684,11 @@ class RequestProvider with ChangeNotifier {
     _isRunnerActive = true;
     _isRunningWorkspace = true;
     _runnerCollection = null;
-    
+
     final requests = _gatherWorkspaceRequests();
-    _runnerItems = requests.map((req) => RunnerItemState(request: req)).toList();
+    _runnerItems = requests
+        .map((req) => RunnerItemState(request: req))
+        .toList();
     _isCurrentlyRunning = false;
     _runnerCurrentIndex = -1;
     _selectedRunnerItem = null;
@@ -669,11 +736,14 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> executeRunnerSession({Map<String, String>? variables, WorkspaceModel? workspace}) async {
+  Future<void> executeRunnerSession({
+    Map<String, String>? variables,
+    WorkspaceModel? workspace,
+  }) async {
     if (_isCurrentlyRunning) return;
     _isCurrentlyRunning = true;
     _stopExecution = false;
-    
+
     for (var item in _runnerItems) {
       if (item.isSelected) {
         item.reset();
@@ -723,11 +793,18 @@ class RequestProvider with ChangeNotifier {
         );
 
         // 2. Dispatch real HTTP call
-        final response = await _httpService.send(runRequest, variables: context.variables, resolvedAuth: resolvedAuth);
+        final response = await _httpService.send(
+          runRequest,
+          variables: context.variables,
+          resolvedAuth: resolvedAuth,
+        );
         item.response = response;
 
         // Map response headers to key/value pairs safely (supporting list or raw values)
-        final Map<String, String> responseHeaders = response.headers.map((k, v) {
+        final Map<String, String> responseHeaders = response.headers.map((
+          k,
+          v,
+        ) {
           if (v is List) {
             return MapEntry(k, v.join(', '));
           }
@@ -766,15 +843,21 @@ class RequestProvider with ChangeNotifier {
     if (workspace != null && workspace.environments.isNotEmpty) {
       final activeEnvId = workspace.selectedEnvironmentId;
       if (activeEnvId != null) {
-        final envIdx = workspace.environments.indexWhere((e) => e.id == activeEnvId);
+        final envIdx = workspace.environments.indexWhere(
+          (e) => e.id == activeEnvId,
+        );
         if (envIdx != -1) {
           activeVariables.forEach((key, val) {
-            workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(value: val);
+            workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(
+              value: val,
+            );
           });
           try {
             await WorkspaceRepository().save(workspace);
           } catch (saveError) {
-            debugPrint('Aviso: Não foi possível salvar o Workspace no disco durante runner: $saveError');
+            debugPrint(
+              'Aviso: Não foi possível salvar o Workspace no disco durante runner: $saveError',
+            );
           }
         }
       }
@@ -841,7 +924,10 @@ class RequestProvider with ChangeNotifier {
       final interpolatedUrl = _interpolate(tokenUrl, variables).trim();
       final interpolatedGrantType = _interpolate(grantType, variables).trim();
       final interpolatedClientId = _interpolate(clientId, variables).trim();
-      final interpolatedClientSecret = _interpolate(clientSecret, variables).trim();
+      final interpolatedClientSecret = _interpolate(
+        clientSecret,
+        variables,
+      ).trim();
       final interpolatedScope = _interpolate(scope, variables).trim();
       final interpolatedUsername = _interpolate(username, variables).trim();
       final interpolatedPassword = _interpolate(password, variables).trim();
@@ -850,9 +936,7 @@ class RequestProvider with ChangeNotifier {
         throw Exception('Token URL is empty');
       }
 
-      final data = <String, String>{
-        'grant_type': interpolatedGrantType,
-      };
+      final data = <String, String>{'grant_type': interpolatedGrantType};
 
       if (interpolatedClientId.isNotEmpty) {
         data['client_id'] = interpolatedClientId;
@@ -865,8 +949,10 @@ class RequestProvider with ChangeNotifier {
       }
 
       if (interpolatedGrantType == 'password') {
-        if (interpolatedUsername.isNotEmpty) data['username'] = interpolatedUsername;
-        if (interpolatedPassword.isNotEmpty) data['password'] = interpolatedPassword;
+        if (interpolatedUsername.isNotEmpty)
+          data['username'] = interpolatedUsername;
+        if (interpolatedPassword.isNotEmpty)
+          data['password'] = interpolatedPassword;
       }
 
       final Map<String, dynamic> headers = {
@@ -876,10 +962,7 @@ class RequestProvider with ChangeNotifier {
       final response = await dio.post(
         interpolatedUrl,
         data: data,
-        options: Options(
-          headers: headers,
-          validateStatus: (status) => true,
-        ),
+        options: Options(headers: headers, validateStatus: (status) => true),
       );
 
       if (response.statusCode != null &&
@@ -896,7 +979,9 @@ class RequestProvider with ChangeNotifier {
         }
         throw Exception('Unexpected token response: $responseData');
       } else {
-        throw Exception('Token request failed: ${response.statusCode} ${response.statusMessage}\n${response.data}');
+        throw Exception(
+          'Token request failed: ${response.statusCode} ${response.statusMessage}\n${response.data}',
+        );
       }
     } catch (e) {
       debugPrint('Error fetching OAuth2 token: $e');
