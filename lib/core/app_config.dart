@@ -31,12 +31,16 @@ class AppConfig {
 
   static String? _workspaceDir;
   static String? _collectionsDir;
+  static String? _cacheDir;
 
   static String get workspaceDir => _workspaceDir ?? '$home/.$_applicationName/workspaces';
   static set workspaceDir(String? value) => _workspaceDir = value;
 
   static String get collectionsDir => _collectionsDir ?? '$home/.$_applicationName/collections';
   static set collectionsDir(String? value) => _collectionsDir = value;
+
+  static String get cacheDir => _cacheDir ?? '$home/.$_applicationName/cache';
+  static set cacheDir(String? value) => _cacheDir = value;
 
   Future<void> initializeInfrastructure() async {
     if (home == null) {
@@ -48,5 +52,19 @@ class AppConfig {
 
     final collectionsDirectory = Directory(collectionsDir);
     await collectionsDirectory.create(recursive: true);
+
+    final cacheDirectory = Directory(cacheDir);
+    await cacheDirectory.create(recursive: true);
+
+    // Limpa o diretório de cache no boot para evitar acúmulo de arquivos órfãos de sessões passadas
+    try {
+      if (cacheDirectory.existsSync()) {
+        for (final entity in cacheDirectory.listSync()) {
+          if (entity is File) {
+            await entity.delete();
+          }
+        }
+      }
+    } catch (_) {}
   }
 }

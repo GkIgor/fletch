@@ -6,6 +6,7 @@ class HttpResponse {
   final dynamic body;
   final int responseTime; // em milissegundos
   final int contentLength; // em bytes
+  final String? bodyFilePath; // caminho para o arquivo com o corpo se salvo em cache
 
   HttpResponse({
     required this.statusCode,
@@ -14,6 +15,7 @@ class HttpResponse {
     required this.body,
     required this.responseTime,
     required this.contentLength,
+    this.bodyFilePath,
   });
 
   /// Retorna se a resposta foi bem-sucedida (2xx)
@@ -54,6 +56,7 @@ class HttpResponse {
       'body': body,
       'responseTime': responseTime,
       'contentLength': contentLength,
+      'bodyFilePath': bodyFilePath,
     };
   }
 
@@ -66,6 +69,7 @@ class HttpResponse {
       body: json['body'],
       responseTime: json['responseTime'] as int,
       contentLength: json['contentLength'] as int,
+      bodyFilePath: json['bodyFilePath'] as String?,
     );
   }
 }

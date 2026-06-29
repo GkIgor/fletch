@@ -1,32 +1,30 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:fletch/core/app_config.dart';
 import 'package:fletch/core/contracts/repository.dart';
 import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/core/utils/security_utils.dart';
+import 'package:fletch/core/repositories/generic_repository.dart';
 
 class CollectionRepository implements IRepository<RequestCollection> {
   final String _path = AppConfig.collectionsDir;
+  final GenericRepository _genericRepository;
+
+  CollectionRepository({GenericRepository? genericRepository})
+      : _genericRepository = genericRepository ?? GenericRepository();
 
   Future<List<RequestCollection>> getAll(String workspaceId) async {
-    final dir = Directory(_path);
-
-    if (!dir.existsSync()) {
-      return [];
-    }
-
-    final files = dir.listSync().where((f) => f.path.endsWith('.json'));
+    final List<String> filePaths = await _genericRepository.listJsonFiles(_path);
     final List<RequestCollection> collections = [];
 
-    for (var entity in files) {
-      final file = File(entity.path);
-
-      if (file.statSync().size > 10 * 1024 * 1024) continue;
+    for (var filePath in filePaths) {
+      if (await _genericRepository.getFileSize(filePath) > 10 * 1024 * 1024) {
+        continue;
+      }
 
       try {
-        final content = file.readAsStringSync();
-        final Map<String, dynamic> map = jsonDecode(content);
+        final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+        if (map == null) continue;
 
         if (map['workspaceId'] != workspaceId) continue;
 
@@ -60,8 +58,8 @@ class CollectionRepository implements IRepository<RequestCollection> {
 
     map['signature'] = signature;
 
-    final file = File('$_path/${collection.id}.json');
-    await file.writeAsString(jsonEncode(map));
+    final filePath = '$_path/${collection.id}.json';
+    await _genericRepository.writeJson(filePath, map);
   }
 
   Future<void> saveAll(List<RequestCollection> collections) async {
@@ -72,49 +70,41 @@ class CollectionRepository implements IRepository<RequestCollection> {
 
   @override
   Future<void> delete(String collectionId) async {
-    final file = File('$_path/$collectionId.json');
-    if (file.existsSync()) {
-      await file.delete();
-    }
+    final filePath = '$_path/$collectionId.json';
+    await _genericRepository.delete(filePath);
   }
 
   Future<void> deleteAll(String workspaceId) async {
-    final dir = Directory(_path);
-    if (dir.existsSync()) {
-      final files = dir.listSync().where((f) => f.path.endsWith('.json'));
-      for (var entry in files) {
-        final file = File(entry.path);
+    final List<String> filePaths = await _genericRepository.listJsonFiles(_path);
+    for (var filePath in filePaths) {
+      if (await _genericRepository.getFileSize(filePath) > 10 * 1024 * 1024) {
+        await _genericRepository.delete(filePath);
+        continue;
+      }
 
-        if (file.statSync().size > 10 * 1024 * 1024) {
-          await file.delete();
-          continue;
+      try {
+        final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+        if (map != null && map['workspaceId'] == workspaceId) {
+          await _genericRepository.delete(filePath);
         }
-
-        if (jsonDecode(await file.readAsString())['workspaceId'] ==
-            workspaceId) {
-          await file.delete();
-        }
+      } catch (_) {
+        // Ignora erros na exclusão em lote
       }
     }
   }
 
   Future<List<Map<String, dynamic>>> getCorruptedCollections(String workspaceId) async {
-    final dir = Directory(_path);
-    if (!dir.existsSync()) {
-      return [];
-    }
-
-    final files = dir.listSync().where((f) => f.path.endsWith('.json'));
+    final List<String> filePaths = await _genericRepository.listJsonFiles(_path);
     final List<Map<String, dynamic>> corrupted = [];
 
-    for (var entity in files) {
-      final file = File(entity.path);
-
-      if (file.statSync().size > 10 * 1024 * 1024) continue;
+    for (var filePath in filePaths) {
+      if (await _genericRepository.getFileSize(filePath) > 10 * 1024 * 1024) {
+        continue;
+      }
 
       try {
-        final content = file.readAsStringSync();
-        final Map<String, dynamic> map = jsonDecode(content);
+        final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+        if (map == null) continue;
 
         if (map['workspaceId'] != workspaceId) continue;
 
@@ -140,15 +130,11 @@ class CollectionRepository implements IRepository<RequestCollection> {
 
   @override
   Future<RequestCollection?> getById(String collectionId) async {
-    final file = File('$_path/$collectionId.json');
-
-    if (!file.existsSync()) {
-      return null;
-    }
-
+    final filePath = '$_path/$collectionId.json';
     try {
-      final content = file.readAsStringSync();
-      final Map<String, dynamic> map = jsonDecode(content);
+      final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+      if (map == null) return null;
+
       final String? fileSignature = map['signature'];
 
       final dataToValidate = Map<String, dynamic>.from(map)

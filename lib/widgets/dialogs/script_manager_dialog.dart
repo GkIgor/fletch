@@ -29,6 +29,7 @@ import 'package:fletch/widgets/script_steps/forms/header_builder_step_form.dart'
 import 'package:fletch/widgets/script_steps/forms/start_step_form.dart';
 import 'package:fletch/widgets/script_steps/forms/fail_step_form.dart';
 import 'package:fletch/widgets/script_steps/forms/end_step_form.dart';
+import 'package:fletch/widgets/script_steps/forms/visual_step_text_field.dart';
 
 class ScriptManagerDialog extends StatefulWidget {
   final WorkspaceModel workspace;
@@ -460,9 +461,11 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                       child: Row(
                                         children: [
                                           Expanded(
-                                            child: TextField(
-                                              controller: TextEditingController(text: _selectedScript!.name)
-                                                ..selection = TextSelection.collapsed(offset: _selectedScript!.name.length),
+                                            child: VisualStepTextField(
+                                              value: _selectedScript!.name,
+                                              labelText: '',
+                                              hintText: 'Script Name',
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                               decoration: InputDecoration(
                                                 hintText: 'Script Name',
                                                 isDense: true,
@@ -476,7 +479,6 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
                                                   borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                                                 ),
                                               ),
-                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                               onChanged: (val) {
                                                 _updateSelectedScript(_selectedScript!.copyWith(name: val));
                                               },
@@ -579,15 +581,9 @@ class _ScriptManagerDialogState extends State<ScriptManagerDialog> {
             padding: const EdgeInsets.all(12.0),
             children: [
               // Customizable Node Name
-              TextField(
-                controller: TextEditingController(text: node.name)
-                  ..selection = TextSelection.collapsed(offset: node.name.length),
-                decoration: const InputDecoration(
-                  labelText: 'Node Name',
-                  labelStyle: TextStyle(fontSize: 11),
-                  isDense: true,
-                ),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              VisualStepTextField(
+                value: node.name,
+                labelText: 'Node Name',
                 onChanged: (val) {
                   node.name = val;
                   _updateNode(nodeId, node);

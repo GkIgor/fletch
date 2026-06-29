@@ -1294,17 +1294,34 @@ class _VariableListEditor extends StatefulWidget {
 }
 
 class _VariableListEditorState extends State<_VariableListEditor> {
-  // Keeping track of list indices for keys editing
-  List<String> _keysList = [];
+  List<String> _rowIds = [];
+  Map<String, String> _idToKey = {};
+  int _idCounter = 0;
 
   @override
   void initState() {
     super.initState();
-    _keysList = widget.variables.keys.toList();
+    final keys = widget.variables.keys.toList();
+    _rowIds = List.generate(keys.length, (i) => 'stable_row_id_${_idCounter++}');
+    _idToKey = {
+      for (int i = 0; i < keys.length; i++) _rowIds[i]: keys[i]
+    };
+  }
+
+  @override
+  void didUpdateWidget(covariant _VariableListEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.envId != widget.envId) {
+      _idCounter = 0;
+      final keys = widget.variables.keys.toList();
+      _rowIds = List.generate(keys.length, (i) => 'stable_row_id_${_idCounter++}');
+      _idToKey = {
+        for (int i = 0; i < keys.length; i++) _rowIds[i]: keys[i]
+      };
+    }
   }
 
   void _addEmptyVariable() {
-    // Generate a unique temporary key name
     int counter = widget.variables.length + 1;
     String newKey = 'VARIABLE_$counter';
     while (widget.variables.containsKey(newKey)) {
@@ -1314,8 +1331,11 @@ class _VariableListEditorState extends State<_VariableListEditor> {
 
     final newSecret = WorkspaceSecretKey(value: '', isSecret: false);
     widget.wsProvider.addOrUpdateVariable(widget.envId, newKey, newKey, newSecret);
+    
+    final newId = 'stable_row_id_${_idCounter++}';
     setState(() {
-      _keysList.add(newKey);
+      _rowIds.add(newId);
+      _idToKey[newId] = newKey;
     });
   }
 
@@ -1413,13 +1433,13 @@ class _VariableListEditorState extends State<_VariableListEditor> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  itemCount: _keysList.length + 1,
+                  itemCount: _rowIds.length + 1,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
                     color: widget.borderColor.withValues(alpha: 0.5),
                   ),
                   itemBuilder: (context, index) {
-                    if (index == _keysList.length) {
+                    if (index == _rowIds.length) {
                       // Add Variable button row
                       return InkWell(
                         onTap: _addEmptyVariable,
@@ -1447,12 +1467,14 @@ class _VariableListEditorState extends State<_VariableListEditor> {
                       );
                     }
 
-                    final key = _keysList[index];
+                    final rowId = _rowIds[index];
+                    final key = _idToKey[rowId];
+                    if (key == null) return const SizedBox();
                     final secretKey = widget.variables[key];
                     if (secretKey == null) return const SizedBox();
 
                     return _VariableRowWidget(
-                      key: ValueKey('${widget.envId}_row_$key'),
+                      key: ValueKey('${widget.envId}_row_$rowId'),
                       envId: widget.envId,
                       varKey: key,
                       secretKey: secretKey,
@@ -1462,16 +1484,14 @@ class _VariableListEditorState extends State<_VariableListEditor> {
                       secondaryTextColor: widget.secondaryTextColor,
                       onKeyRenamed: (oldKey, newKey) {
                         setState(() {
-                          final idx = _keysList.indexOf(oldKey);
-                          if (idx != -1) {
-                            _keysList[idx] = newKey;
-                          }
+                          _idToKey[rowId] = newKey;
                         });
                       },
                       onDeleted: () {
                         widget.wsProvider.removeVariable(widget.envId, key);
                         setState(() {
-                          _keysList.remove(key);
+                          _rowIds.remove(rowId);
+                          _idToKey.remove(rowId);
                         });
                       },
                     );

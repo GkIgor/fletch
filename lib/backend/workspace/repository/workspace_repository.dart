@@ -1,33 +1,31 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:fletch/core/app_config.dart';
 import 'package:fletch/core/contracts/repository.dart';
 import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/core/utils/security_utils.dart';
+import 'package:fletch/core/repositories/generic_repository.dart';
 
 class WorkspaceRepository implements IRepository<WorkspaceModel> {
   final String _path = AppConfig.workspaceDir;
+  final GenericRepository _genericRepository;
+
+  WorkspaceRepository({GenericRepository? genericRepository})
+      : _genericRepository = genericRepository ?? GenericRepository();
 
   Future<List<WorkspaceModel>> getAll() async {
-    final dir = Directory(_path);
-
-    if (!dir.existsSync()) {
-      return [];
-    }
-
-    final files = dir.listSync().where((f) => f.path.endsWith('.json'));
-
+    final List<String> filePaths = await _genericRepository.listJsonFiles(_path);
     final List<WorkspaceModel> workspaces = [];
 
-    for (var entity in files) {
-      final file = File(entity.path);
-
-      if (file.statSync().size > 10 * 1024 * 1024) continue;
+    for (var filePath in filePaths) {
+      if (await _genericRepository.getFileSize(filePath) > 10 * 1024 * 1024) {
+        continue;
+      }
 
       try {
-        final content = file.readAsStringSync();
-        final Map<String, dynamic> map = jsonDecode(content);
+        final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+        if (map == null) continue;
+
         final String? fileSignature = map['signature'];
 
         final dataToValidate = Map<String, dynamic>.from(map)
@@ -58,17 +56,17 @@ class WorkspaceRepository implements IRepository<WorkspaceModel> {
 
     map['signature'] = signature;
 
-    final file = File('$_path/${ws.id}.json');
-    await file.writeAsString(jsonEncode(map));
+    final filePath = '$_path/${ws.id}.json';
+    await _genericRepository.writeJson(filePath, map);
   }
 
   @override
   Future<WorkspaceModel?> getById(String id) async {
-    final file = File('$_path/$id.json');
-    if (!file.existsSync()) return null;
+    final filePath = '$_path/$id.json';
     try {
-      final content = await file.readAsString();
-      final Map<String, dynamic> map = jsonDecode(content);
+      final Map<String, dynamic>? map = await _genericRepository.readJson(filePath);
+      if (map == null) return null;
+
       final String? fileSignature = map['signature'];
 
       final dataToValidate = Map<String, dynamic>.from(map)..remove('signature');
@@ -83,9 +81,7 @@ class WorkspaceRepository implements IRepository<WorkspaceModel> {
 
   @override
   Future<void> delete(String id) async {
-    final file = File('$_path/$id.json');
-    if (file.existsSync()) {
-      await file.delete();
-    }
+    final filePath = '$_path/$id.json';
+    await _genericRepository.delete(filePath);
   }
 }

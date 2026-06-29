@@ -123,7 +123,7 @@ void main() {
     expect(provider.collections[1].sortOrder, equals(1));
 
     // Await background saves
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
   });
 
   test('RequestProvider sub-collections and security flows', () async {
@@ -159,7 +159,7 @@ void main() {
     expect(provider.collections.firstWhere((c) => c.id == 'another-folder').parentId, equals('root-folder'));
 
     // Await background saves from nestCollection to avoid concurrent file writes on the same file paths
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // 3. Import collections
     final exported = provider.exportCollections();
@@ -171,7 +171,7 @@ void main() {
     expect(newProvider.collections.every((c) => c.workspaceId == 'imported-ws-id'), isTrue);
 
     // Await background saves from import
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // 4. Security warnings simulation
     // We modify a file on disk directly to corrupt its signature
@@ -201,7 +201,7 @@ void main() {
     expect(checkProvider.collections.firstWhere((c) => c.id == 'root-folder').name, equals('Corrupted Folder'));
 
     // Await background saves
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
   });
 
   test('Editing a nested collection preserves parentId', () async {

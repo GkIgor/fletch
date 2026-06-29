@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/core/contracts/http_client.dart';
 import 'package:fletch/backend/requests/auth/oauth1_helper.dart';
+import 'package:flutter/foundation.dart';
+import 'package:fletch/core/app_config.dart';
 
 class HttpService implements IHttpClient {
   final Dio _dio;
@@ -228,13 +230,13 @@ class HttpService implements IHttpClient {
         }
       });
 
-      return HttpResponse(
-        statusCode: response.statusCode ?? 200,
-        statusMessage: response.statusMessage ?? 'OK',
-        headers: responseHeaders,
-        body: response.data,
-        responseTime: duration,
-        contentLength: contentLength,
+      return await _processResponse(
+        response.statusCode ?? 200,
+        response.statusMessage ?? 'OK',
+        responseHeaders,
+        response.data,
+        duration,
+        contentLength,
       );
     } on DioException catch (e) {
       stopwatch.stop();
@@ -266,13 +268,13 @@ class HttpService implements IHttpClient {
           }
         });
 
-        return HttpResponse(
-          statusCode: response.statusCode ?? 500,
-          statusMessage: response.statusMessage ?? 'Error',
-          headers: responseHeaders,
-          body: response.data,
-          responseTime: duration,
-          contentLength: contentLength,
+        return await _processResponse(
+          response.statusCode ?? 500,
+          response.statusMessage ?? 'Error',
+          responseHeaders,
+          response.data,
+          duration,
+          contentLength,
         );
       } else {
         final errorMsg = e.message ?? e.toString();
@@ -297,5 +299,48 @@ class HttpService implements IHttpClient {
         contentLength: utf8.encode(errorMsg).length,
       );
     }
+  }
+
+  Future<HttpResponse> _processResponse(
+    int statusCode,
+    String statusMessage,
+    Map<String, dynamic> headers,
+    dynamic data,
+    int responseTime,
+    int contentLength,
+  ) async {
+    String? bodyFilePath;
+    dynamic finalBody = data;
+
+    if (contentLength > 5 * 1024 * 1024 && data != null) {
+      try {
+        final cacheDir = AppConfig.cacheDir;
+        final tempFileName = 'resp_${DateTime.now().microsecondsSinceEpoch}.txt';
+        bodyFilePath = '$cacheDir/$tempFileName';
+        final file = File(bodyFilePath);
+        
+        if (data is String) {
+          await file.writeAsString(data);
+        } else if (data is List<int>) {
+          await file.writeAsBytes(data);
+        } else {
+          final jsonString = await compute(jsonEncode, data);
+          await file.writeAsString(jsonString);
+        }
+        finalBody = null; // Libera memória RAM
+      } catch (e) {
+        debugPrint('Erro ao salvar corpo da resposta no cache: $e');
+      }
+    }
+
+    return HttpResponse(
+      statusCode: statusCode,
+      statusMessage: statusMessage,
+      headers: headers,
+      body: finalBody,
+      responseTime: responseTime,
+      contentLength: contentLength,
+      bodyFilePath: bodyFilePath,
+    );
   }
 }

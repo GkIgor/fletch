@@ -29,12 +29,17 @@ class _ResponseViewerState extends State<ResponseViewer> {
   bool _isLargePayload = false;
   String _htmlBody = '';
 
+  bool _isOffloaded = false;
+  bool _isLoadingOffloaded = false;
+  dynamic _loadedBody;
+
   static const int kMaxRenderSize = 2 * 1024 * 1024; // 2MB
   static const int kTruncateSize = 100 * 1024; // 100KB
 
   @override
   void initState() {
     super.initState();
+    _isOffloaded = widget.response.bodyFilePath != null;
     _detectContentType();
     _initControllers();
     _updateBodyText();
@@ -44,6 +49,8 @@ class _ResponseViewerState extends State<ResponseViewer> {
   void didUpdateWidget(ResponseViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.response != widget.response) {
+      _isOffloaded = widget.response.bodyFilePath != null;
+      _loadedBody = null;
       _detectContentType();
       _textController.language = _getLanguageFromTab(_selectedTab);
       _updateBodyText();
@@ -104,7 +111,8 @@ class _ResponseViewerState extends State<ResponseViewer> {
   }
 
   Future<void> _updateBodyText() async {
-    if (widget.response.body == null) {
+    final body = _isOffloaded ? _loadedBody : widget.response.body;
+    if (body == null) {
       _textController.text = '';
       _htmlBody = '';
       _isLargePayload = false;
@@ -114,13 +122,13 @@ class _ResponseViewerState extends State<ResponseViewer> {
 
     final rawSize = widget.response.contentLength > 0 
         ? widget.response.contentLength 
-        : widget.response.body.toString().length;
+        : body.toString().length;
 
     if (rawSize > kMaxRenderSize) {
       _isLargePayload = true;
       _textController.language = 'none';
 
-      final rawStr = widget.response.body.toString();
+      final rawStr = body.toString();
       final truncatedStr = rawStr.length > kTruncateSize 
           ? rawStr.substring(0, kTruncateSize) 
           : rawStr;
@@ -141,10 +149,10 @@ class _ResponseViewerState extends State<ResponseViewer> {
       }
 
       try {
-        final formatted = await compute(_formatJsonIsolate, widget.response.body);
+        final formatted = await compute(_formatJsonIsolate, body);
         _textController.text = formatted;
       } catch (_) {
-        _textController.text = widget.response.body.toString();
+        _textController.text = body.toString();
       } finally {
         if (mounted) {
           setState(() {
@@ -153,31 +161,69 @@ class _ResponseViewerState extends State<ResponseViewer> {
         }
       }
     } else if (_selectedTab == 'HTML') {
-      _htmlBody = widget.response.body.toString();
+      _htmlBody = body.toString();
       if (mounted) setState(() {});
     } else {
-      _textController.text = widget.response.body.toString();
+      _textController.text = body.toString();
       if (mounted) setState(() {});
     }
   }
 
   Future<String> _getFullBodyText() async {
-    if (widget.response.body == null) return '';
+    final body = _isOffloaded ? _loadedBody : widget.response.body;
+    if (body == null) return '';
 
     final rawSize = widget.response.contentLength > 0 
         ? widget.response.contentLength 
-        : widget.response.body.toString().length;
+        : body.toString().length;
 
     if (rawSize > kMaxRenderSize) {
-      return widget.response.body.toString();
+      return body.toString();
     }
 
     if (_selectedTab == 'JSON') {
       try {
-        return await compute(_formatJsonIsolate, widget.response.body);
+        return await compute(_formatJsonIsolate, body);
       } catch (_) {}
     }
-    return widget.response.body.toString();
+    return body.toString();
+  }
+
+  Future<void> _loadOffloadedBody() async {
+    if (widget.response.bodyFilePath == null) return;
+    setState(() {
+      _isLoadingOffloaded = true;
+    });
+
+    try {
+      final file = File(widget.response.bodyFilePath!);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(content);
+        } catch (_) {
+          decoded = content;
+        }
+        setState(() {
+          _loadedBody = decoded;
+          _isOffloaded = false;
+          _isLoadingOffloaded = false;
+        });
+        await _updateBodyText();
+      } else {
+        throw Exception('Cache file not found');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingOffloaded = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load response body: $e')),
+        );
+      }
+    }
   }
 
   void _copyToClipboard() async {
@@ -670,6 +716,48 @@ class _ResponseViewerState extends State<ResponseViewer> {
   }
 
   Widget _buildContentArea(int lineCount, Color borderColor, bool isDark) {
+    if (_isOffloaded && _loadedBody == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_download_outlined,
+              size: 48,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Large Response Saved to Disk',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Size: ${widget.response.formattedSize}',
+              style: const TextStyle(fontSize: 12, color: AppColors.slate500),
+            ),
+            const SizedBox(height: 16),
+            if (_isLoadingOffloaded)
+              const CircularProgressIndicator()
+            else
+              ElevatedButton.icon(
+                onPressed: _loadOffloadedBody,
+                icon: const Icon(Icons.download_rounded, size: 16),
+                label: const Text('Load Response Body'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     if (_isFormatting) {
       return const Center(
         child: Column(
