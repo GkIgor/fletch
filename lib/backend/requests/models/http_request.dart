@@ -1,7 +1,8 @@
 import 'package:uuid/uuid.dart';
-import 'http_method.dart';
-import 'http_auth.dart';
-import 'body_type.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/body_type.dart';
+export 'package:fletch/backend/requests/models/body_type.dart';
 
 /// Modelo de entrada para Form Data
 class FormDataEntry {

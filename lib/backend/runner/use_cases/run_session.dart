@@ -3,7 +3,7 @@ import 'package:fletch/core/contracts/repository.dart';
 import 'package:fletch/backend/requests/use_cases/execute_request.dart';
 import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/backend/workspace/models/workspace.dart';
-import '../models/runner_session.dart';
+import 'package:fletch/backend/runner/models/runner_session.dart';
 
 class RunSession {
   final IHttpClient _httpClient;
@@ -63,7 +63,14 @@ class RunSession {
         );
 
         item.response = pipelineContext.response;
-        item.status = pipelineContext.response != null && pipelineContext.response!.isSuccess ? 'success' : 'failure';
+        if (pipelineContext.response != null && pipelineContext.response!.isSuccess) {
+          item.status = 'success';
+        } else {
+          item.status = 'failure';
+          if (pipelineContext.response != null) {
+            item.errorMessage = 'HTTP Status: ${pipelineContext.response!.statusCode}';
+          }
+        }
 
         // Keep local runner environment variables updated with dynamically set scripts outputs
         session.variables.addAll(pipelineContext.variables);

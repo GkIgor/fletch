@@ -1,9 +1,9 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'package:fletch/utils/script_compiler.dart';
-import 'visual_step_text_field.dart';
+import 'package:fletch/backend/scripting/compiler/script_compiler.dart';
+import 'package:fletch/widgets/script_steps/forms/visual_step_text_field.dart';
 
 /// A lightweight, immutable reference for display inside the form's dropdown.
 /// Only carries the data needed to render the picker — no bodies loaded until

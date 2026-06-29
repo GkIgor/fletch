@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fletch/models/runner_item_state.dart';
+import 'package:fletch/backend/runner/models/runner_item_state.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/runner_provider.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/theme/app_theme.dart';
 import 'package:fletch/widgets/response_viewer.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_response.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_response.dart';
 
 class RunnerView extends StatefulWidget {
   const RunnerView({super.key});
@@ -22,7 +23,7 @@ class _RunnerViewState extends State<RunnerView> {
   @override
   void initState() {
     super.initState();
-    final provider = Provider.of<RequestProvider>(context, listen: false);
+    final provider = Provider.of<RunnerProvider>(context, listen: false);
     _delayController = TextEditingController(text: provider.runnerDelayMs.toString());
   }
 
@@ -62,7 +63,7 @@ class _RunnerViewState extends State<RunnerView> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<RequestProvider>(context);
+    final provider = Provider.of<RunnerProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final backgroundColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
@@ -275,11 +276,13 @@ class _RunnerViewState extends State<RunnerView> {
                                           provider.stopRunnerExecution();
                                         } else {
                                           final wsProvider = Provider.of<WorkspaceProvider>(context, listen: false);
+                                          final reqProvider = Provider.of<RequestProvider>(context, listen: false);
                                           final activeEnv = wsProvider.activeEnvironment;
                                           final Map<String, String> variables = activeEnv?.variables.map((k, v) => MapEntry(k, v.value)) ?? {};
                                           provider.executeRunnerSession(
+                                            collections: reqProvider.collections,
                                             variables: variables,
-                                            workspace: wsProvider.currentWorkspace,
+                                            workspace: wsProvider.currentWorkspace!,
                                           );
                                         }
                                       },

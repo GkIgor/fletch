@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:fletch/models/http_response.dart';
+import 'package:fletch/backend/requests/models/http_response.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/theme/app_theme.dart';
 import 'package:fletch/widgets/code_highlight_controller.dart';
@@ -24,11 +25,19 @@ class _ResponseViewerState extends State<ResponseViewer> {
   late ScrollController _textScrollController;
   late ScrollController _lineNumbersScrollController;
 
+  bool _isFormatting = false;
+  bool _isLargePayload = false;
+  String _htmlBody = '';
+
+  static const int kMaxRenderSize = 2 * 1024 * 1024; // 2MB
+  static const int kTruncateSize = 100 * 1024; // 100KB
+
   @override
   void initState() {
     super.initState();
     _detectContentType();
     _initControllers();
+    _updateBodyText();
   }
 
   @override
@@ -37,7 +46,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
     if (oldWidget.response != widget.response) {
       _detectContentType();
       _textController.language = _getLanguageFromTab(_selectedTab);
-      _textController.text = _getFormattedBody(_selectedTab);
+      _updateBodyText();
     }
   }
 
@@ -74,7 +83,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
 
   void _initControllers() {
     _textController = CodeHighlightController(
-      text: _getFormattedBody(_selectedTab),
+      text: '',
       language: _getLanguageFromTab(_selectedTab),
       isDark: true,
     );
@@ -94,37 +103,101 @@ class _ResponseViewerState extends State<ResponseViewer> {
     return 'none';
   }
 
-  String _getFormattedBody(String tab) {
-    if (widget.response.body == null) return '';
-    if (tab == 'JSON') {
+  Future<void> _updateBodyText() async {
+    if (widget.response.body == null) {
+      _textController.text = '';
+      _htmlBody = '';
+      _isLargePayload = false;
+      if (mounted) setState(() {});
+      return;
+    }
+
+    final rawSize = widget.response.contentLength > 0 
+        ? widget.response.contentLength 
+        : widget.response.body.toString().length;
+
+    if (rawSize > kMaxRenderSize) {
+      _isLargePayload = true;
+      _textController.language = 'none';
+
+      final rawStr = widget.response.body.toString();
+      final truncatedStr = rawStr.length > kTruncateSize 
+          ? rawStr.substring(0, kTruncateSize) 
+          : rawStr;
+
+      _textController.text = '$truncatedStr\n\n... [TRUNCATED FOR PERFORMANCE]';
+      _htmlBody = '<html><body><h3>HTML Truncated</h3><p>Response is too large (>2MB). Formatting disabled for performance.</p></body></html>';
+      if (mounted) setState(() {});
+      return;
+    }
+
+    _isLargePayload = false;
+
+    if (_selectedTab == 'JSON') {
+      if (mounted) {
+        setState(() {
+          _isFormatting = true;
+        });
+      }
+
       try {
-        if (widget.response.body is Map || widget.response.body is List) {
-          return const JsonEncoder.withIndent('  ').convert(widget.response.body);
-        } else if (widget.response.body is String) {
-          final decoded = jsonDecode(widget.response.body);
-          return const JsonEncoder.withIndent('  ').convert(decoded);
+        final formatted = await compute(_formatJsonIsolate, widget.response.body);
+        _textController.text = formatted;
+      } catch (_) {
+        _textController.text = widget.response.body.toString();
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isFormatting = false;
+          });
         }
+      }
+    } else if (_selectedTab == 'HTML') {
+      _htmlBody = widget.response.body.toString();
+      if (mounted) setState(() {});
+    } else {
+      _textController.text = widget.response.body.toString();
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<String> _getFullBodyText() async {
+    if (widget.response.body == null) return '';
+
+    final rawSize = widget.response.contentLength > 0 
+        ? widget.response.contentLength 
+        : widget.response.body.toString().length;
+
+    if (rawSize > kMaxRenderSize) {
+      return widget.response.body.toString();
+    }
+
+    if (_selectedTab == 'JSON') {
+      try {
+        return await compute(_formatJsonIsolate, widget.response.body);
       } catch (_) {}
     }
     return widget.response.body.toString();
   }
 
-  void _copyToClipboard() {
-    final text = _getFormattedBody(_selectedTab);
+  void _copyToClipboard() async {
+    final text = await _getFullBodyText();
     if (text.isNotEmpty) {
       Clipboard.setData(ClipboardData(text: text));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Copied response body to clipboard'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Copied response body to clipboard'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   Future<void> _saveResponseToFile() async {
     try {
-      final text = _getFormattedBody(_selectedTab);
+      final text = await _getFullBodyText();
       final extension = _selectedTab == 'JSON' ? 'json' : (_selectedTab == 'XML' ? 'xml' : (_selectedTab == 'HTML' ? 'html' : 'txt'));
       final result = await picker.FilePicker.platform.saveFile(
         dialogTitle: 'Save Response',
@@ -369,7 +442,6 @@ class _ResponseViewerState extends State<ResponseViewer> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     _textController.isDark = isDark;
-    _textController.language = _getLanguageFromTab(_selectedTab);
 
     final lineCount = _textController.text.split('\n').length;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
@@ -380,6 +452,35 @@ class _ResponseViewerState extends State<ResponseViewer> {
       ),
       child: Column(
         children: [
+          // Large Payload Warning Banner
+          if (_isLargePayload) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.15),
+                border: Border(
+                  bottom: BorderSide(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Response is too large (${widget.response.formattedSize}). Formatting and syntax coloring are disabled to preserve performance. Please Save File to view the full content.',
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // 1. Info Header (Matched to Editor background color)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -473,7 +574,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
                 TextButton(
                   onPressed: () => _showHeadersDialog(context),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -538,11 +639,13 @@ class _ResponseViewerState extends State<ResponseViewer> {
     final isActive = _selectedTab == label;
     return InkWell(
       onTap: () {
-        setState(() {
-          _selectedTab = label;
+        if (_selectedTab != label) {
+          setState(() {
+            _selectedTab = label;
+          });
           _textController.language = _getLanguageFromTab(label);
-          _textController.text = _getFormattedBody(label);
-        });
+          _updateBodyText();
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -567,6 +670,22 @@ class _ResponseViewerState extends State<ResponseViewer> {
   }
 
   Widget _buildContentArea(int lineCount, Color borderColor, bool isDark) {
+    if (_isFormatting) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              'Formatting JSON response...',
+              style: TextStyle(fontSize: 13, color: AppColors.slate500),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_selectedTab == 'None') {
       return Center(
         child: Text(
@@ -619,7 +738,7 @@ class _ResponseViewerState extends State<ResponseViewer> {
     }
 
     if (_selectedTab == 'HTML') {
-      return LightweightHtmlViewer(html: _getFormattedBody('HTML'));
+      return LightweightHtmlViewer(html: _htmlBody);
     }
 
     // JSON or XML: Styled inside the exact same rounded outer container as BodyEditor
@@ -698,6 +817,18 @@ class _ResponseViewerState extends State<ResponseViewer> {
       ),
     );
   }
+}
+
+String _formatJsonIsolate(dynamic body) {
+  try {
+    if (body is Map || body is List) {
+      return const JsonEncoder.withIndent('  ').convert(body);
+    } else if (body is String) {
+      final decoded = jsonDecode(body);
+      return const JsonEncoder.withIndent('  ').convert(decoded);
+    }
+  } catch (_) {}
+  return body?.toString() ?? '';
 }
 
 class LightweightHtmlViewer extends StatelessWidget {

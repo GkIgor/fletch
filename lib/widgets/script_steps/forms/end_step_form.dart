@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class EndStepForm extends StatelessWidget {
   final String nodeId;

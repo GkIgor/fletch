@@ -10,6 +10,8 @@ import 'package:fletch/providers/theme_provider.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_theme.dart';
 
+import 'package:fletch/providers/runner_provider.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +24,9 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(
           create: (_) => RequestProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RunnerProvider(),
         ),
         ChangeNotifierProvider(create: (_) => UserProvider()..loadUser()),
         ChangeNotifierProvider(

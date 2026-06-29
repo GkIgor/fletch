@@ -2,15 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fletch/core/app_config.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/http_response.dart';
-import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_response.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/providers/request_provider.dart';
-import 'package:fletch/repository/collection_repository.dart';
-import 'package:fletch/services/http_service.dart';
-import 'package:fletch/utils/utils.dart';
+import 'package:fletch/providers/runner_provider.dart';
+import 'package:fletch/backend/collections/repository/collection_repository.dart';
+import 'package:fletch/backend/requests/services/http_service.dart';
+import 'package:fletch/core/utils/security_utils.dart';
 
 // ---------------------------------------------------------------------------
 // Shared mock
@@ -229,9 +230,10 @@ void main() {
   group('Runner stop and resume', () {
     test('stopRunnerExecution marks runner as not running and keeps active state', () async {
       const wsId = 'ws-stop';
-      final provider = RequestProvider(httpService: _MockHttpService());
+      final reqProvider = RequestProvider(httpService: _MockHttpService());
+      final provider = RunnerProvider(httpService: _MockHttpService());
 
-      await provider.addCollection(
+      await reqProvider.addCollection(
         _makeCollection(
           id: 'run-col',
           workspaceId: wsId,
@@ -239,7 +241,7 @@ void main() {
         ),
       );
 
-      provider.startWorkspaceRun();
+      provider.startWorkspaceRun(reqProvider.collections);
       expect(provider.isRunnerActive, isTrue);
 
       // Calling stop must immediately flip isCurrentlyRunning to false
@@ -253,8 +255,9 @@ void main() {
     });
 
     test('closing the runner resets all state', () async {
-      final provider = RequestProvider(httpService: _MockHttpService());
-      await provider.addCollection(
+      final reqProvider = RequestProvider(httpService: _MockHttpService());
+      final provider = RunnerProvider(httpService: _MockHttpService());
+      await reqProvider.addCollection(
         _makeCollection(
           id: 'col-reset',
           workspaceId: 'ws-reset',
@@ -262,7 +265,7 @@ void main() {
         ),
       );
 
-      provider.startWorkspaceRun();
+      provider.startWorkspaceRun(reqProvider.collections);
       expect(provider.isRunnerActive, isTrue);
 
       provider.closeRunner();

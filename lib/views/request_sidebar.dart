@@ -5,17 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/widgets/dialogs/manage_collection.dart';
 import 'package:provider/provider.dart';
-import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/runner_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/widgets/collection_folder.dart';
 import 'package:fletch/widgets/custom_scrollbar.dart';
 import 'package:fletch/widgets/request_list_item.dart';
 import 'package:fletch/widgets/dialogs/export_format_dialog.dart';
-import 'package:fletch/utils/converters/format_detector.dart';
-import 'package:fletch/utils/converters/postman_converter.dart';
-import 'package:fletch/utils/converters/insomnia_converter.dart';
-import 'package:fletch/utils/converters/yaml_helper.dart';
+import 'package:fletch/backend/collections/converters/format_detector.dart';
+import 'package:fletch/backend/collections/converters/postman_converter.dart';
+import 'package:fletch/backend/collections/converters/insomnia_converter.dart';
+import 'package:fletch/backend/collections/converters/yaml_helper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fletch/widgets/dialogs/auto_collections_generator_dialog.dart';
 import 'package:fletch/widgets/dialogs/payload_bulk_importer_dialog.dart';
@@ -371,7 +372,8 @@ class _SidebarFooterActions extends StatelessWidget {
               _ActionButton(
                 icon: Icons.play_circle_outline_rounded,
                 tooltip: 'Run Workspace',
-                onTap: () => provider.startWorkspaceRun(),
+                onTap: () => Provider.of<RunnerProvider>(context, listen: false)
+                    .startWorkspaceRun(provider.collections),
                 isDark: isDark,
               ),
               Container(

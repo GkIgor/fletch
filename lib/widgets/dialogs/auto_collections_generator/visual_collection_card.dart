@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'generator_models.dart';
-import 'generator_utils.dart';
-import 'visual_request_row.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/generator_models.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/generator_utils.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/visual_request_row.dart';
 
 class VisualCollectionCard extends StatelessWidget {
   final CollectionConfig collection;

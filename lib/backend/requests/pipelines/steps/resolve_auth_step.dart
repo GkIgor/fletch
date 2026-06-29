@@ -1,6 +1,6 @@
 import 'package:fletch/backend/requests/pipelines/contracts/pipeline_context.dart';
 import 'package:fletch/backend/requests/pipelines/contracts/request_step.dart';
-import 'package:fletch/utils/auth_resolver.dart';
+import 'package:fletch/backend/requests/auth/auth_resolver.dart';
 
 class ResolveAuthStep implements IRequestStep {
   @override

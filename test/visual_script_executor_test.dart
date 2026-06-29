@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/visual_script.dart';
-import 'package:fletch/models/workspace_models.dart';
-import 'package:fletch/models/http_auth.dart';
-import 'package:fletch/utils/script_compiler.dart';
-import 'package:fletch/utils/script_executor.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/scripting/compiler/script_compiler.dart';
+import 'package:fletch/backend/scripting/execution/script_executor.dart';
 
 void main() {
   setUp(() {

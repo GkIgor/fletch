@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/models/http_auth.dart';
-import 'package:fletch/utils/oauth1_helper.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/requests/auth/oauth1_helper.dart';
 import 'package:fletch/providers/request_provider.dart';
 
 void main() {

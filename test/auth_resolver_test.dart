@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_auth.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/utils/auth_resolver.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/auth/auth_resolver.dart';
 
 void main() {
   group('AuthResolver Tests', () {

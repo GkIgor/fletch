@@ -7,6 +7,7 @@ import 'package:fletch/widgets/user_avatar.dart';
 import 'package:fletch/widgets/workspace_topbar_logo.dart';
 import 'package:provider/provider.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/runner_provider.dart';
 import 'package:fletch/providers/theme_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/views/request_sidebar.dart';
@@ -36,6 +37,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
     final themeProvider = Provider.of<ThemeProvider>(context);
     final requestProvider = Provider.of<RequestProvider>(context);
+    final runnerProvider = Provider.of<RunnerProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -161,7 +163,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       ? const EnvironmentsManagementView()
                       : wsProvider.isManagingAuth
                           ? const WorkspaceAuthManagementView()
-                          : requestProvider.isRunnerActive
+                          : runnerProvider.isRunnerActive
                               ? const RunnerView()
                               : requestProvider.selectedRequest != null
                                   ? RequestEditor(

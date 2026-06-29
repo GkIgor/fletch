@@ -2,12 +2,12 @@ import 'package:fletch/core/contracts/http_client.dart';
 import 'package:fletch/backend/requests/models/http_request.dart';
 import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/backend/workspace/models/workspace.dart';
-import 'contracts/request_pipeline.dart';
-import 'contracts/pipeline_context.dart';
-import 'contracts/request_step.dart';
-import 'steps/resolve_environment_step.dart';
-import 'steps/resolve_auth_step.dart';
-import 'steps/execute_http_step.dart';
+import 'package:fletch/backend/requests/pipelines/contracts/request_pipeline.dart';
+import 'package:fletch/backend/requests/pipelines/contracts/pipeline_context.dart';
+import 'package:fletch/backend/requests/pipelines/contracts/request_step.dart';
+import 'package:fletch/backend/requests/pipelines/steps/resolve_environment_step.dart';
+import 'package:fletch/backend/requests/pipelines/steps/resolve_auth_step.dart';
+import 'package:fletch/backend/requests/pipelines/steps/execute_http_step.dart';
 
 class ScriptRequestPipeline implements IRequestPipeline {
   final List<IRequestStep> _steps;

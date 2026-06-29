@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import 'package:fletch/theme/app_colors.dart';
 
 /// Sistema de tema do Fletch baseado no design Stitch
 class AppTheme {

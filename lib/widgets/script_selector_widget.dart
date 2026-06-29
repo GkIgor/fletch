@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 import 'package:fletch/theme/app_colors.dart';
 
 class ScriptSelectorWidget extends StatelessWidget {

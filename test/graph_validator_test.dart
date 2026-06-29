@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/models/visual_script.dart';
-import 'package:fletch/utils/graph_validator.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
+import 'package:fletch/backend/scripting/compiler/graph_validator.dart';
 
 void main() {
   group('GraphValidator Reachability & Cycle Detection Tests', () {

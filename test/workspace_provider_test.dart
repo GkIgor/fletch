@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fletch/core/app_config.dart';
-import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 import 'package:fletch/widgets/script_steps/value_source_form.dart';
 
 class AssertValueStepForm extends StatelessWidget {

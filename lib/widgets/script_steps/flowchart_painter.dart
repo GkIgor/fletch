@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../models/visual_script.dart';
-import '../../theme/app_colors.dart';
-import 'flowchart_layout_manager.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/widgets/script_steps/flowchart_layout_manager.dart';
 
 class FlowchartPainter extends CustomPainter {
   final VisualScript script;

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/theme/app_theme.dart';
 import 'package:dotted_border/dotted_border.dart' as db;

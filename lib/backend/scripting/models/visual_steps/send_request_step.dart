@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class SendRequestStep extends VisualStep {
   String method;           // "GET", "POST", etc.

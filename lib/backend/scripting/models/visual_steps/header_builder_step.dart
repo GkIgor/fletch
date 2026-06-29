@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class HeaderBuilderStep extends VisualStep {
   String authType; // "none", "bearer", "basic", "apiKey"

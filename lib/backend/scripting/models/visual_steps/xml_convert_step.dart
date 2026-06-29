@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class XmlConvertStep extends VisualStep {
   String operation; // "xmlToJson", "jsonToXml"

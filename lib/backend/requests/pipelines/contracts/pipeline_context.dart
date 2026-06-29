@@ -3,7 +3,7 @@ import 'package:fletch/backend/requests/models/http_response.dart';
 import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/backend/workspace/models/workspace.dart';
-import 'package:fletch/utils/script_execution_context.dart';
+import 'package:fletch/backend/scripting/execution/script_execution_context.dart';
 
 class RequestPipelineContext {
   final HttpRequest request;

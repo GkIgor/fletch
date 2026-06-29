@@ -48,7 +48,7 @@ class CodeHighlightController extends TextEditingController {
     final baseStyle = style ?? const TextStyle();
 
     // Se o idioma não for suportado ou for 'none', retorna o estilo padrão
-    if (language.toLowerCase() == 'none' || language.isEmpty) {
+    if (language.toLowerCase() == 'none' || language.isEmpty || text.length > 256 * 1024) {
       return TextSpan(text: text, style: baseStyle);
     }
 

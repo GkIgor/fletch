@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'forms/visual_step_text_field.dart';
+import 'package:fletch/widgets/script_steps/forms/visual_step_text_field.dart';
 
 class ValueSourceForm extends StatelessWidget {
   final String label;

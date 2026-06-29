@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:fletch/core/app_config.dart';
 import 'package:fletch/core/contracts/repository.dart';
 import 'package:fletch/backend/workspace/models/workspace.dart';
-import 'package:fletch/utils/utils.dart';
+import 'package:fletch/core/utils/security_utils.dart';
 
 class WorkspaceRepository implements IRepository<WorkspaceModel> {
   final String _path = AppConfig.workspaceDir;

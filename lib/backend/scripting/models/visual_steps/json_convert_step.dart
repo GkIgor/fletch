@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class JsonConvertStep extends VisualStep {
   String operation; // "serialize", "deserialize"

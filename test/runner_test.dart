@@ -1,14 +1,15 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fletch/core/app_config.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/http_response.dart';
-import 'package:fletch/models/http_auth.dart';
-import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_response.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/providers/request_provider.dart';
-import 'package:fletch/services/http_service.dart';
+import 'package:fletch/providers/runner_provider.dart';
+import 'package:fletch/backend/requests/services/http_service.dart';
 
 class MockHttpService extends HttpService {
   @override
@@ -60,7 +61,8 @@ void main() {
   });
 
   test('Runner recursive request gathering and order verification', () async {
-    final provider = RequestProvider(httpService: mockHttpService);
+    final reqProvider = RequestProvider(httpService: mockHttpService);
+    final provider = RunnerProvider(httpService: mockHttpService);
     final workspaceId = 'test-ws';
 
     // Set up nested hierarchy:
@@ -116,13 +118,13 @@ void main() {
     );
 
     // Save mock collections directly in provider state
-    await provider.addCollection(root);
-    await provider.addCollection(sub1);
-    await provider.addCollection(sub2);
-    await provider.addCollection(sub3);
+    await reqProvider.addCollection(root);
+    await reqProvider.addCollection(sub1);
+    await reqProvider.addCollection(sub2);
+    await reqProvider.addCollection(sub3);
 
     // 1. Verify recursive gather for Collection Run
-    provider.startCollectionRun(root);
+    provider.startCollectionRun(root, reqProvider.collections);
     expect(provider.isRunnerActive, isTrue);
     expect(provider.isRunningWorkspace, isFalse);
     expect(provider.runnerCollection?.id, equals('root'));
@@ -140,7 +142,8 @@ void main() {
   });
 
   test('Runner workspace gathering and execution flows', () async {
-    final provider = RequestProvider(httpService: mockHttpService);
+    final reqProvider = RequestProvider(httpService: mockHttpService);
+    final provider = RunnerProvider(httpService: mockHttpService);
     final workspaceId = 'test-ws';
 
     final collA = RequestCollection(
@@ -163,11 +166,11 @@ void main() {
       ],
     );
 
-    await provider.addCollection(collA);
-    await provider.addCollection(collB);
+    await reqProvider.addCollection(collA);
+    await reqProvider.addCollection(collB);
 
     // 1. Start workspace run
-    provider.startWorkspaceRun();
+    provider.startWorkspaceRun(reqProvider.collections);
     expect(provider.isRunnerActive, isTrue);
     expect(provider.isRunningWorkspace, isTrue);
     expect(provider.runnerItems.length, equals(2));
@@ -181,13 +184,13 @@ void main() {
     final ws = WorkspaceModel(name: 'test-ws', id: workspaceId);
 
     // Run session: req-a (selected, success), req-b (not selected, pending)
-    await provider.executeRunnerSession(workspace: ws);
+    await provider.executeRunnerSession(collections: reqProvider.collections, workspace: ws, variables: {});
     expect(provider.runnerItems[0].status, equals('success'));
     expect(provider.runnerItems[1].status, equals('pending'));
 
     // Re-enable and run both
     provider.setRunnerItemSelection(1, true);
-    await provider.executeRunnerSession(workspace: ws);
+    await provider.executeRunnerSession(collections: reqProvider.collections, workspace: ws, variables: {});
     expect(provider.runnerItems[0].status, equals('success'));
     expect(provider.runnerItems[1].status, equals('failure'));
     expect(provider.runnerItems[1].errorMessage, contains('HTTP Status: 500'));

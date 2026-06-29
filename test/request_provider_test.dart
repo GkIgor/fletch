@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fletch/core/app_config.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/http_method.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
 import 'package:fletch/providers/request_provider.dart';
 
 void main() {

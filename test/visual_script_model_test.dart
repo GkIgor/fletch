@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 void main() {
   group('VisualScript & Decoupled ValueSource Polymorphic Serialization Tests', () {

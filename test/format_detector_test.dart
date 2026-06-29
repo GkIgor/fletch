@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fletch/utils/converters/format_detector.dart';
+import 'package:fletch/backend/collections/converters/format_detector.dart';
 
 void main() {
   group('FormatDetector', () {

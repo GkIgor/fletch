@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/collection_model.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 

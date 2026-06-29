@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'generator_utils.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/generator_utils.dart';
 
 class OutlineTextEditingController extends TextEditingController {
   final bool isDark;

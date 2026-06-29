@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
 
 class CollectionConfig {
   final String id;

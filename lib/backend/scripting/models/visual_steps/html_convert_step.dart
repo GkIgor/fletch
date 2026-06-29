@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class HtmlConvertStep extends VisualStep {
   String operation; // "htmlToText", "extractSelector", "extractAttributes"

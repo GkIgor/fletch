@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/widgets/key_value_editor.dart';
@@ -9,14 +9,14 @@ import 'package:fletch/widgets/response_viewer.dart';
 import 'package:fletch/widgets/interpolated_text_controller.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/widgets/http_auth_editor.dart';
-import 'package:fletch/utils/auth_resolver.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/utils/script_executor.dart';
+import 'package:fletch/backend/requests/auth/auth_resolver.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/scripting/execution/script_executor.dart';
 import 'package:fletch/widgets/script_selector_widget.dart';
 import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';
-import 'package:fletch/utils/script_compiler.dart';
+import 'package:fletch/backend/scripting/compiler/script_compiler.dart';
 
 class RequestEditor extends StatefulWidget {
   final HttpRequest request;

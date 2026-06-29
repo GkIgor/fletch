@@ -6,15 +6,16 @@ import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fletch/core/app_config.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_auth.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/runner_provider.dart';
 import 'package:fletch/providers/workspace_provider.dart';
-import 'package:fletch/services/http_service.dart';
-import 'package:fletch/utils/auth_resolver.dart';
+import 'package:fletch/backend/requests/services/http_service.dart';
+import 'package:fletch/backend/requests/auth/auth_resolver.dart';
 import 'package:fletch/widgets/interpolated_text_controller.dart';
 import 'package:fletch/widgets/runner_view.dart';
 
@@ -364,6 +365,7 @@ void main() {
     late Dio dio;
     late HttpService httpService;
     late RequestProvider provider;
+    late RunnerProvider runnerProvider;
     late RecordingInterceptor recorder;
     final workspaceId = 'test-ws-runner';
 
@@ -387,6 +389,7 @@ void main() {
       dio.interceptors.add(recorder);
       httpService = HttpService(dio: dio);
       provider = RequestProvider(httpService: httpService);
+      runnerProvider = RunnerProvider(httpService: httpService);
     });
 
     test('Executing batch runner resolves correct auth configurations and substitutes variables', () async {
@@ -453,10 +456,11 @@ void main() {
       await provider.addCollection(colB);
       await provider.addCollection(colC);
 
-      provider.startWorkspaceRun();
-      expect(provider.runnerItems.length, equals(4));
+      runnerProvider.startWorkspaceRun(provider.collections);
+      expect(runnerProvider.runnerItems.length, equals(4));
 
-      await provider.executeRunnerSession(
+      await runnerProvider.executeRunnerSession(
+        collections: provider.collections,
         variables: variables,
         workspace: WorkspaceModel(
           name: 'test-runner-ws',
@@ -465,10 +469,10 @@ void main() {
         ),
       );
 
-      expect(provider.runnerItems[0].status, equals('success')); // Req A
-      expect(provider.runnerItems[1].status, equals('success')); // Req B1
-      expect(provider.runnerItems[2].status, equals('success')); // Req B2
-      expect(provider.runnerItems[3].status, equals('success')); // Req C
+      expect(runnerProvider.runnerItems[0].status, equals('success')); // Req A
+      expect(runnerProvider.runnerItems[1].status, equals('success')); // Req B1
+      expect(runnerProvider.runnerItems[2].status, equals('success')); // Req B2
+      expect(runnerProvider.runnerItems[3].status, equals('success')); // Req C
 
       expect(recorder.requests.length, equals(4));
 
@@ -492,6 +496,7 @@ void main() {
     testWidgets('RunnerView displays interpolated URL in request list and detail pane', (WidgetTester tester) async {
       final workspaceProvider = WorkspaceProvider();
       final requestProvider = RequestProvider();
+      final runnerProvider = RunnerProvider();
 
       // 1. Create a workspace with an active environment containing a variable
       final ws = WorkspaceModel(
@@ -539,7 +544,7 @@ void main() {
         await requestProvider.loadCollections(ws.id);
       });
 
-      requestProvider.startCollectionRun(col);
+      runnerProvider.startCollectionRun(col, requestProvider.collections);
 
       // 3. Pump the RunnerView inside the provider scope
       await tester.pumpWidget(
@@ -547,6 +552,7 @@ void main() {
           providers: [
             ChangeNotifierProvider<WorkspaceProvider>.value(value: workspaceProvider),
             ChangeNotifierProvider<RequestProvider>.value(value: requestProvider),
+            ChangeNotifierProvider<RunnerProvider>.value(value: runnerProvider),
           ],
           child: const MaterialApp(
             home: Scaffold(

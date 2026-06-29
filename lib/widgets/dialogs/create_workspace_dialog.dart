@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 
 class CreateWorkspaceDialog extends StatefulWidget {

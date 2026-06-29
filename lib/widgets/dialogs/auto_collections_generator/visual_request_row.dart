@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'generator_models.dart';
-import 'generator_utils.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/generator_models.dart';
+import 'package:fletch/widgets/dialogs/auto_collections_generator/generator_utils.dart';
 
 class VisualRequestRow extends StatelessWidget {
   final RequestConfig request;

@@ -1,5 +1,5 @@
 import 'dart:math';
-import '../../models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 double getNodeHeight(VisualStep node) {
   if (node is SwitchStep) {

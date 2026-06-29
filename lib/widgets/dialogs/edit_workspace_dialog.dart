@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/workspace_models.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
 import 'package:fletch/providers/workspace_provider.dart';
-import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/widgets/http_auth_editor.dart';
 import 'package:fletch/widgets/script_selector_widget.dart';
 import 'package:fletch/widgets/dialogs/script_manager_dialog.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/widgets/dialogs/move_request_dialog.dart';

@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../models/visual_script.dart';
-import '../../theme/app_colors.dart';
-import '../../utils/graph_validator.dart';
-import '../../utils/script_compiler.dart';
-import '../dialogs/node_selector_dialog.dart';
-import 'flowchart_layout_manager.dart';
-import 'flowchart_painter.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/backend/scripting/compiler/graph_validator.dart';
+import 'package:fletch/backend/scripting/compiler/script_compiler.dart';
+import 'package:fletch/widgets/dialogs/node_selector_dialog.dart';
+import 'package:fletch/widgets/script_steps/flowchart_layout_manager.dart';
+import 'package:fletch/widgets/script_steps/flowchart_painter.dart';
 
 class FlowchartCanvas extends StatefulWidget {
   final VisualScript script;

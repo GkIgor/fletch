@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:fletch/backend/requests/pipelines/contracts/pipeline_context.dart';
 import 'package:fletch/backend/requests/pipelines/contracts/request_step.dart';
-import 'package:fletch/utils/script_executor.dart';
-import 'package:fletch/utils/script_execution_context.dart';
+import 'package:fletch/backend/scripting/execution/script_executor.dart';
+import 'package:fletch/backend/scripting/execution/script_execution_context.dart';
 
 class ExecutePostScriptsStep implements IRequestStep {
   @override

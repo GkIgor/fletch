@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:fletch/models/visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class StartStepForm extends StatelessWidget {
   final String nodeId;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/backend/requests/models/http_auth.dart';
 import 'package:fletch/providers/request_provider.dart';
 import 'package:fletch/providers/workspace_provider.dart';
 import 'package:fletch/theme/app_colors.dart';

@@ -1,21 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:fletch/models/http_request.dart';
-import 'package:fletch/models/http_response.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/runner_item_state.dart';
-
-import 'package:fletch/repository/collection_repository.dart';
-import 'package:fletch/repository/workspace_repository.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
+import 'package:fletch/backend/requests/models/http_response.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/collections/repository/collection_repository.dart';
+import 'package:fletch/backend/workspace/repository/workspace_repository.dart';
 import 'package:fletch/theme/app_colors.dart';
-import 'package:fletch/services/http_service.dart';
-import 'package:fletch/utils/converters/postman_converter.dart';
-import 'package:fletch/utils/converters/insomnia_converter.dart';
-import 'package:fletch/utils/auth_resolver.dart';
-import 'package:fletch/models/workspace_models.dart';
-import 'package:fletch/utils/script_executor.dart';
-import 'package:fletch/utils/script_compiler.dart';
+import 'package:fletch/backend/requests/services/http_service.dart';
+import 'package:fletch/backend/collections/converters/postman_converter.dart';
+import 'package:fletch/backend/collections/converters/insomnia_converter.dart';
+import 'package:fletch/backend/workspace/models/workspace.dart';
+import 'package:fletch/backend/scripting/execution/script_execution_context.dart';
 import 'package:fletch/backend/requests/use_cases/execute_request.dart';
 
 class RequestProvider with ChangeNotifier {
@@ -41,16 +37,6 @@ class RequestProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> _corruptedCollections = [];
 
-  // Runner state
-  bool _isRunnerActive = false;
-  bool _isRunningWorkspace = false;
-  RequestCollection? _runnerCollection;
-  List<RunnerItemState> _runnerItems = [];
-  bool _isCurrentlyRunning = false;
-  int _runnerCurrentIndex = -1;
-  int _runnerDelayMs = 0;
-  RunnerItemState? _selectedRunnerItem;
-  bool _stopExecution = false;
 
   List<RequestCollection> get collections => _collections;
   List<Map<String, dynamic>> get corruptedCollections => _corruptedCollections;
@@ -60,14 +46,6 @@ class RequestProvider with ChangeNotifier {
   ExecutionContext? get lastExecutionContext => _lastExecutionContext;
   String get searchFilter => _searchFilter;
 
-  bool get isRunnerActive => _isRunnerActive;
-  bool get isRunningWorkspace => _isRunningWorkspace;
-  RequestCollection? get runnerCollection => _runnerCollection;
-  List<RunnerItemState> get runnerItems => _runnerItems;
-  bool get isCurrentlyRunning => _isCurrentlyRunning;
-  int get runnerCurrentIndex => _runnerCurrentIndex;
-  int get runnerDelayMs => _runnerDelayMs;
-  RunnerItemState? get selectedRunnerItem => _selectedRunnerItem;
 
   static const Map<String, IconData> icons = {
     'folder': Icons.folder_rounded,
@@ -567,242 +545,7 @@ class RequestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Runner Actions
-  List<HttpRequest> _gatherRequestsRecursively(String collectionId) {
-    final List<HttpRequest> gathered = [];
 
-    final collectionIdx = _collections.indexWhere((c) => c.id == collectionId);
-    if (collectionIdx != -1) {
-      gathered.addAll(_collections[collectionIdx].requests);
-    }
-
-    final children = _collections
-        .where((c) => c.parentId == collectionId)
-        .toList();
-    children.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-
-    for (var child in children) {
-      gathered.addAll(_gatherRequestsRecursively(child.id));
-    }
-
-    return gathered;
-  }
-
-  List<HttpRequest> _gatherWorkspaceRequests() {
-    final List<HttpRequest> gathered = [];
-    final rootCollections = _collections
-        .where((c) => c.parentId == null)
-        .toList();
-    rootCollections.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-
-    for (var root in rootCollections) {
-      gathered.addAll(_gatherRequestsRecursively(root.id));
-    }
-
-    return gathered;
-  }
-
-  void startCollectionRun(RequestCollection collection) {
-    _isRunnerActive = true;
-    _isRunningWorkspace = false;
-    _runnerCollection = collection;
-
-    final requests = _gatherRequestsRecursively(collection.id);
-    _runnerItems = requests
-        .map((req) => RunnerItemState(request: req))
-        .toList();
-    _isCurrentlyRunning = false;
-    _runnerCurrentIndex = -1;
-    _selectedRunnerItem = null;
-    notifyListeners();
-  }
-
-  void startWorkspaceRun() {
-    _isRunnerActive = true;
-    _isRunningWorkspace = true;
-    _runnerCollection = null;
-
-    final requests = _gatherWorkspaceRequests();
-    _runnerItems = requests
-        .map((req) => RunnerItemState(request: req))
-        .toList();
-    _isCurrentlyRunning = false;
-    _runnerCurrentIndex = -1;
-    _selectedRunnerItem = null;
-    notifyListeners();
-  }
-
-  void closeRunner() {
-    _isRunnerActive = false;
-    _isRunningWorkspace = false;
-    _runnerCollection = null;
-    _runnerItems = [];
-    _isCurrentlyRunning = false;
-    _runnerCurrentIndex = -1;
-    _selectedRunnerItem = null;
-    notifyListeners();
-  }
-
-  void setRunnerDelay(int ms) {
-    _runnerDelayMs = ms;
-    notifyListeners();
-  }
-
-  void selectRunnerItem(RunnerItemState? item) {
-    _selectedRunnerItem = item;
-    notifyListeners();
-  }
-
-  void setRunnerItemSelection(int index, bool selected) {
-    if (index >= 0 && index < _runnerItems.length) {
-      _runnerItems[index].isSelected = selected;
-      notifyListeners();
-    }
-  }
-
-  void toggleAllRunnerItems(bool selected) {
-    for (var item in _runnerItems) {
-      item.isSelected = selected;
-    }
-    notifyListeners();
-  }
-
-  void stopRunnerExecution() {
-    _stopExecution = true;
-    _isCurrentlyRunning = false;
-    notifyListeners();
-  }
-
-  Future<void> executeRunnerSession({
-    Map<String, String>? variables,
-    WorkspaceModel? workspace,
-  }) async {
-    if (_isCurrentlyRunning) return;
-    _isCurrentlyRunning = true;
-    _stopExecution = false;
-
-    for (var item in _runnerItems) {
-      if (item.isSelected) {
-        item.reset();
-      }
-    }
-    notifyListeners();
-
-    bool isFirst = true;
-    final ws = workspace ?? WorkspaceModel(name: 'Default WS');
-    final activeVariables = Map<String, String>.from(variables ?? {});
-
-    for (int i = 0; i < _runnerItems.length; i++) {
-      if (_stopExecution) break;
-      final item = _runnerItems[i];
-      if (!item.isSelected) continue;
-
-      if (!isFirst && _runnerDelayMs > 0) {
-        await Future.delayed(Duration(milliseconds: _runnerDelayMs));
-        if (_stopExecution) break;
-      }
-      isFirst = false;
-
-      _runnerCurrentIndex = i;
-      item.status = 'running';
-      notifyListeners();
-
-      try {
-        // 1. Pre-Request Scripts execution inside Runner session
-        final context = await ScriptExecutor.executePreRequest(
-          request: item.request,
-          collections: _collections,
-          workspace: ws,
-          initialVariables: activeVariables,
-        );
-
-        final runRequest = item.request.copyWith(
-          url: context.url,
-          body: context.body,
-          headers: context.headers,
-          queryParams: context.queryParams,
-        );
-
-        final resolvedAuth = AuthResolver.resolveAuth(
-          request: runRequest,
-          collections: _collections,
-          workspaceAuth: ws.auth,
-        );
-
-        // 2. Dispatch real HTTP call
-        final response = await _httpService.send(
-          runRequest,
-          variables: context.variables,
-          resolvedAuth: resolvedAuth,
-        );
-        item.response = response;
-
-        // Map response headers to key/value pairs safely (supporting list or raw values)
-        final Map<String, String> responseHeaders = response.headers.map((
-          k,
-          v,
-        ) {
-          if (v is List) {
-            return MapEntry(k, v.join(', '));
-          }
-          return MapEntry(k, v.toString());
-        });
-
-        // 3. Post-Response Scripts execution inside Runner session
-        await ScriptExecutor.executePostResponse(
-          request: item.request,
-          collections: _collections,
-          workspace: ws,
-          context: context,
-          statusCode: response.statusCode,
-          responseBody: response.body,
-          responseHeaders: responseHeaders,
-        );
-
-        // Keep local runner environment variables updated with dynamically set scripts outputs
-        activeVariables.addAll(context.variables);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          item.status = 'success';
-        } else {
-          item.status = 'failure';
-          item.errorMessage = 'HTTP Status: ${response.statusCode}';
-        }
-      } catch (e) {
-        item.status = 'failure';
-        item.errorMessage = e.toString().replaceAll('Exception: ', '');
-      }
-
-      notifyListeners();
-    }
-
-    // Save final state of variables updated during batch run back to workspace environment
-    if (workspace != null && workspace.environments.isNotEmpty) {
-      final activeEnvId = workspace.selectedEnvironmentId;
-      if (activeEnvId != null) {
-        final envIdx = workspace.environments.indexWhere(
-          (e) => e.id == activeEnvId,
-        );
-        if (envIdx != -1) {
-          activeVariables.forEach((key, val) {
-            workspace.environments[envIdx].variables[key] = WorkspaceSecretKey(
-              value: val,
-            );
-          });
-          try {
-            await WorkspaceRepository().save(workspace);
-          } catch (saveError) {
-            debugPrint(
-              'Aviso: Não foi possível salvar o Workspace no disco durante runner: $saveError',
-            );
-          }
-        }
-      }
-    }
-
-    _isCurrentlyRunning = false;
-    notifyListeners();
-  }
 
   String _interpolate(String value, Map<String, String>? variables) {
     if (variables == null || variables.isEmpty) return value;

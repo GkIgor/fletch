@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:dotted_border/dotted_border.dart';
-import 'package:fletch/models/collection_model.dart';
-import 'package:fletch/models/http_method.dart';
-import 'package:fletch/models/http_request.dart';
+import 'package:fletch/backend/collections/models/collection.dart';
+import 'package:fletch/backend/requests/models/http_method.dart';
+import 'package:fletch/backend/requests/models/http_request.dart';
 import 'package:fletch/providers/request_provider.dart';
+import 'package:fletch/providers/runner_provider.dart';
 import 'package:fletch/theme/app_colors.dart';
 import 'package:fletch/widgets/dialogs/manage_collection.dart';
 import 'package:fletch/widgets/dialogs/rename_request_dialog.dart';
@@ -302,7 +303,10 @@ class _CollectionFolderState extends State<CollectionFolder> {
 
     return [
       PopupMenuItem(
-        onTap: () => provider.startCollectionRun(widget.collection),
+        onTap: () {
+          Provider.of<RunnerProvider>(context, listen: false)
+              .startCollectionRun(widget.collection, provider.collections);
+        },
         child: Row(
           children: [
             Icon(Icons.play_circle_outline_rounded, size: 16, color: color),

@@ -1,4 +1,4 @@
-import 'runner_item_state.dart';
+import 'package:fletch/backend/runner/models/runner_item_state.dart';
 
 class RunnerSession {
   final String id;

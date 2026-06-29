@@ -1,4 +1,4 @@
-import '../visual_script.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
 
 class CryptoStep extends VisualStep {
   String operation; // "hashMD5", "hashSHA256", "hmacSHA256", "encryptAES", "decryptAES"

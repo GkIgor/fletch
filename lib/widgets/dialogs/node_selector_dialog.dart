@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/visual_script.dart';
-import '../../theme/app_colors.dart';
-import '../../utils/graph_validator.dart';
+import 'package:fletch/backend/scripting/models/visual_script.dart';
+import 'package:fletch/theme/app_colors.dart';
+import 'package:fletch/backend/scripting/compiler/graph_validator.dart';
 
 class NodeSelectorResult {
   final VisualStepType? type;
