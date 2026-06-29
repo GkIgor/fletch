@@ -8,7 +8,6 @@ import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/providers/request_provider.dart';
-import 'package:fletch/widgets/body_editor.dart';
 import 'package:fletch/widgets/dialogs/auto_collections_generator_dialog.dart';
 import 'package:fletch/widgets/dialogs/payload_bulk_importer_dialog.dart';
 

@@ -10,7 +10,6 @@ import 'package:fletch/widgets/code_highlight_controller.dart';
 import 'package:fletch/widgets/code_input_formatter.dart';
 import 'package:fletch/widgets/interpolated_text_controller.dart';
 
-enum BodyType { none, json, formData, xml, binary }
 
 class BodyEditor extends StatefulWidget {
   final HttpRequest request;

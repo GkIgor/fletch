@@ -2,7 +2,6 @@ import 'package:uuid/uuid.dart';
 import 'package:fletch/models/collection_model.dart';
 import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
-import 'package:fletch/widgets/body_editor.dart';
 
 class PostmanConverter {
   static List<RequestCollection> importCollection(Map<String, dynamic> postmanJson, String workspaceId) {

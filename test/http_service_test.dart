@@ -5,7 +5,6 @@ import 'package:fletch/models/http_method.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_auth.dart';
 import 'package:fletch/services/http_service.dart';
-import 'package:fletch/widgets/body_editor.dart';
 
 void main() {
   group('HttpService Tests', () {

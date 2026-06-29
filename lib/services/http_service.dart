@@ -4,11 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:fletch/models/http_request.dart';
 import 'package:fletch/models/http_response.dart';
 import 'package:path/path.dart' as p;
-import 'package:fletch/widgets/body_editor.dart';
 import 'package:fletch/models/http_auth.dart';
+import 'package:fletch/core/contracts/http_client.dart';
 import 'package:fletch/utils/oauth1_helper.dart';
 
-class HttpService {
+class HttpService implements IHttpClient {
   final Dio _dio;
 
   HttpService({Dio? dio}) : _dio = dio ?? Dio(
@@ -29,6 +29,7 @@ class HttpService {
     });
   }
 
+  @override
   Future<HttpResponse> send(HttpRequest request, {Map<String, String>? variables, HttpAuth? resolvedAuth}) async {
     final stopwatch = Stopwatch()..start();
 

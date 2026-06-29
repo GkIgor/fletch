@@ -16,6 +16,7 @@ import 'package:fletch/utils/auth_resolver.dart';
 import 'package:fletch/models/workspace_models.dart';
 import 'package:fletch/utils/script_executor.dart';
 import 'package:fletch/utils/script_compiler.dart';
+import 'package:fletch/backend/requests/use_cases/execute_request.dart';
 
 class RequestProvider with ChangeNotifier {
   final CollectionRepository _repository = CollectionRepository();
@@ -185,84 +186,20 @@ class RequestProvider with ChangeNotifier {
 
     try {
       final ws = workspace ?? WorkspaceModel(name: 'Default WS');
-      final initialVars = variables ?? {};
+      final executeRequestUseCase = ExecuteRequest(
+        httpClient: _httpService,
+        workspaceRepository: WorkspaceRepository(),
+      );
 
-      // 1. Execute Pre-Request Scripts (Modifies request parameters, headers, URL, and body)
-      final context = await ScriptExecutor.executePreRequest(
+      final pipelineContext = await executeRequestUseCase(
         request: request,
         collections: _collections,
         workspace: ws,
-        initialVariables: initialVars,
-      );
-      _lastExecutionContext = context;
-      notifyListeners();
-
-      // Create a modified request instance with context-interpolated details
-      final runRequest = request.copyWith(
-        url: context.url,
-        body: context.body,
-        headers: context.headers,
-        queryParams: context.queryParams,
+        variables: variables,
       );
 
-      final resolvedAuth = AuthResolver.resolveAuth(
-        request: runRequest,
-        collections: _collections,
-        workspaceAuth: ws.auth,
-      );
-
-      // 2. Dispatches actual Dio HTTP call
-      final response = await _httpService.send(
-        runRequest,
-        variables: context.variables,
-        resolvedAuth: resolvedAuth,
-      );
-      _currentResponse = response;
-
-      // Map response headers to key/value pairs safely (supporting list or raw values)
-      final Map<String, String> responseHeaders = response.headers.map((k, v) {
-        if (v is List) {
-          return MapEntry(k, v.join(', '));
-        }
-        return MapEntry(k, v.toString());
-      });
-
-      // 3. Execute Post-Response Scripts (Validates assertions & extracts variables)
-      await ScriptExecutor.executePostResponse(
-        request: request,
-        collections: _collections,
-        workspace: ws,
-        context: context,
-        statusCode: response.statusCode,
-        responseBody: response.body is String
-            ? response.body
-            : jsonEncode(response.body),
-        responseHeaders: responseHeaders,
-      );
-
-      // Propagate variables updated during scripts execution back to the active environment
-      if (workspace != null && workspace.environments.isNotEmpty) {
-        final activeEnvId = workspace.selectedEnvironmentId;
-        if (activeEnvId != null) {
-          final envIdx = workspace.environments.indexWhere(
-            (e) => e.id == activeEnvId,
-          );
-          if (envIdx != -1) {
-            context.variables.forEach((key, val) {
-              workspace.environments[envIdx].variables[key] =
-                  WorkspaceSecretKey(value: val);
-            });
-            // Persist the workspace changes with the newly generated variables safely
-            try {
-              await WorkspaceRepository().save(workspace);
-            } catch (saveError) {
-              debugPrint(
-                'Aviso: Não foi possível salvar o Workspace no disco: $saveError',
-              );
-            }
-          }
-        }
-      }
+      _currentResponse = pipelineContext.response;
+      _lastExecutionContext = pipelineContext.scriptContext;
     } catch (e) {
       debugPrint('Erro inesperado ao enviar requisição ou rodar scripts: $e');
       final errBody = e.toString().replaceAll('Exception: ', '');
@@ -949,10 +886,12 @@ class RequestProvider with ChangeNotifier {
       }
 
       if (interpolatedGrantType == 'password') {
-        if (interpolatedUsername.isNotEmpty)
+        if (interpolatedUsername.isNotEmpty) {
           data['username'] = interpolatedUsername;
-        if (interpolatedPassword.isNotEmpty)
+        }
+        if (interpolatedPassword.isNotEmpty) {
           data['password'] = interpolatedPassword;
+        }
       }
 
       final Map<String, dynamic> headers = {
